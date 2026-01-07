@@ -1,0 +1,180 @@
+<html>
+<head>
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var formTitleId		= -1;
+var formId			= -1;
+var formButtonsId	= -1;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.initPage 	();
+	createPageTitle    	();
+	showForm 			();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitle																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitle ()
+{
+	formTitleId		= pageObj.addPageTitle ("שפות נתמכות", "Languages");
+	pageObj.showComponent (formTitleId);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function showForm ()
+{
+	serverObj.sendRequest("globalParms.getLangs", undefined, "showForm_continue");
+}
+
+function showForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.setFormXml (formId, responseXml);
+
+	// ------------------------------------------------------------------------------------ 
+
+	frameId = pageObj.addFormFrame (formId, "שפות", "Languages"); 
+
+	fields = new Array();
+
+	hidden =  {type		 : "hidden",				
+			   dataFld	 : "langs"}
+
+	field1 =  {type      : "span",					textHEB 	 : "שפות נתמכות",
+			   spanData  : 1,						textENG      : "Supported Languages",
+			   dataFld   : "langsText",				width     	 : "280"}
+
+	// build other langs options
+	var selectOptions 	= new selectOptionsObj();
+	langsNode = responseXml.getElementsByTagName("otherLangs").item(0);
+	if (langsNode == null)
+	{
+		selectOptions.addOption ("", "אין שפות נוספות", "No other languages");
+	}
+	else
+	{
+		for (i=0; i < langsNode.childNodes.length; i++)
+		{
+			var currNode    = langsNode.childNodes[i];
+
+			var optionId  	= commonGetInnerData (currNode, "lang");
+			var optionText 	= commonGetInnerData (currNode, "name");
+
+			selectOptions.addOption (optionId, optionText, optionText);
+		}
+	}
+	field2 =  {type		 : "select",				textHEB		 : "שפה חדשה",
+			   spanData	 : 1,						textENG	     : "New language",
+			   dataFld   : "newLang",				width		 : "290",
+			   options	 : selectOptions.getOptions()}
+
+   	fields.push (field1, field2, hidden);
+	
+	fieldsWidths = {HEB : new Array (126,300),
+					ENG : new Array (126,300)};
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId, false);
+
+	pageObj.showComponent (formId);
+
+	createFormButtons ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createFormButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createFormButtons ()
+{
+	btn1	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + formId + ")"}
+
+    btn2	= {type			: "",
+			   textHEB		: "הוספת שפה",
+			   textENG		: "Add language",
+			   action		: "submitForm()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+	pageObj.showComponent (formButtonsId);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm ()
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+	serverObj.addTag ("update", "langs");
+
+	serverObj.sendRequest("globalParms.updateGlobalParms", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		commonMsgBox ("info", "הנתונים נשמרו בהצלחה","Data was saved successfully");
+
+		showForm ();
+
+		if (commonGetInnerData (responseXml, "loadMain") == "1")
+		{
+			top.location.reload ();
+		}
+	}
+	return true;
+}
+
+//-->
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+</html>

@@ -1,0 +1,396 @@
+<html>
+<head>
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var formTitleId		= -1;
+var formId			= -1;
+var formButtonsId	= -1;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.initPage 	();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitle    	();
+
+	createForm			();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitle																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitle ()
+{
+	formTitleId		= pageObj.addPageTitle ("הגדרות קשרי לקוחות", "CRM Configuration");
+	pageObj.showComponent (formTitleId);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function createForm ()
+{
+	serverObj.sendRequest  	 ("club.getClubConfig", undefined, "after_getClubConfig");
+
+	serverOptions_getPages 	 ("choose", "after_getPages");
+
+	serverOptions_getLayouts ("after_getLayouts");
+}
+
+var globalClubConfig;
+var globalPages;
+var globalLayouts;
+
+// ----------------------------------------------------------------------------------------
+
+function after_getClubConfig (i)
+{
+	globalClubConfig = asyncResponseXml.getResponseXml (i);
+
+	createForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getPages (options)
+{
+	globalPages = options;
+
+	createForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getLayouts (options)
+{
+	globalLayouts = options;
+
+	createForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function createForm_continue ()
+{
+
+	if (globalClubConfig == undefined || globalPages == undefined || globalLayouts == undefined) return;
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.setFormXml (formId, globalClubConfig);
+
+	var addToSuper	= "";
+	if (commonGetInnerData(globalClubConfig, "securePasswords") == "1")
+	{
+		addToSuper	= "עדכון ";
+	}
+
+	fieldsWidths = {HEB : new Array (200,220,200,220),
+					ENG : new Array (200,220,200,220)};
+	
+	var fieldWidth  = 200;
+	var fieldWidth3 = 620;
+
+	// ------------------------------------------------------------------------------------ 
+
+
+	var frameId = pageObj.addFormFrame (formId, "פרמטרים כלליים", "General parameters"); 
+
+	fields = new Array();
+
+	field1 = {type		: "select",					textHEB		 : "דף מסך הכניסה לגולשים רשומים",
+			  spanData	: 1,						textENG		 : "Members enterance page",
+			  dataFld	: "memberLoginPageId",		width	 	 : fieldWidth,
+			  options	: globalPages,				mandatory	 : false}
+
+	field2 = {type		: "select",					textHEB		 : "דף לאחר התנתקות",
+			  spanData	: 1,						textENG		 : "Member logout page",
+			  dataFld	: "afterLogoutPageId",		width	 	 : fieldWidth,
+			  options	: globalPages,				mandatory	 : false}
+
+	field3 = {type		: "select",					textHEB		 : "דף לאחר הצלחה בכניסה",
+			  spanData	: 1,						textENG		 : "Member entered successfully page",
+			  dataFld	: "afterLoginPageId",		width	 	 : fieldWidth,
+			  options	: globalPages,				mandatory	 : false}
+
+   	field4 = {type		: "select",					textHEB		 : "דף לאחר כשלון בכניסה",
+			  spanData	: 1,						textENG		 : "Login failure page",
+			  dataFld	: "afterFailedLoginPageId",	width	 	 : fieldWidth,
+			  options	: globalPages,				mandatory	 : false}
+
+	field5 = {type		: "select",					textHEB		 : "דף הודעה על הצלחת ההרשמה",
+			  spanData	: 1,						textENG		 : "Registration success page",
+			  dataFld	: "registerSuccessPageId",	width	 	 : fieldWidth,
+			  options	: globalPages,				mandatory	 : false}
+
+	field6 = {type		: "select",					textHEB		 : "דף הודעה על כשלון ההרשמה",
+			  spanData	: 1,						textENG		 : "Registration failure page",
+			  dataFld	: "registerFailedPageId",	width	 	 : fieldWidth,
+			  options	: globalPages,				mandatory	 : false}
+
+	field7 = {type		: "select",					textHEB		 : "דף הודעה על הצלחה בעדכון",
+			  spanData	: 1,						textENG		 : "Update success page",
+			  dataFld	: "updateDetailsPageId",	width	 	 : fieldWidth,
+			  options	: globalPages,				mandatory	 : false}
+
+  	field8 = {type		: "select",					textHEB		 : "דף הודעה על כשלון בעדכון",
+			  spanData	: 1,						textENG		 : "Update failure page",
+			  dataFld	: "updateFailedPageId",		width	 	 : fieldWidth,
+			  options	: globalPages,				mandatory	 : false}
+
+	field9 = {type		: "select",					textHEB		 : "דף הודעה על הצלחה בהסרה",
+			  spanData	: 1,						textENG		 : "Member removed page",
+			  dataFld	: "removeMemberPageId",		width	 	 : fieldWidth,
+			  options	: globalPages,				mandatory	 : false}
+
+	field10= {type		: "select",					textHEB		 : "דף הודעה על כשלון בהסרה",
+			  spanData	: 1,						textENG		 : "Member remove failed page",
+			  dataFld	: "removeFailedPageId",		width	 	 : fieldWidth,
+			  options	: globalPages,				mandatory	 : false}
+
+	field11=  {type      : "yesNoSelect",			textHEB		: "עבודה עם sessions",
+			   spanData  : 1,						textENG		: "Login with sessions",
+			   dataFld   : "withSessions",			width		: fieldWidth}
+
+	field12 =  {type      : "number",				textHEB 	: "תזמון מנגון Keep Alive (בשניות)",
+			   spanData  : 1,						textENG		: "Time for Keep-Alive (sec.)",
+			   dataFld   : "keepAliveInterval",		width     	: fieldWidth,
+			   maxLength : 3}
+
+	fields.push (field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12); 
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "סיסמא", "Password"); 
+
+	fields = new Array();
+
+	field1 =  {type      : "yesNoSelect",			textHEB		: "אפשר לגולש שמירת סיסמא",
+			   spanData  : 1,						textENG		: "Allow password saving",
+			   dataFld   : "allowRememberPassword",	width		: fieldWidth}
+
+	field2 =  {type      : "number",				textHEB 	: "מספר ימים לשמירת סיסמא",
+			   spanData  : 1,						textENG		: "Days to password save",
+			   dataFld   : "passwordExpiredDays",	width     	: fieldWidth,
+			   maxLength : 3,						minValue	: 1}
+
+	field3 = {type		: "select",					textHEB		: "דף הודעה על שליחת סיסמא",
+			  spanData	: 1,						textENG		: "Password sent page",
+			  dataFld	: "sendPasswordPageId",		width	 	: fieldWidth,
+			  options	: globalPages,				mandatory	: false}
+
+	field4 = {type		: "select",					textHEB		: "דף טופס החלפת סיסמא",
+			  spanData	: 1,						textENG		: "Password change page",
+			  dataFld	: "updatePasswordPageId",	width	 	: fieldWidth,
+			  options	: globalPages,				mandatory	: false}
+
+	field5 =  {type		: "yesNoSelect",			textHEB 	: "חיוב סיסמא קודמת בשינוי סיסמא",
+			   spanData :  1,						textENG 	: "Supply old password when replacing",
+			   dataFld	: "supplyOldPassword",		width		: fieldWidth}
+
+	field6 =  {type      : "number",				textHEB 	: "משך תוקף הסיסמא",
+			   spanData  : 1,						textENG		: "Days to password expire",
+			   dataFld   : "passwordChangeDays",	width     	: fieldWidth,
+			   maxLength : 3,						minValue	: 0}
+
+	field7 = {type		: "select",					textHEB		: "דף הודעה על הצלחה באיפוס",
+			  spanData	: 1,						textENG		: "Password reset success page",
+			  dataFld	: "resetPasswordSucessPageId",width	 	: fieldWidth,
+			  options	: globalPages,				mandatory	: false}
+
+	field8 = {type		: "text",					textHEB		 : addToSuper + "סיסמת על",
+			  spanData	: 1,						textENG		 : "Super password",
+			  dataFld	: "superPassword",			width	 	 : fieldWidth,
+	  		  minLength	: "6"}
+
+	fields.push (field1, field2, field3, field4, field5, field6, field7, field8); 
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "הרשמה והתחברות", "Registration & Login"); 
+
+	fields = new Array();
+
+	field1 =  {type      : "yesNoSelect",			textHEB		: "יש לבצע אימות הרשמה",
+			   spanData  : 1,						textENG		: "Verify by E-Mail",
+			   dataFld   : "confirmRegistration",	width		: fieldWidth}
+
+	field2 =  {type      : "number",				textHEB 	: "מספר שעות ארכה להרשמה",
+			   spanData  : 1,						textENG		: "Verification grace (hours)",
+			   dataFld   : "confirmGraceHours",		width     	: fieldWidth,
+			   maxLength : 3,						minValue	: 0}
+
+	field3 = {type		 : "select",				textHEB		 : "דף שגיאה בביצוע אימות הרשמה",
+			  spanData	 : 1,						textENG		 : "Verification failure page",
+			  dataFld	 : "unverifyMemberPageId",	width	 	 : fieldWidth,
+			  options	 : globalPages,				mandatory	 : false}
+
+	field4 = {type		 : "select",				textHEB		 : "דף אישור אימות הרשמה",
+			  spanData	 : 1,						textENG		 : "Verification success page",
+			  dataFld	 : "verifyMemberPageId",	width	 	 : fieldWidth,
+			  options	 : globalPages,				mandatory	 : false}
+
+	field5 =  {type      : "yesNoSelect",			textHEB		: "הפעלת מנגנון Captcha",
+			   spanData  : 3,						textENG		: "Use CAPTCHA",
+			   dataFld   : "registerCaptcha",		width		: fieldWidth}
+
+	field6 =  {type      : "number",				textHEB 	: "מספר חיבורים בו-זמנית לגולש",
+			   spanData  : 1,						textENG		: "Max sessions per member",
+			   dataFld   : "maxSessionsPerMember",	width     	: fieldWidth,
+			   maxLength : 3,						minValue	: 0}
+
+	field7 =  {type      : "number",				textHEB 	: "מקסימום מחשבים לגולש",
+			   spanData  : 1,						textENG		: "Max cookies per member",
+			   dataFld   : "maxCookiesPerMember",	width     	: fieldWidth,
+			   maxLength : 3,						minValue	: 0}
+
+	field8 =  {type      : "number",				textHEB 	: "מספר החלפות מחשבים לגולש",
+			   spanData  : 1,						textENG		: "Max switches per member",
+			   dataFld   : "maxSwitchCookiesPerMember",	
+			   										width     	: fieldWidth,
+			   maxLength : 3,						minValue	: 0}
+
+
+	fields.push (field1, field2, field3, field4, field5, field6, field7, field8);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "צור קשר", "Contact us"); 
+
+	fields = new Array();
+
+	field1 = {type			: "text",				textHEB		 : "נושא האימייל שנשלח",
+			  spanData		: 3,					textENG		 : "E-Mail subject",
+			  dataFld		: "contactEmailSubject",width	 	 : fieldWidth3}
+
+	field2 = {type			: "select",				textHEB		 : "דף חזרה בסיום שליחה",
+			  spanData		: 1,					textENG		 : "After sending page",
+			  dataFld		: "contactRedirect",	width	 	 : fieldWidth,
+			  options		: globalPages,			mandatory	 : false}
+
+	field3 =  {type      	: "yesNoSelect",		textHEB		: "הפעלת מנגנון Captcha",
+			   spanData  	: 1,					textENG		: "Use CAPTCHA",
+			   dataFld   	: "contactCaptcha",		width		: fieldWidth}
+
+	fields.push (field1, field2, field3); 
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "שליחת דוא\"ל", "Send Emails"); 
+
+	fields = new Array();
+
+	field1 = {type			: "email",				  textHEB	 : "אימייל לבדיקה לפני שליחה",
+			  spanData		: 3,					  textENG	 : "E-Mail for preview",
+			  dataFld		: "emailsTestingEmail",   width	 	 : fieldWidth3}
+
+	field2 = {type			: "select",				  textHEB	 : "תבנית ניוזלטר",
+			  spanData		: 1,					  textENG	 : "Newsletter layout",
+			  dataFld		: "defaultMailingLayout", width	 	 : fieldWidth,
+			  options		: globalLayouts}
+
+	fields.push (field1, field2); 
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId);
+
+	pageObj.showComponent (formId);
+
+	createFormButtons 	  ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createFormButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createFormButtons ()
+{
+	btn1	= {type			: "update",
+			   action		: "submitForm()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+	pageObj.showComponent (formButtonsId);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm ()
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	serverObj.sendRequest("club.updateClubConfig", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		commonMsgBox ("info", "הנתונים נשמרו בהצלחה","Data was saved successfully");
+	}
+	return true;
+}
+
+//-->
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+</html>
+
+
+

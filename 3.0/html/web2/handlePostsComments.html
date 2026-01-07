@@ -1,0 +1,489 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray			= commonGetGlobalData ("langArray");
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var showTitleId			= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+
+var idCol				= {textHEB	: "קוד", 		textENG	: "", xmlTag	: "id"			}
+var	itemCol				= {textHEB	: "רשומת בלוג", textENG	: "", xmlTag	: "itemName"	}
+var  userNameCol		= {textHEB	: "שם השולח", 	textENG	: "", xmlTag	: "userName"	}
+var	titleCol			= {textHEB	: "כותרת/נושא", textENG	: "", xmlTag	: "title"		}
+var	statusCol			= {textHEB	: "סטטוס", 		textENG	: "", xmlTag	: "status"		}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();	
+	addSearchSection    ();	
+	createDataTable     ();	
+	createTableButtons  ();	
+	createSearchSection ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId	 = pageObj.addPageTitle    ("ניהול הערות רשומות בלוג",  	"");
+	showTitleId	 = pageObj.addPageSubTitle ("פרטי הערה",					"");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+var statusOptions = new selectOptionsObj();
+statusOptions.addOption ("" , 	  	  "", 	   	 		"");
+statusOptions.addOption ("new", 	  "הערות חדשות",  	"");
+statusOptions.addOption ("approved",  "הערות שאושרו", 	"");
+statusOptions.addOption ("rejected",  "הערות שנדחו", 	"");
+
+var globalPosts;
+
+	  
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	serverOptions_getBlogsPosts(true, "createSearchSection_continue");
+}
+
+function createSearchSection_continue (options)
+{
+	globalPosts = options;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	field1 = {type      : "select",					 textHEB		: statusCol.textHEB,
+			  spanData  : 1,						 textENG		: statusCol.textENG,
+			  dataFld   : statusCol.xmlTag,			 width   		: 120,
+			  mandatory : false,				 	 defaultValue	: "new",
+			  options	: statusOptions.getOptions()}
+
+	field2 = {type      : "select",				 	 textHEB		: itemCol.textHEB,
+			  spanData  : 1,						 textENG	    : itemCol.textENG,
+			  dataFld   : "itemId",					 width   	 	: 220,
+			  mandatory : false,					 defaultValue 	: commonGetGlobalData("globalBlogPostId"),
+			  options	: globalPosts}
+
+  	fields.push (field1, field2);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(50,150,80,width),
+					ENG : new Array(50,150,80,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "report",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+
+	loadData ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,			widthHEB 	: 60,
+				   textENG	: idCol.textENG,			widthENG 	: 60,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: itemCol.textHEB,			widthHEB 	: 200,
+				   textENG	: itemCol.textENG,			widthENG 	: 200,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : itemCol.xmlTag}
+		   
+	column3		= {textHEB	: userNameCol.textHEB,		widthHEB 	: 150,
+				   textENG	: userNameCol.textENG,		widthENG 	: 150,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : userNameCol.xmlTag}
+		   
+	column4		= {textHEB	: titleCol.textHEB,			widthHEB 	: 200,
+				   textENG	: titleCol.textENG,			widthENG 	: 200,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : titleCol.xmlTag}
+		   
+	column5		= {textHEB	: statusCol.textHEB,		widthHEB 	: 90,
+				   textENG	: statusCol.textENG,		widthENG 	: 90,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : statusCol.xmlTag+"Text"}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 350, 250);
+
+	// ------------------------------------------------------------------------------------
+
+	data1   	= {textHEB  : "הערה",       xmlTag   : "feedback",
+				   textENG  : "",			spanData : 1}
+
+	moreDataCols = new Array(data1);
+
+   	moreDataWidths = {HEB : new Array (90,"*"),
+    				  ENG : new Array (90,"*")};
+	
+	pageObj.addTableExtension (tableId, moreDataWidths, moreDataCols);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "show",
+			   action		: "openForm()"}
+
+	btn2	= {type			: "",
+			   textHEB		: "אישור הערה",
+			   action		: "handleFeedback('approved')"}
+
+	btn3	= {type			: "",
+			   textHEB		: "דחיית הערה",
+			   action		: "handleFeedback('rejected')"}
+
+	btn4	= {type			: "",
+			   textHEB		: "מחיקת הערה",
+			   action		: "handleFeedback('delete')"}
+
+	btn5	= {type			: "",
+			   textHEB		: "חזרה לרשומות",
+			   action		: "goBackToPostsPage('delete')"}
+
+	btn6	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2, btn3), new Array(btn4), new Array(btn5), new Array(btn6));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (showTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "show")
+	{
+		// hide table
+		pageObj.hideComponent (pageTitleId);
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (showTitleId);
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	if (!pageObj.validateForm (searchFormId)) return false;
+
+	serverObj.setXml (pageObj.getFormXml(searchFormId));
+
+	serverObj.sendRequest("feedbacks.getPostComments", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay ("report");
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm ()
+{
+	if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור הערה");
+		return false;
+	}
+
+	serverObj.cleanRequest ();
+	serverObj.addTag	   (idCol.xmlTag, pageObj.getSelectedValueOf (tableId, idCol.xmlTag));
+	serverObj.sendRequest("feedbacks.getPostCommentDetails", undefined, "openForm_continue");
+}
+
+function openForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(120,100,60,160),
+					ENG : new Array(120,100,60,160)}
+
+	var fieldWidth  = 150;
+	var fieldWidth2 = 425;
+
+	var frameId = pageObj.addFormFrame (formId, "פרטי הגולש", ""); 
+
+	hidden = {type			: "hidden",					dataFld		 : idCol.xmlTag}
+
+  	field1 = {type			: "span",					textHEB		 : userNameCol.textHEB,
+			  spanData		: 1,						textENG		 : userNameCol.textENG,
+			  dataFld		: userNameCol.xmlTag,		width	 	 : fieldWidth}
+			  
+  	field2 = {type			: "span",					textHEB		 : "עיר",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "userCity",				width	 	 : fieldWidth}
+
+  	field3 = {type			: "span",					textHEB		 : "E-Mail",
+			  spanData		: 3,						textENG		 : "",
+			  dataFld		: "userEmail",				width	 	 : fieldWidth}
+
+	fields = new Array(hidden, field1, field2, field3);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "פרטי הערה", ""); 
+
+  	field1 = {type			: "span",					textHEB		 : itemCol.textHEB,
+			  spanData		: 3,						textENG		 : itemCol.textENG,
+			  dataFld		: itemCol.xmlTag}
+			  
+  	field2 = {type			: "span",					textHEB		 : titleCol.textHEB,
+			  spanData		: 3,						textENG		 : titleCol.textENG,
+			  dataFld		: titleCol.xmlTag}
+			  
+	field3 = {type			: "span",					textHEB		 : "הערה",
+			  spanData		: 3,						textENG		 : "",
+			  dataFld		: "feedback",				width	 	 : fieldWidth2}
+
+	fields = new Array(field1, field2, field3);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.setFormXml (formId, responseXml);
+	
+	pageObj.generateForm  (formId);
+
+	createEditFormButtons ();
+
+	handleDisplay 		  ("show");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons ()
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+var global_feedbackStatus;
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleFeedback																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function handleFeedback (feedbackStatus) 
+{
+	global_feedbackStatus = feedbackStatus;
+
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור הערה", "Choose a row");
+		return false;
+	}
+
+	if (commonGetGlobalData("guiLang") == "ENG")
+	{
+		if (feedbackStatus == "approved")	statusText = "approve";
+		if (feedbackStatus == "rejected")	statusText = "deny";
+		if (feedbackStatus == "delete")		statusText = "delete";
+	} 
+	else 
+	{
+		if (feedbackStatus == "approved")	statusText = "אישור";
+		if (feedbackStatus == "rejected")	statusText = "דחיית";
+		if (feedbackStatus == "delete")		statusText = "מחיקת";
+	}
+
+	confirm(statusText + " ההערה", "to " + statusText + " comment", "handleFeedback_confirm");
+}
+
+function handleFeedback_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+	serverObj.addTag	("newStatus",  global_feedbackStatus);
+	
+	serverObj.sendRequest("feedbacks.handleFeedback", undefined, "handleFeedback_continue");
+}
+
+function handleFeedback_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* goBackToPostsPage																		*/
+/* ---------------------------------------------------------------------------------------- */
+function goBackToPostsPage ()
+{
+	window.location.replace ("handleBlogsPosts.html");
+}
+
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

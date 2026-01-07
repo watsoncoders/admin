@@ -1,0 +1,933 @@
+body
+{
+    background-color: #E7E7E7;
+	margin: 0px;
+	font-family: arial;
+	font-size: 14px;
+	color: #6D6D6D;
+	height: 560px;
+}
+
+table 
+{ 
+	border-collapse: collapse; 
+	border: 0px; 
+	border-spacing: 0px !important;
+}
+
+td
+{
+	font-family: arial;
+	font-size: 14px;
+	padding: 0px;
+}
+
+img
+{
+	border: 0px;
+}
+
+form
+{
+	display: inline;
+	margin: 0px;
+	padding: 0px;
+}
+
+input:disabled, select:disabled, select[disabled] > option
+{
+	background-color: #F2F2F2 !important;
+	color: #2C2C2C !important;
+}
+
+select:disabled
+{
+	background-image: none !important;
+}
+
+a, .link
+{
+	color: #6C81A0;
+	text-decoration: none;
+}
+
+.font11
+{
+	font-size: 11px;
+}
+
+.font12
+{
+	font-size: 12px;
+}
+
+.font13
+{
+	font-size: 13px;
+}
+
+.bold
+{
+	font-weight: bold;
+}
+
+.gray
+{
+	color: #ABB0B6;
+}
+
+div#mainHtml
+{
+	width: 980px;
+	margin: 0 auto;
+	background-color: #E7E7E7;
+}
+
+div#waitingOverlay
+{
+	width: 100%;
+	height: 100%;
+	position: absolute;
+	top: 0px;
+	right: 0px;
+	z-index: 99999;
+	cursor: wait;
+	background-color: black;
+	opacity:0;
+	filter:alpha(opacity=0); 
+}
+
+/* -- header ----------------------------------------------------------------------------------------------------------------------	*/
+
+div#header
+{
+	background: url(../designFiles/header_bg.png) repeat;
+}
+
+div#header_in
+{
+	width: 980px;
+	height: 82px;
+	margin: 0 auto;
+	position: relative;
+}
+
+div#logo
+{
+	margin-top: 10px;
+}
+
+div#headerTop
+{
+	position: absolute;
+	top: 5px;
+}
+
+div#headerTop td
+{
+	vertical-align: top;
+}
+
+div#headerTop div.headerTop_col_in
+{
+	padding-top: 10px;
+}
+
+div#headerTop td#headerTop_row2_col1 div.headerTop_col_in
+{
+	padding-top: 6px;
+}
+
+div#headerTop span.sep
+{
+	background-color: #B0D235;
+	display: block;
+	width: 2px;
+	height: 12px;
+	margin-top: 3px;
+}
+
+div#headerTop td#headerTop_vsep div
+{
+	background: url(../designFiles/vSep.gif) repeat-y center;
+	height: 70px;
+	width: 30px;
+}
+
+td#headerTop_col2 div.title
+{
+	width: 85px;
+	padding-bottom: 14px;
+}
+
+td#headerTop_col2 div a
+{
+	font-weight: bold;
+	font-size: 16px;
+	color: #4B4B4B;
+}
+
+td#headerTop_row1_col1 img
+{
+	vertical-align: middle;
+}
+
+td#headerTop_row1_col1
+{
+	background: url(../designFiles/mainMenu_bg.png) repeat-x bottom;
+	height: 36px;
+}
+
+/* -- main menu -------------------------------------------------------------------------------------------------------------------	*/
+
+div#mainMenu
+{
+	background: url(../designFiles/mainMenu_bg.png) repeat-x bottom;
+	height: 32px;
+}
+
+div#mainMenu_in
+{
+	width: 980px;
+	height: 32px;
+	margin: 0 auto;
+	position: relative;
+}
+
+div.icon-active
+{
+	background: url(../designFiles/iconActiveModule.png) no-repeat;
+	width: 16px;
+	height: 14px;
+}
+
+div#floatMenu
+{
+	width: 120px;
+	position: fixed;
+	top: 130px;
+}
+
+div#floatMenu div#floatMenuTitle,
+div#floatMenu div.floatMenu_link
+{
+	height: 28px;
+	background-color: #D5D5D5;
+	border-bottom: 1px solid #E7E7E7;
+	cursor: pointer;
+	font-size: 13px;
+}
+
+div#floatMenu div#floatMenuTitle
+{
+	background-color: #AFD135;
+	color: white;
+	cursor: default;
+}
+
+div#floatMenu div#floatMenuTitle
+{
+	font-weight: bold;
+}
+
+div#floatMenu div.floatMenu_link.green,
+div#floatMenu div.floatMenu_link:hover
+{
+	background-color: #AFD135;
+	color: white;
+}
+
+div#floatMenu div.floatMenu_link div,
+div#floatMenu div#floatMenuTitle div
+{
+	padding-top: 6px;
+}
+
+/* --  page titles ----------------------------------------------------------------------------------------------------------------	*/
+
+div.pageTitle
+{
+	font-size: 20px;
+	padding-top: 15px;
+	padding-bottom: 10px;
+}
+
+div.pageSubTitle
+{
+	font-weight: bold;
+	background: url(../designFiles/mainMenu_bg.png) repeat-x bottom;
+	margin-bottom: 10px;
+	height: 28px;
+}
+
+div.pageSubTitle div.pageSubTitle_in
+{
+	padding-top: 6px;
+}
+
+/* --  page buttons ---------------------------------------------------------------------------------------------------------------	*/
+
+div.rowOfButtons
+{
+	margin-top: 7px;
+	margin-bottom: 20px;
+}
+
+div.rowOfButtons div.btn
+{
+	background-color: #7F7F7F;
+	height: 21px;
+	color: white;
+	text-align: center;
+	cursor: pointer;
+	border-radius: 5px;
+}
+
+div.rowOfButtons div.btn:hover
+{
+	background-color: #A5A5A5;
+}
+
+div.rowOfButtons div.btn div.btnText
+{
+	padding-top: 1px;
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+div.rowOfButtons div.langBtns img
+{
+	margin-top: 2px;
+}
+
+/* --  -- homepage -------------------------------------------------------------------------------------------------------------	*/
+
+div.homepageNewsBox
+{
+	background-color: white;
+}
+
+div.homepageNewsBox div.newsTitle
+{
+	font-size: 20px;
+	background: url(../designFiles/mainMenu_bg.png) repeat-x bottom;
+	height: 32px;
+}
+
+div.homepageNewsBox div.news_in
+{
+	padding: 10px;
+}
+
+div.homepageNewsBox td.newsPic 		{ width: 160px; vertical-align: top }
+div.homepageNewsBox td.newsDetails	{ width: 280px; padding-bottom: 20px; height: 130px; vertical-align: top }
+div.homepageNewsBox td.newsDetails p{ margin: 0px; }
+
+div.homepageNewsBox td.newsDate 	{ width: 75px; vertical-align: top; }
+div.homepageNewsBox td.newsMsg 		{ width: 365px; }
+
+div.homepageNewsBox td.newsPic div
+{
+	padding-top: 2px;
+	padding-bottom: 24px;
+}
+
+div.homepageNewsBox td.newsPic div img
+{
+	border: 1px solid #DDDDDD;
+}
+
+div.homepageNewsBox div.news_date
+{
+	font-size: 12px;
+}
+
+div.homepageNewsBox div.news_title a
+{
+	font-size: 20px;
+	color: #313131;
+}
+
+div.homepageNewsBox td.newsMsg div
+{
+	margin-top: 8px;
+	margin-bottom: 8px;
+}
+
+div.homepageNewsBox td.newsDate div
+{
+/*	margin-top: 9px;
+	margin-bottom: 15px;*/
+	line-height: 35px;
+}
+
+div#homepageIbosNews a
+{
+	text-decoration: underline;
+}
+
+/* --  info msg (with fancybox) ---------------------------------------------------------------------------------------------------	*/
+
+div.infoMsg
+{
+	text-align: center;
+}
+
+div.infoMsg_text
+{
+	padding: 30px 50px;
+	font-size: 16px;
+}
+
+div.infoMsg_confirm
+{
+	padding-bottom: 15px;
+	padding-top: 20px;
+}
+
+/* --  lang flags -----------------------------------------------------------------------------------------------------------------	*/
+
+img.lang_selected
+{
+	border: 1px solid #005DAB; 
+	padding: 3px;
+	cursor: pointer;
+}
+
+img.lang_unselected
+{
+	border:1px solid #E8E8E8; 
+	padding: 3px;
+	cursor: pointer;
+}
+/* -- data tables -----------------------------------------------------------------------------------------------------------------	*/
+
+table.dataTbl_header
+{
+	border-top-right-radius: 5px;
+	border-top-left-radius: 5px;
+}
+
+table.formFrameTbl table.dataTbl_header
+{
+	border-radius: 0px;
+}
+
+table.dataTbl_header, table.dataTbl_footer
+{
+	background-color: #BBC2CA;
+	color: white;
+}
+
+table.dataTbl_header td.headerCol
+{
+	border: 1px solid #E7E7E7;
+	border-bottom: 0px;
+	height: 27px;
+}
+
+table.dataTbl_header div.headerText
+{
+	padding-left: 10px;
+	padding-right: 10px;
+	font-weight: bold;
+}
+
+.dataScroll 
+{
+	overflow:scroll; 
+	overflow-x:visible;
+	clip:auto; 
+	direction:ltr;
+	background-color: #FFFFFF;
+	cursor: default;
+}
+
+table.dataTbl
+{
+	table-layout: fixed;
+}
+
+table.dataTbl tr.dataTbl_row
+{
+    background-color: #FFFFFF;
+}
+
+table.dataTbl tr.dataTbl_row td.dataTbl_col
+{
+	vertical-align: top;
+	border: 1px solid #E7E7E7;
+}
+
+table.dataTbl tr.dataTbl_row td.dataTbl_col div.data
+{
+	overflow: hidden;
+	padding: 4px 10px;
+}
+
+table.dataTbl_footer
+{
+	color: white;
+	border-bottom-right-radius: 5px;
+	border-bottom-left-radius: 5px;
+}
+
+table.dataTbl_footer tr
+{
+	height: 27px;
+}
+
+table.dataTbl_footer table.pagingIconsTbl
+{
+	margin-left: 15px;
+	margin-right: 15px;
+}
+
+table.dataTbl_footer table.pagingIconsTbl input.pagingIcon
+{
+	border:none;
+	cursor:pointer;
+	width: 17px;
+	height: 16px;
+	margin-top: 6px;
+}
+	
+table.dataTbl_footer table.pagingIconsTbl div.pagingInputs
+{
+	padding-top: 5px;
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+table.dataTbl_footer table.pagingIconsTbl input.pagingInput
+{
+	background-color: white;
+	border: 0px;
+	height: 16px;
+	width: 35px;
+	margin-left: 2px;
+	margin-right: 2px;
+	padding-right: 2px;
+	padding-left: 2px;
+}
+
+table.dataTbl_footer div.dataTbl_footer_totalText
+{
+	color: white;
+	font-weight: bold;
+}
+
+table.moreDataTbl
+{
+	margin-top: 15px;
+	background-color: #BBC2CA;
+	width: 100%;
+	border-radius: 5px;
+}
+
+table.moreDataTbl td.moreDataTbl_textCol div
+{
+	color: white;
+}
+
+table.moreDataTbl td.moreDataTbl_dataCol div
+{
+	padding: 5px;
+	color: #4D4D4D;
+}
+
+/* -- forms -----------------------------------------------------------------------------------------------------------------------	*/
+
+td.formNoTabsTop
+{
+	height: 10px;
+	background-color: #ABB0B6;
+}
+
+td.formTabs
+{
+	border-bottom: 32px solid #ABB0B6;
+}
+
+td.formTab, td.formTab_selected
+{
+	height: 32px;
+	border: 1px solid #E7E7E7;
+	color: white;
+	cursor: pointer;
+	border-top-left-radius: 5px;
+	border-top-right-radius: 5px;
+}
+
+td.formTab_selected
+{
+	border-bottom: 1px solid #ABB0B6;
+}
+
+td.formTab
+{
+	background-color: #AFD135;
+}
+
+td.formTab_selected
+{
+	background-color: #ACB1B7;
+}
+
+td.formTab div, td.formTab_selected div
+{
+	padding: 5px 15px;
+}
+
+table.formTbl
+{
+	position: relative;
+}
+
+table.formFrameTbl
+{
+	background-color: white;
+	border-bottom-left-radius: 5px;
+	border-bottom-right-radius: 5px;
+}
+
+table.formFrameTbl td.styleTdField 
+{
+	vertical-align: top;
+}
+
+table.formFrameTbl td.styleTdField input[type="checkbox"]
+{
+	margin-top: 14px;
+}
+
+table.formFrameTbl td.styleTdText, 
+table.formFrameTbl td.styleTdTextDisabled,
+table.formFrameTbl td.styleTdTextError
+{
+	border-bottom: 1px solid #E7E7E7;
+	color: #6C6C6C;
+	vertical-align: top;
+}
+
+table.formFrameTbl td.styleTdTextDisabled table td
+{
+	color: gray;
+}
+
+table.formFrameTbl td.styleTdTextError table td
+{
+	color: red;
+}
+
+table.formFrameTbl td.styleTdField
+{
+	border-left: 1px solid #E7E7E7;
+	border-bottom: 1px solid #E7E7E7;
+	border-top: 0px;
+}
+
+table.formFrameTbl .styleInput,
+table.noTabsTbl .styleInput,
+table.formFrameTbl .styleTextarea
+{
+	border: 1px solid #CBD0D4 !important;
+
+    -webkit-appearance: none;  /*Removes default chrome and safari style*/
+    -moz-appearance: none; /* Removes Default Firefox style*/
+    text-indent: 0.01px; /* Removes default arrow from firefox*/
+    text-overflow: "";  /*Removes default arrow from firefox*/
+
+	font-size: 14px;
+	
+	margin-top: 8px;
+	margin-bottom: 8px;
+	color: #2C2C2C;
+
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+select[multiple]
+{
+	padding-left: 0px !important;
+}
+
+table.formFrameTbl .styleInput
+{
+	height: 23px !important;
+}
+
+table.formFrameTbl .spanField
+{
+	padding-top: 12px;
+	color: #2C2C2C;
+}
+
+.styleEditor
+{
+	padding: 8px 0px;
+}
+
+.styleEditor1
+{
+	padding: 8px;
+}
+
+.styleColorPicker
+{
+	width: 21px;
+	height: 21px;
+	border: 1px solid #BBC2CA;
+	cursor:pointer;
+	font-size: 18px;
+	display: block;
+	text-align: center;
+}
+
+.styleLink
+{
+	cursor: pointer;
+	color: #6C81A0;
+	font-weight: normal;
+}
+
+td.langImg
+{
+	vertical-align: top;
+}
+
+td.langImg img
+{
+	margin-top: 13px;
+	margin-left: 5px;
+	margin-right: 5px;
+}
+
+div.inFormLinks 
+{
+	font-size: 14px;
+	font-weight: normal;
+}
+
+div.inFormLinks  span
+{
+	cursor: pointer;
+}
+
+/* -- tables ----------------------------------------------------------------------------------------------------------------------	*/
+
+table.noTabsTbl .styleInput
+{
+	border: 0px !important;
+	height: 22px !important;
+}
+
+table.formFrameTbl select.styleInput
+{
+    background: url('../designFiles/iconSelect.png') no-repeat #FFFFFF; 
+}
+
+table.noTabsTbl select.styleInput
+{
+    background: url('../designFiles/iconSelect.png') no-repeat #FFFFFF; 
+}
+
+select::-ms-expand 
+{
+    display: none;
+}
+
+div.tableInForm_btns
+{
+	height: 30px;
+	background-color: #ABB0B6;
+	border-top-left-radius: 5px;
+	position: absolute;
+	top: 34px;
+}
+
+div.tableInForm_btns td img
+{
+	margin-top: 6px;
+	margin-right: 5px;
+	margin-left: 5px;
+}
+
+div.fieldCounter
+{
+	font-size: 12px;
+	padding-bottom: 5px;
+}
+
+table.noTabsTbl.close
+{
+	margin-bottom: 10px;
+}
+
+table.noTabsTbl_formTitle
+{
+	background: url(../designFiles/mainMenu_bg.png) repeat-x bottom;
+	height: 28px;
+}
+
+td.noTabsTbl_title div
+{
+	font-weight: bold;
+}
+
+td.noTabsTbl_title img
+{
+	vertical-align: middle;
+	cursor: pointer;
+}
+
+table.noTabs_dataTbl
+{
+	background: url(../designFiles/mainMenu_bg.png) repeat-x bottom;
+}
+
+tr.noTabsTbl_row
+{
+	height: 52px;
+}
+
+div.filesDisplay
+{
+	border: 1px solid #CBD0D4;
+	margin-bottom: 8px;
+	margin-left: 8px;
+}
+
+/* --  login page -----------------------------------------------------------------------------------------------------------------	*/
+
+div#loginBox
+{
+	margin-top: 83px;
+	margin-right: 206px;
+	margin-left: 206px;
+	width: 568px;
+	height: 277px;
+}
+
+div#loginBox_in
+{
+	padding-top: 50px;
+	padding-left: 10px;
+}
+
+div#canNotEnterText
+{
+	font-size: 16px;
+	font-weight: bold;
+	padding-top: 10px;
+}
+
+table#loginTbl td
+{
+	vertical-align: top;
+}
+
+div#loginTitle
+{
+	font-size: 22px;
+	padding-bottom: 13px;
+	color: #494949;
+}
+
+td.login_col1
+{
+	width: 90px;
+}
+
+td.login_col23 input
+{
+	border: 0px;
+	background-color: white;
+	width: 200px;
+	height: 22px;
+	padding: 0px 5px;
+}
+
+td.login_col1 div
+{
+	padding-top: 3px;
+}
+
+td.login_col1 div, td.login_col23 div
+{
+	padding-bottom: 18px;
+}
+
+td.login_col2 div#chooseLang
+{
+	background-color: #7F7F7F;
+	cursor: pointer;
+	width: 25px;
+	height: 19px;
+	margin-top: 2px;
+	text-align: center;
+}
+
+td.login_col2 div#chooseLang a
+{
+	display: block;
+	color: white;
+	text-decoration: none;
+	padding-top: 1px;
+}
+
+td.login_col3 input
+{
+	background-color: #9CBC2D;
+	padding-left: 15px;
+	padding-right: 15px;
+	padding-bottom: 2px;
+	color: white;
+	border: 0px;
+}
+
+/* -- row popup -------------------------------------------------------------------------------------------------------------------	*/
+
+table.rowPopupTbl
+{
+}
+
+table.rowPopupTbl tr
+{
+	height: 25px;
+	cursor: pointer;
+	background-color: #D5D5D5;
+	color: #4A4A4A;
+	border-bottom: 1px solid #E7E7E7;
+}
+
+table.rowPopupTbl tr:hover
+{
+	background-color: #BBC2CA;
+	color: white;
+}
+
+table.rowPopupTbl div.rowPopup_text div
+{
+	padding: 5px 22px;
+}
+
+/* --  ----------------------------------------------------------------------------------------------------------------------------	*/
+/* --  ----------------------------------------------------------------------------------------------------------------------------	*/
+/* --  ----------------------------------------------------------------------------------------------------------------------------	*/
+
+ul.formSpanData
+{
+	margin: 0px;
+	padding: 0px;
+	padding-bottom: 7px;
+}
+
+ul.formSpanData li
+{
+	list-style-type: none;
+	padding-bottom: 5px;
+	direction: ltr;
+}
+

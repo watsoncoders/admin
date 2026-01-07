@@ -1,0 +1,73 @@
+/**
+ * Default Look and Feel
+ */
+
+.alertify 
+{
+	background: #FFF;
+	border: 1px solid #7B8484;
+/*	border-radius: 10px;*/
+	box-shadow: 0 3px 3px rgba(0,0,0,.3);
+}
+
+.alertify-text 
+{
+	border: 1px solid #CCC;
+	padding: 10px;
+	border-radius: 4px;
+}
+
+.alertify-button 
+{
+	margin: 10px;
+	margin-bottom: 0px;
+	border-radius: 5px;
+	color: #FFFFFF;
+	height: 21px;
+	font-size: 14px;
+	padding: 0px 15px;
+	text-decoration: none;
+	background-color: #7F7F7F;
+	cursor: pointer;
+}
+
+.alertify-button:hover 
+{
+	background-color: #A5A5A5;
+}
+
+.alertify-button:active 
+{
+	position: relative;
+}
+
+.alertify-log 
+{
+	background: #1F1F1F;
+	background: rgba(0,0,0,.9);
+	padding: 15px;
+	border-radius: 4px;
+	color: #FFF;
+	text-shadow: -1px -1px 0 rgba(0,0,0,.5);
+}
+
+.alertify-log-error 
+{
+	background: #FE1A00;
+	background: rgba(254,26,0,.9);
+}
+
+.alertify-log-success 
+{
+	background: #5CB811;
+	background: rgba(92,184,17,.9);
+}
+
+.alertify-message
+{
+	font-size: 14px;
+	padding-bottom: 10px;
+	direction: rtl;
+	font-family: Tahoma;
+}
+

@@ -1,0 +1,685 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray			= commonGetGlobalData ("langArray");
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var addTitleId			= -1;
+var updateTitleId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+var formTableId			= -1;
+
+
+var idCol				= {textHEB	: "קוד", 		textENG	: "",   xmlTag	: "tabletId"	}
+var nameCol				= {textHEB	: "שם הלוח",  	textENG	: "",   xmlTag	: "name"		}
+var typeCol				= {textHEB	: "סוג לוח",   	textENG	: "",   xmlTag	: "type"		}
+var statusCol	    	= {textHEB	: "סטטוס",   	textENG	: "",   xmlTag	: "status"		}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();	
+	createDataTable     ();	
+	createTableButtons  ();	
+	loadData			();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	 = pageObj.addPageTitle 	("ניהול לוחות", 	"");
+	addTitleId		 = pageObj.addPageSubTitle 	("הוספת לוח",		"");
+	updateTitleId	 = pageObj.addPageSubTitle 	("עדכון פרטי לוח",	"");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,			widthHEB 	: 70,
+				   textENG	: idCol.textENG,			widthENG 	: 70,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: nameCol.textHEB,			widthHEB 	: 200,
+				   textENG	: nameCol.textENG,			widthENG 	: 200,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : nameCol.xmlTag}
+		   
+	column3		= {textHEB	: statusCol.textHEB,		widthHEB 	: 80,
+				   textENG	: statusCol.textENG,		widthENG 	: 80,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : statusCol.xmlTag}
+		   
+	column4		= {textHEB	: "מס' מודעות",				widthHEB 	: 120,
+				   textENG	: "",						widthENG 	: 120,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : "countItems"}
+		   
+	columns = new Array ();
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 330, 230);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteTablet()"}
+
+	btn4	= {type			: "",
+			   textHEB		: "מודעות הלוח",
+			   action		: "showTabletItemsPage()"}
+
+	btn5	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4), new Array(btn5));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		pageObj.showComponent (eval(type + "TitleId"));
+
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	serverObj.sendRequest("tablets.getTablets", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay 		("report");
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+var globalDimensions;
+var globalPages;
+var globalEnums;
+
+var globalType;
+var globalDetailsXml;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type, id)
+{
+	globalType = type;
+
+	if (type == "update" && id == undefined)
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור לוח");
+			return false;
+		}
+
+		id = pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+	}
+
+	if (globalDimensions == undefined)
+		serverOptions_getDimensions (true, "after_loadDimensions");
+
+	if (globalPages == undefined)
+		serverOptions_getPages("choose", "after_loadPages");
+
+	if (globalEnums == undefined)
+		serverOptions_getEnums("empty", 0, "after_loadEnums"); 
+
+	if (type == "update")
+	{
+		globalDetailsXml = undefined;
+
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (idCol.xmlTag, id);
+		serverObj.sendRequest  ("tablets.getTabletDetails", undefined, "after_loadDetails");
+	}
+
+	openForm_continue();
+}
+
+var typeOptions = new selectOptionsObj();
+typeOptions.addOption ("ads",  	 "לוח מודעות", 	 	"");
+typeOptions.addOption ("events", "לוח אירועים",		"");
+
+var statusOptions = new selectOptionsObj();
+statusOptions.addOption ("active",   "פעיל", 		"");
+statusOptions.addOption ("inactive", "לא פעיל", 	"");
+
+var confirmsOptions = new selectOptionsObj();
+confirmsOptions.addOption ("auto", 	 	  "אוטומטי", 		"");
+confirmsOptions.addOption ("manual", 	  "ידני",    		"");
+confirmsOptions.addOption ("userConfirm", "אישור באימייל",  "");
+
+var sortsOptions = new selectOptionsObj();
+sortsOptions.addOption ("",			"",					"");
+sortsOptions.addOption ("selected",	"נבחרים ראשונים",	"");
+sortsOptions.addOption ("newToOld",	"מחדש לישן",		"");
+sortsOptions.addOption ("oldToNew", "מישן לחדש",		"");
+sortsOptions.addOption ("area",		"לפי אזורים",		"");
+
+var hideOptions = new selectOptionsObj();
+hideOptions.addOption   ("always", 	"תמיד",						"");
+hideOptions.addOption   ("never",	 "אף פעם",					"");
+hideOptions.addOption   ("yes",	 	"לבחירת הגולש, התחלתי כן",	"");
+hideOptions.addOption   ("no",	 	"לבחירת הגולש, התחלתי לא",	"");
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadDimensions (options)
+{
+	globalDimensions = new Object(options);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadPages (options)
+{
+	globalPages = new Object(options);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadEnums (options)
+{
+	globalEnums = new Object(options);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function openForm_continue (type)
+{
+	var type = globalType;
+
+	if (globalDimensions == undefined || (type == "update" && globalDetailsXml == undefined)) return;
+
+	// ------------------------------------------------------------------------------------ 
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(180,160,180,160),
+					ENG : new Array(180,160,180,160)}
+
+	var fieldWidth   = 150;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "הגדרות הלוח", ""); 
+
+	fields = new Array();
+	
+	if (type == "update")
+		pageObj.setFormXml (formId, globalDetailsXml);
+
+
+	hidden	= {type		: "hidden",						dataFld	: idCol.xmlTag}
+
+	fields.push (hidden);
+	
+  	field1 = {type			: "text",					textHEB		 : nameCol.textHEB,
+			  spanData		: 1,						textENG		 : nameCol.textENG,
+			  dataFld		: nameCol.xmlTag,			width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : true,
+			  maxLength		: "200",					lang		 : langArray}
+
+	field2 = {type			: "select",					textHEB		 : statusCol.textHEB,
+			  spanData		: 1,						textENG		 : statusCol.textENG,
+			  dataFld		: statusCol.xmlTag,			width	 	 : fieldWidth,
+			  options		: statusOptions.getOptions(),
+			  mandatory	 	: true,						defaultValue : "active"}
+
+  	field3 = {type			: "number",					textHEB		 : "מס' ימים מקסימלי",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "maxDays",				width	 	 : fieldWidth}
+
+	field4 = {type			: "select",					textHEB		 : "הסתרת דוא\"ל באתר",
+		      spanData		: 1,						textENG		 : "",
+			  dataFld		: "hideMsgEmail",			width		 : fieldWidth,
+			  options		: hideOptions.getOptions(),	defaultValue : "yes"}
+
+	field5 = {type			: "select",					textHEB		 : "אישור מודעות",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "confirmType",			width	 	 : fieldWidth,
+			  options		: confirmsOptions.getOptions(),
+			  mandatory	 	: true,						defaultValue : "auto"}
+
+	field6 = {type			: "select",					textHEB		 : "דף מודעה על אישור מודעה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "confirmPageId",			width	 	 : fieldWidth,
+			  options		: globalPages,				mandatory	 : false}
+
+	field7 = {type			: "select",					textHEB		 : "דף מודעה על שגיאה בזיהוי",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "errorPageId",			width	 	 : fieldWidth,
+			  options		: globalPages,				mandatory	 : false}
+
+	field8 = {type			: "select",					textHEB		 : "דף מודעה על אישור מחיקה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "confirmDeletePageId",	width	 	 : fieldWidth,
+			  options		: globalPages,				mandatory	 : false}
+
+	field9 = {type			: "select",					textHEB		 : "מיון ראשוני",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "primarySortBy",			width	 	 : fieldWidth,
+			  options		: sortsOptions.getOptions(),
+			  mandatory	 	: false,					defaultValue : ""}
+
+	field10= {type			: "select",					textHEB		 : "מיון משני",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "secondarySortBy",		width	 	 : fieldWidth,
+			  options		: sortsOptions.getOptions(),
+			  mandatory	 	: false,					defaultValue : ""}
+
+    fields.push (field1, field2, field3, field4, field5, field6, field7, field8, field9, field10);
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "שדות נוספים למודעות", ""); 
+
+	fields = new Array();
+
+	for (i=1; i<=10; i++)
+	{
+  		field1 = {type			: "text",					textHEB		 : "שדה טקסט " + i,
+			  	  spanData		: 1,						textENG		 : "",
+				  dataFld		: "extraData" + i,			width	 	 : fieldWidth,
+				  minLength		: "1",						mandatory	 : false,
+				  maxLength		: "50"}
+
+  		field2 = {type			: "select",					textHEB		 : "שדה בחירה " + i,
+			 	  spanData		: 1,						textENG		 : "",
+				  dataFld		: "enumId" + i,				width	 	 : fieldWidth,
+				  options		: globalEnums,				mandatory	 : false}
+
+		fields.push (field1, field2);
+	}
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "תצוגת מודעות בלוח", ""); 
+
+	fields = new Array();
+
+  	field1 = {type			: "number",					textHEB		 : "מספר מודעות בדף",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "numItemsInPage",			width	 	 : fieldWidth}
+
+  	field2 = {type			: "number",					textHEB		 : "מספר דפים בסרגל",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "numPages",				width	 	 : fieldWidth}
+
+  	field3 = {type			: "number",					textHEB		 : "תדירות הופעת באנר",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "numItemsBeforeBanner",	width	 	 : fieldWidth,
+			  action		: "onChangeBanner()"}
+
+  	field4 = {type			: "number",					textHEB		 : "רוחב הבאנר",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "bannerWidth",			width	 	 : fieldWidth}
+
+  	field5 = {type			: "number",					textHEB		 : "גובה הבאנר",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "bannerHeight",			width	 	 : fieldWidth}
+
+  	field6 = {type			: "number",					textHEB		 : "מספר באנרים מקסימלי",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "maxBannersInPage",		width	 	 : fieldWidth}
+
+	fields.push (field1, field2, field3, field4, field5, field6);
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "הגדרות לתמונות מודעה", ""); 
+
+	fields = new Array();
+
+	field1 = {type      	: "select",				textHEB 	 : "גודל לתמונה 1",
+			  spanData  	: 1,					textENG      : "",
+			  dataFld   	: "picDimension1",		width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	field2 = {type      	: "select",				textHEB 	 : "גודל לתמונה 2",
+			  spanData  	: 1,					textENG      : "",
+			  dataFld   	: "picDimension2",		width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	fields.push (field1, field2);
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId);
+
+	createEditFormButtons (type);
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onChangeBanner																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onChangeBanner ()
+{
+	var numItemsBeforeBanner = pageObj.getFieldValue(formId,"numItemsBeforeBanner");
+	if (numItemsBeforeBanner != "" && numItemsBeforeBanner != 0)
+	{
+		pageObj.changeMandatory (formId, "bannerWidth",  true);
+		pageObj.changeMandatory (formId, "bannerHeight", true);
+
+		if (pageObj.getFieldValue(formId,"maxBannersInPage") == "")
+			pageObj.setFieldValue (formId, "maxBannersInPage", "1");
+
+		pageObj.changeMandatory (formId, "maxBannersInPage", true);
+	}
+	else
+	{
+		pageObj.changeMandatory (formId, "bannerWidth",  false);
+		pageObj.changeMandatory (formId, "bannerHeight", false);
+
+		pageObj.setFieldValue   (formId, "bannerWidth",  "");
+		pageObj.setFieldValue   (formId, "bannerHeight", "");
+
+		pageObj.setFieldValue   (formId, "maxBannersInPage", "0");
+
+		pageObj.changeMandatory (formId, "maxBannersInPage", false);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + formId + ")"}
+
+	btn3	= {type			: "save",
+			   action		: "submitForm('" + type + "Save')"}
+
+	btn4	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3,btn4));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+var global_submitType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	global_submitType = type;
+
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	command = type + "Tablet";
+	
+	if (type == "addSave")
+		command = "addTablet";
+
+	if (type == "updateSave")
+		command = "updateTablet";
+
+	serverObj.sendRequest("tablets." + command, undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var type = global_submitType;
+
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh 		();
+
+		if (type != "addSave" && type != "updateSave")
+		{
+			handleDisplay	("report");
+		}
+		else
+		{
+			commonMsgBox ("info", "נתוני הלוח נשמרו בהצלחה");
+		}
+
+		if (type == "addSave")
+		{
+			pageObj.hideComponent (formId);
+			pageObj.hideComponent (formButtonsId);
+			
+			var id = commonGetInnerData (responseXml,idCol.xmlTag);
+
+			pageObj.setSelectedRow (tableId, idCol.xmlTag, id);
+
+			pageObj.hideComponent (addTitleId);
+			pageObj.showComponent (updateTitleId);
+			
+			openForm ("update", id);
+		}
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteTablet																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteTablet() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור לוח");
+		return false;
+	}
+
+	confirmMsg = "יש ללחוץ 'אישור' למחיקת הלוח";
+
+	countItems = pageObj.getSelectedValueOf(tableId, "countItems");
+	if (countItems == 1)
+	{
+		confirmMsg = "שים לב! בלוח זה מופיעה מודעה אחת.<br/>" + confirmMsg + " ומודעתו";
+	}
+
+	if (countItems > 1)
+	{
+		confirmMsg = "שים לב! בלוח זה מופיעות " + countItems + " מודעות.<br/>" + confirmMsg + " ומודעותיו";
+	}
+
+	confirm (confirmMsg, confirmMsg, "deleteTablet_confirm");
+}
+
+function deleteTablet_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+	
+	serverObj.sendRequest("tablets.deleteTablet", undefined, "deleteTablet_continue");
+}
+
+function deleteTablet_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showTabletItemsPage																		*/
+/* ---------------------------------------------------------------------------------------- */
+function showTabletItemsPage ()
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור לוח");
+		return false;
+	}
+
+	var id 	= pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	
+	commonSetGlobalData ("globalTabletId", id);
+
+	window.location.replace ("handleTabletItems.html");
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>
+

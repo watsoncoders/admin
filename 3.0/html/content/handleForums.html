@@ -1,0 +1,1934 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/categories.js"></script>
+<script language="JavaScript" src="../../javascript2/multiUpload.js"></script>
+
+<script language="JavaScript">
+
+var langArray				= commonGetGlobalData ("langArray");
+
+var guiLang					= commonGetGlobalData ("guiLang");
+var pageObj					= new dynamicPageObj(guiLang);	
+var serverObj				= new serverInterfaceObj(guiLang);
+
+var pageTitleId				= -1;
+var forumFormId				= -1;
+var forumButtonsId			= -1;
+var msgsTableId				= -1;
+var msgRowButtonsId			= -1;
+
+var formTableObj			= -1;
+
+var addForumTitleId			= -1;
+var updateForumTitleId		= -1;
+var editForumFormId			= -1
+var editForumButtonsId		= -1;
+
+var addMsgTitleId			= -1;
+var updateMsgTitleId		= -1;
+var msgFormId				= -1;
+var msgFormButtonsId		= -1;
+
+var m_titleId				= -1;
+var m_tableId				= -1;
+var m_rowBtnsId				= -1;
+var m_formId				= -1;
+var m_addMemberTitleId		= -1;
+var m_updateMemberTitleId	= -1;
+var m_formBtnsId			= -1;
+
+var	forumIdCol				= {textHEB	: "שם פורום",		textENG	: "Forum Name",			xmlTag	: "forumId"		}
+var	langCol					= {textHEB	: "שפה",			textENG	: "Language",			xmlTag	: "lang"		}
+var	msgIdCol				= {textHEB	: "מזהה",			textENG	: "Id",   				xmlTag	: "msgId"		}
+var	msgTitleCol				= {textHEB	: "כותרת",			textENG	: "Title",				xmlTag	: "title"		}
+var	msgWriterCol			= {textHEB	: "כותב",	   		textENG	: "Writer",				xmlTag	: "writer"		}
+var	msgDateCol				= {textHEB	: "תאריך",	   		textENG	: "Date",  			 	xmlTag	: "insertTime"	}
+var	msgIpCol				= {textHEB	: "IP", 			textENG	: "IP",   				xmlTag	: "ip"			}
+	
+var m_idCol					= {textHEB	: "קוד", 			textENG	: "Id",   				xmlTag	: "memberId"	}
+var m_nameCol				= {textHEB	: "שם", 			textENG	: "Name",   			xmlTag	: "name"		}
+var m_typeCol				= {textHEB	: "סוג", 			textENG	: "Type",   			xmlTag	: "type"		}
+var m_emailCol				= {textHEB	: "אימייל", 		textENG	: "E-Mail",   			xmlTag	: "email"		}
+var m_statusCol				= {textHEB	: "סטטוס", 			textENG	: "Status",   			xmlTag	: "status"		}
+var m_rDateCol				= {textHEB	: "תאריך הרשמה",	textENG	: "Register Date",  	xmlTag	: "registerDate"}
+var m_sDateCol				= {textHEB	: "תאריך סטטוס", 	textENG	: "Status Date",   		xmlTag	: "statusDate"  }
+
+var globalIsSuperUser		= true;
+var globalIbosUserId		= "";
+
+var globalForums;
+var globalSiteLangs;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	commonGetUserInfo ("after_getUserInfo");
+}
+
+function after_getUserInfo ()
+{
+	globalIsSuperUser = commonGetGlobalData ("isSuperUser");
+	globalIbosUserId  = commonGetGlobalData ("ibosUserId");
+
+	if (globalIsSuperUser) globalIbosUserId = "";
+
+	serverOptions_getForums("empty", globalIbosUserId, "after_getForums");
+
+	serverOptions_getSiteLangs ("after_getSiteLangs");
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getForums (options)
+{
+	globalForums = options;
+
+	onLoad_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getSiteLangs (options)
+{
+	globalSiteLangs = options;
+
+	onLoad_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function onLoad_continue ()
+{
+	if (globalForums == undefined || globalSiteLangs == undefined) return;
+
+	createPageTitles    ();
+	addForumForm    	();
+	createDataTable     ();
+	createTableButtons  ();
+	createForumForm		();
+
+	loadForumMsgs		();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	 		= pageObj.addPageTitle 	  ("ניהול פורומים",  		"Forums management");
+	addForumTitleId			= pageObj.addPageSubTitle ("הוספת פורום",			"Add forum");
+	updateForumTitleId		= pageObj.addPageSubTitle ("עדכון הגדרות פורום",	"Update forum");
+	addMsgTitleId	 		= pageObj.addPageSubTitle ("הוספת הודעה נעוצה",		"Add sticky msg");
+	updateMsgTitleId 		= pageObj.addPageSubTitle ("עדכון הודעה",			"Update msg");
+	m_titleId 				= pageObj.addPageSubTitle ("",						"");
+	m_addMemberTitleId		= pageObj.addPageSubTitle ("הוספת משתמש לפורום",	"");
+	m_updateMemberTitleId	= pageObj.addPageSubTitle ("עדכון משתמש",			"");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addForumForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function addForumForm ()
+{
+	if (forumFormId == -1)
+		forumFormId   = pageObj.addForm ();
+	
+	if (forumButtonsId == -1)
+		forumButtonsId = pageObj.addRowOfButtons ();
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createForumForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createForumForm ()
+{
+	var queryXml = commonGetGlobalData ("forumsQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (searchFormId, queryXml);
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (forumFormId, "בחירת פורום", "Choose forum");
+
+	fields = new Array();
+
+	defaultForum = "";
+	if (globalForums.length > 0)
+		defaultForum = globalForums[0].value;
+
+	defaultLang = "";
+	if (globalSiteLangs.length > 0)
+		defaultLang = globalSiteLangs[0].value;
+
+	field1 = {type      : "select",					textHEB		 : "פורום",
+			  spanData  : 1,						textENG		 : "Forum",
+			  dataFld   : forumIdCol.xmlTag,		width   	 : 220,
+			  mandatory : false,					options		 : globalForums,
+			  action	: "onChangeQuery()",		defaultValue : defaultForum}
+
+	field2 = {type      : "select",					textHEB		 : langCol.textHEB,
+			  spanData  : 1,						textENG		 : langCol.textENG,
+			  dataFld   : langCol.xmlTag,			width   	 : 70,
+			  mandatory : true,						options		 : globalSiteLangs,
+			  action	: "onChangeQuery()",		defaultValue : defaultLang}
+
+  	var msgTypeOptions = new selectOptionsObj();
+	msgTypeOptions.addOption ("all", 	"הודעות ותגובות" , "All regular messages");
+	msgTypeOptions.addOption ("main", 	"רק הודעות ראשיות"  , "Only main messages");
+	msgTypeOptions.addOption ("sticky", "רק הודעות נעוצות"  , "Only sticky messages");
+
+	field3 = {type		: "select",					textHEB		 : "סוג הודעות",
+			  spanData	: 1,						textENG		 : "Type",
+			  dataFld	: "msgType",				width		 : 130,
+			  mandatory : false,				    defaultValue : "all",
+			  options   : msgTypeOptions.getOptions(),
+			  action	: "onChangeQuery()"}
+			  										
+	field4 	   = {type		: "text",					textHEB		 : "לפי טקסט",
+			 	  spanData	: 1,						textENG		 : "By text",
+				  dataFld	: "byText",					width	 	 : 100,
+				  action	: "onChangeQuery()"}
+
+	fields.push (field1, field2, field3, field4);
+	
+	width = "*" + pageObj.getTableWidth(msgsTableId);
+	fieldsWidths = {HEB	: new Array(50,250,50,100,70,150,70,width),
+					ENG : new Array(50,250,50,100,70,150,70,width)}
+
+	pageObj.addFormFields (forumFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (forumButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (msgsTableId);
+	
+	pageObj.addCollapse	  (forumFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (forumFormId);
+	
+	// ------------------------------------------------------------------------------------ 
+
+	btn1	= {type			: "",
+			   textHEB		: "הוספת פורום",
+			   textENG		: "Add forum",
+			   action		: "openForm('addForum')"}
+
+	btn2	= {type			: "",
+			   textHEB		: "הגדרות פורום",
+			   textENG		: "Forum definitions",
+			   action		: "openForm('updateForum')"}
+
+	btn3	= {type			: "",
+			   textHEB		: "משתמשי הפורום",
+			   textENG		: "Forum members",
+			   action		: "viewMembers()"}
+
+	btnsGroups = new Array ();
+
+	if (globalIsSuperUser)
+	{
+		btnsGroups.push (new Array(btn1,btn2, btn3));
+	}
+	else
+	{
+		btnsGroups.push (new Array(btn2));
+	}
+
+	pageObj.generateRowOfButtons (forumButtonsId, btnsGroups, pageObj.getTableWidth(msgsTableId));
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onChangeQuery																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onChangeQuery ()
+{
+	pageObj.resetPage ();
+
+	setTimeout ("doRefresh();", 100);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	msgsTableId  	= pageObj.addTable ();
+	pageObj.tableIsMultiSelection (msgsTableId);
+	
+	pageObj.setLoadFunction (msgsTableId, "loadForumMsgs");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: msgIdCol.textHEB,			widthHEB 	: 70,
+				   textENG	: msgIdCol.textENG,			widthENG 	: 70,
+				   xmlTag   : msgIdCol.xmlTag}
+		   
+   	column2		= {textHEB	: msgTitleCol.textHEB,		widthHEB 	: 350,
+				   textENG	: msgTitleCol.textENG,		widthENG 	: 350,
+				   xmlTag   : msgTitleCol.xmlTag,		onmouseover : "showMsgContent(this)"}
+		   
+   	column3		= {textHEB	: msgWriterCol.textHEB,		widthHEB 	: 150,
+				   textENG	: msgWriterCol.textENG,		widthENG 	: 150,
+				   xmlTag   : msgWriterCol.xmlTag}
+		   
+	column4		= {textHEB	: msgDateCol.textHEB,		widthHEB 	: 150,
+				   textENG	: msgDateCol.textENG,		widthENG 	: 150,
+				   xmlTag   : msgDateCol.xmlTag}
+		   
+	column5		= {textHEB	: msgIpCol.textHEB,			widthHEB 	: 150,
+				   textENG	: msgIpCol.textENG,			widthENG 	: 150,
+				   xmlTag   : msgIpCol.xmlTag,			dir			: "ltr"}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5);
+
+	pageObj.setTableColumns (msgsTableId, columns);
+	pageObj.setTableHeight	(msgsTableId, 370, 290);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showMsgContent																			*/
+/* ---------------------------------------------------------------------------------------- */
+function showMsgContent (col)
+{
+    rowOfCol    = col.parentNode;
+    rowIndex    = rowOfCol.rowIndex;
+
+    content   = pageObj.getRowValueOf (msgsTableId, rowIndex, "content");
+
+    if (col.title == "")
+        col.title = content;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "",
+			   textHEB		: "עדכון הודעה",
+			   textENG		: "Update",
+			   action		: "openForm('updateMsg')"}
+
+	btn2	= {type			: "",
+			   textHEB		: "מחיקת הודעות",
+			   textENG		: "Delete",
+			   action		: "deleteMsg()"}
+
+	btn3	= {type			: "",
+			   textHEB		: "הוספת הודעה נעוצה",
+			   textENG		: "Add sticky",
+			   action		: "openForm('addMsg')",
+			   inPopup		: false}
+
+	btn4	= {type			: "print",
+			   action		: "pageObj.printTable (" + msgsTableId + "," + pageTitleId + ")"}
+
+
+   	btn5	= {type			: "",
+			   textHEB		: "מחק הודעת ספאם",
+			   textENG		: "Delete Spam",
+			   action		: "deleteSpamMsg()"}
+
+   	btn6	= {type			: "",
+			   textHEB		: "מחק הודעות ספאמר",
+			   textENG		: "Delete Spammer",
+			   action		: "deleteAllSpamMsg()"}
+
+	btnsGroups = new Array ();
+
+	if (globalIsSuperUser)
+		btnsGroups.push (new Array(btn1, btn2, btn5, btn6), new Array(btn3), new Array(btn4));
+	else
+		btnsGroups.push (new Array(btn1, btn2, btn5), new Array(btn3), new Array(btn4));
+
+	if (msgRowButtonsId == -1)
+		msgRowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (msgRowButtonsId, btnsGroups, pageObj.getTableWidth(msgsTableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide msg form
+		pageObj.hideComponent (addForumTitleId);
+		pageObj.hideComponent (updateForumTitleId);
+		pageObj.hideComponent (editForumFormId);
+		pageObj.hideComponent (editForumButtonsId);
+		pageObj.hideComponent (addMsgTitleId);
+		pageObj.hideComponent (updateMsgTitleId);
+		pageObj.hideComponent (msgFormId);
+		pageObj.hideComponent (msgFormButtonsId);
+
+		pageObj.hideComponent (m_titleId);
+		pageObj.hideComponent (m_tableId);
+		pageObj.hideComponent (m_rowBtnsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (forumFormId);
+		pageObj.showComponent (forumButtonsId);
+		pageObj.showComponent (msgsTableId);
+		pageObj.showComponent (msgRowButtonsId);
+	}
+
+	if (type == "addMsg" || type == "updateMsg")
+	{
+		// hide table
+		pageObj.hideComponent (forumFormId);
+		pageObj.hideComponent (forumButtonsId);
+		pageObj.hideComponent (msgsTableId);
+		pageObj.hideComponent (msgRowButtonsId);
+
+		// show msg form
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (msgFormId);
+		pageObj.showComponent (msgFormButtonsId);
+	}
+
+	if (type == "addForum" || type == "updateForum")
+	{
+		// hide table
+		pageObj.hideComponent (forumFormId);
+		pageObj.hideComponent (forumButtonsId);
+		pageObj.hideComponent (msgsTableId);
+		pageObj.hideComponent (msgRowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (editForumFormId);
+		pageObj.showComponent (editForumButtonsId);
+	}
+
+	if (type == "members")
+	{
+		// hide table
+		pageObj.hideComponent (forumFormId);
+		pageObj.hideComponent (forumButtonsId);
+		pageObj.hideComponent (msgsTableId);
+		pageObj.hideComponent (msgRowButtonsId);
+
+		// hide form
+		pageObj.hideComponent (m_addMemberTitleId);
+		pageObj.hideComponent (m_updateMemberTitleId);
+		pageObj.hideComponent (m_formId);
+		pageObj.hideComponent (m_formBtnsId);
+
+		pageObj.showComponent (m_titleId);
+		pageObj.showComponent (m_tableId);
+		pageObj.showComponent (m_rowBtnsId);
+	}
+
+	if (type == "addMember" || type == "updateMember")
+	{
+		pageObj.hideComponent (m_titleId);
+		pageObj.hideComponent (m_tableId);
+		pageObj.hideComponent (m_rowBtnsId);
+
+		pageObj.showComponent (eval("m_" + type + "TitleId"));
+		pageObj.showComponent (m_formId);
+		pageObj.showComponent (m_formBtnsId);
+	}
+}
+
+var global_firstTime = true;
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadForumMsgs																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadForumMsgs () 
+{
+	if (!pageObj.validateForm (forumFormId)) return false;
+
+	var queryXml = pageObj.getFormXml(forumFormId);
+
+	commonSetGlobalData ("forumMsgsQueryXml", queryXml);
+
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("forums.getForumMsgs", pageObj.getTablePaging(msgsTableId), "loadForumMsgs_continue"); 
+}
+
+function loadForumMsgs_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (msgsTableId, responseXml);
+		pageObj.setTablePaging (msgsTableId, responseXml);
+
+		pageObj.generateTable (msgsTableId);
+		
+		if (global_firstTime)
+		{
+			handleDisplay 		("report");	
+	
+			pageObj.collapseSection (forumFormId, false);
+
+			global_firstTime = false;
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	if (type == "updateMsg")
+	{
+		if (pageObj.areRowsSelected(msgsTableId))
+		{
+			commonMsgBox ("info", "יש לבחור הודעה אחת בלבד");
+			return false;
+		}
+
+		if (!pageObj.isRowSelected(msgsTableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור הודעה", "Choose a message");
+			return false;
+		}
+	}
+
+	if (type == "addMsg" || type == "updateMsg")
+	{
+		createMsgForm  	  	 (type);
+	}
+
+	if (type == "addForum" || type == "updateForum")
+	{
+		if (type == "updateForum" && pageObj.getFieldValue(forumFormId, forumIdCol.xmlTag) == "")
+		{
+			commonMsgBox ("info", "יש לבחור פורום", "Choose a forum");
+			return false;
+		}
+		createEditForumForm    (type);
+	}
+
+}
+
+var globalType;
+
+var globalDetailsXml;
+
+/* ---------------------------------------------------------------------------------------- */
+/* createMsgForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createMsgForm (type)
+{
+	globalType = type;
+
+	globalDetailsXml = undefined;
+
+	if (type == "addMsg")
+	{
+		serverObj.cleanRequest ();
+		serverObj.addTag (forumIdCol.xmlTag,pageObj.getFieldValue (forumFormId, forumIdCol.xmlTag));
+		serverObj.sendRequest("forums.getUserDetails", undefined, "after_getUserDetails");
+	}
+	else // updateMsg
+	{
+		serverObj.cleanRequest ();
+		serverObj.addTag	   ("msgId", pageObj.getSelectedValueOf (msgsTableId, msgIdCol.xmlTag));
+		serverObj.sendRequest("forums.getForumMsgDetails", undefined, "after_getForumMsgDetails");
+	}
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getUserDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	createMsgForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getForumMsgDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	createMsgForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function createMsgForm_continue ()
+{
+	if (globalDetailsXml == undefined) return;
+
+	type = globalType;
+
+	if (msgFormId == -1)
+		msgFormId   = pageObj.addForm ();
+	
+	pageObj.resetForm (msgFormId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(140,520),
+					ENG : new Array(140,520)}
+
+	var fieldWidth  = 490;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (msgFormId, "פרטי הודעה", "Forum details"); 
+
+	var ip 	   = "";
+	var writer = "";
+	var memberManager;
+	if (type == "addMsg")
+	{
+		ip				= commonGetInnerData (globalDetailsXml, "userIP");
+		writer			= commonGetInnerData (globalDetailsXml, "userName");
+		memberManager	= commonGetInnerData (globalDetailsXml, "memberManager");
+
+		if (memberManager != "0")
+			writer = memberManager;
+	}
+
+	hidden	   = {type			: "hidden",		
+		  		  dataFld		: forumIdCol.xmlTag,
+				  defaultValue	: pageObj.getFieldValue (forumFormId, forumIdCol.xmlTag)};
+			
+	hidden2	   = {type			: "hidden",		
+		  		  dataFld		: langCol.xmlTag,
+				  defaultValue	: pageObj.getFieldValue (forumFormId, langCol.xmlTag)};
+			
+	hidden3	   = {type			: "hidden",		
+		  		  dataFld		: "parentId"}
+			
+	var fields = new Array(hidden, hidden2, hidden3);
+
+	if (type == "updateMsg")
+	{
+		field1 = {type			: "span",					textHEB		 : msgIdCol.textHEB,
+				  spanData		: 1,						textENG		 : msgIdCol.textENG,
+				  dataFld		: msgIdCol.xmlTag,			width	 	 : fieldWidth}
+	
+		field2 = {type			: "span",					textHEB		 : msgWriterCol.textHEB,
+				  spanData		: 1,						textENG		 : msgWriterCol.textENG,
+				  dataFld		: msgWriterCol.xmlTag,		width		 : fieldWidth}
+	}
+	else
+	{
+		field1 = {type			: "hidden",		
+				  dataFld		: msgIdCol.xmlTag}
+		  
+  		field2 = {type			: "text",					textHEB		 : msgWriterCol.textHEB,
+				  spanData		: 1,						textENG		 : msgWriterCol.textENG,
+				  dataFld		: msgWriterCol.xmlTag,		width	 	 : fieldWidth,
+				  minLength		: "1",						mandatory	 : true,
+				  maxLength		: "40",						defaultValue : writer}
+	}
+
+	field3	   = {type			: "span",					textHEB		 : msgIpCol.textHEB,
+			   	  spanData		: 1,						textENG		 : msgIpCol.textENG,
+				  dataFld		: msgIpCol.xmlTag,			width	 	 : fieldWidth,
+		  		  defaultValue  : ip}
+	
+	fields.push (field1, field2, field3);
+
+	if (type == "updateMsg")
+	{
+			
+		field1 = {type			: "textEng",				textHEB		 : msgDateCol.textHEB,
+				  spanData		: 1,						textENG		 : msgDateCol.textENG,
+				  dataFld		: msgDateCol.xmlTag,		width	 	 : fieldWidth,
+				  minLength		: "1",						mandatory	 : true,
+				  maxLength		: "16"}
+
+		fields.push (field1);
+	}
+
+	field1 	   = {type			: "textEng",				textHEB		 : "דוא\"ל",
+			  	  spanData		: 1,						textENG		 : "E-Mail",
+			  	  dataFld		: "email",					width	 	 : fieldWidth,
+				  minLength		: "1",						mandatory	 : false,
+				  maxLength		: "40"}
+
+  	field2     = {type			: "text",					textHEB		 : msgTitleCol.textHEB,
+			  	  spanData		: 1,						textENG		 : msgTitleCol.textENG,
+				  dataFld		: msgTitleCol.xmlTag,		width	 	 : fieldWidth,
+			  	  minLength		: "1",						mandatory	 : false,
+			  	  maxLength		: "200"}
+
+	fields.push (field1, field2);
+	
+	pageObj.addFormFields (msgFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths2 = {HEB : new Array(0,650),
+					 ENG : new Array(0,650)}
+
+	var frameId = pageObj.addFormFrame (msgFormId, "תוכן הודעה", "Content"); 
+
+	field1     = {type			: "xstandard",				textHEB		 : "",
+				  spanData		: 1,						textENG		 : "",
+				  dataFld		: "content",				width	 	 : 610,
+				  height  		: 280,						mandatory	 : false}
+
+	var fields = new Array(field1);
+	
+	pageObj.addFormFields (msgFormId, frameId, fieldsWidths2, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	if (type == "updateMsg" && pageObj.getSelectedValueOf (msgsTableId, "isSticky") == "0")
+	{
+		var frameId = pageObj.addFormFrame (msgFormId, "סוג הודעה", "Message type"); 
+
+		var msgTypeOptions = new selectOptionsObj();
+		msgTypeOptions.addOption ("main", "הודעה ראשית",  "Main message");
+		msgTypeOptions.addOption ("sub",  "תגובה להודעה", "Response");
+
+		if (pageObj.getSelectedValueOf (msgsTableId, "parentId") == "0")	// main msg
+		{
+			parentIdState = "lock"
+		}
+		else
+		{
+			parentIdState = "unlock";
+		}
+
+		field1 = {type			: "select",					textHEB		 : "סוג הודעות",
+				  spanData		: 1,						textENG		 : "Type",
+				  dataFld		: "msgType",				width		 : fieldWidth,
+				  mandatory 	: true,					    action	  	 : "onChangeMsgType()",
+				  options   	: msgTypeOptions.getOptions()}
+			  										
+
+  		field2 = {type			: "number",					textHEB		 : "מספר הודעה ראשית",
+				  spanData		: 1,						textENG		 : "Main message no.",
+				  dataFld		: "parentId",				width	 	 : fieldWidth,
+				  minLength		: "1",						mandatory	 : false,
+				  maxLength		: "6",						state		 : parentIdState}
+
+		fields = new Array(field1, field2);
+	
+		pageObj.addFormFields (msgFormId, frameId, fieldsWidths, fields);
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	if (type == "updateMsg")
+	{
+		pageObj.setFormXml (msgFormId, globalDetailsXml);
+	}
+	
+	pageObj.generateForm  (msgFormId, true);
+
+	createMsgFormButtons (type);	
+	handleDisplay 		 (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onChangeMsgType																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onChangeMsgType ()
+{
+	if (pageObj.getFieldValue (msgFormId, "msgType") == "main")
+	{
+		pageObj.setFieldValue   (msgFormId, "parentId", "");
+		pageObj.setFieldState   (msgFormId, "parentId", "lock");
+		pageObj.changeMandatory (msgFormId, "parentId", false);
+	}
+	else
+	{
+		parentId = pageObj.getSelectedValueOf(msgsTableId,"parentId");
+		if (parentId == "0") parentId = "";
+			
+		pageObj.setFieldValue   (msgFormId, "parentId", parentId);
+		pageObj.setFieldState   (msgFormId, "parentId", "unlock");
+		pageObj.changeMandatory (msgFormId, "parentId", true);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createMsgFormButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createMsgFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	if (type == "addMsg") 
+	   	btnType = "add";
+	else 
+		btnType = "update";
+	
+	btn2	= {type			: btnType,
+			   action		: "submitMsgForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (msgFormButtonsId == -1)
+		msgFormButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (msgFormButtonsId, btnsGroups, pageObj.getFormWidth(msgFormId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitMsgForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function submitMsgForm (type)
+{
+	if (!pageObj.validateForm(msgFormId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(msgFormId));
+
+	serverObj.sendRequest("forums." + type, undefined, "submitMsgForm_continue");
+}
+
+function submitMsgForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+		doRefresh 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteMsg																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteMsg() 
+{
+    if (!pageObj.isRowSelected(msgsTableId) && !pageObj.areRowsSelected(msgsTableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור הודעה", "Choose a message");
+		return false;
+	}
+
+	ids = pageObj.getSelectedValuesOf(msgsTableId,"msgId");
+	
+	// check if msg has sons
+	if (ids.length == 1)
+	{
+		confirmMsg 	  = "מחיקת ההודעה ותגובותיה";
+		confirmMsgEng = "delete message and its reponses";
+	}
+	else
+	{
+		confirmMsg 	  = "מחיקת ההודעות ותגובותיהן";
+		confirmMsgEng = "delete messages";
+	}
+	
+	confirm(confirmMsg, confirmMsgEng, "deleteForumMsg_confirm");
+}
+
+function deleteForumMsg_confirm ()
+{
+	ids = pageObj.getSelectedValuesOf(msgsTableId,"msgId");
+
+	serverObj.cleanRequest ();
+	serverObj.addTags		("msgId", ids);
+	
+	serverObj.sendRequest("forums.deleteForumMsg", undefined, "deleteForumMsg_continue");
+}
+
+function deleteForumMsg_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteSpamMsg																	  	    */ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteSpamMsg() 
+{
+    if (!pageObj.isRowSelected(msgsTableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור הודעה", "Choose a message");
+		return false;
+	}
+
+	confirmMsg 	  = "מחיקת כל ההודעות מכתובת השולח הזה מ-4 הימים האחרונים";
+	ConfirmMsgEng = "delete all messages from that writer's address in the last 4 days";
+	
+	confirm(confirmMsg, ConfirmMsgEng, "deleteSpamMsg_confirm");
+}
+
+function deleteSpamMsg_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	   ("msgId", pageObj.getSelectedValueOf (msgsTableId, msgIdCol.xmlTag));
+	
+	serverObj.sendRequest("forums.deleteSpamForumMsg", undefined, "deleteSpamMsg_continue");
+}
+
+function deleteSpamMsg_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteAllSpamMsg								  	    									*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteAllSpamMsg() 
+{
+    if (!pageObj.isRowSelected(msgsTableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור הודעה", "Choose a message");
+		return false;
+	}
+
+	confirmMsg 	  = "מחיקת כל ההודעות מכתובת השולח הזה מ-4 הימים האחרונים בכל הפורומים";
+	confirmMsgEng = "delete all messages from that writer's address in the last 4 days at all forums"; 
+	
+	confirm(confirmMsg, confirmMsgEng, "deleteSpamAllForumsMsg_confirm");
+}
+
+function deleteSpamAllForumsMsg_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	   ("msgId", pageObj.getSelectedValueOf (msgsTableId, msgIdCol.xmlTag));
+	
+	serverObj.sendRequest("forums.deleteSpamAllForumsMsg", undefined, "deleteSpamAllForumsMsg_continue");
+}
+
+function deleteSpamAllForumsMsg_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetTable (msgsTableId);
+
+	loadForumMsgs	  ();	
+}
+
+var hideOptions = new selectOptionsObj();
+hideOptions.addOption   ("always", 	"תמיד",						"Always");
+hideOptions.addOption   ("never",	 "אף פעם",					"Never");
+hideOptions.addOption   ("yes",	 	"לבחירת הגולש, התחלתי כן",	"Optional, Default: Yes");
+hideOptions.addOption   ("no",	 	"לבחירת הגולש, התחלתי לא",	"Optional, Default: No");
+
+var emailOwnerOptions = new selectOptionsObj();
+emailOwnerOptions.addOption ("everyMsg", 	"על כל הודעה חדשה",			"For every new message");
+emailOwnerOptions.addOption ("everyMainMsg","על כל הודעה ראשית חדשה",	"For every new main message");
+emailOwnerOptions.addOption ("never",		"אף פעם",					"Never");
+
+var canReplayOptions = new selectOptionsObj();
+canReplayOptions.addOption ("1",	"כן",					"Yes");
+canReplayOptions.addOption ("0",	"לא",					"No");
+canReplayOptions.addOption ("2",	"גולשים רשומים בלבד",	"Members only");
+
+var globalDimensions = undefined;
+var globalAllPages	 = undefined;
+var globalLayouts	 = undefined;
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditForumForm																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditForumForm (type)
+{
+	globalType 	= type;
+
+	if (globalDimensions == undefined)
+		serverOptions_getDimensions			(true, "after_loadDimensions");
+
+	if (globalAllPages == undefined)
+		serverOptions_getPagesNames		(undefined, "after_loadAllPages");
+
+	if (globalLayouts == undefined)
+		serverOptions_getLayoutsByType		("page", "after_loadLayouts");
+
+	globalDetailsXml = undefined;
+
+	if (type == "updateForum")
+	{
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (forumIdCol.xmlTag, pageObj.getFieldValue (forumFormId, forumIdCol.xmlTag));
+
+		serverObj.sendRequest("forums.getForumDetails", undefined, "after_getForumDetails");
+	}
+	else
+	{
+		serverObj.cleanRequest ();
+
+		serverObj.sendRequest("forums.getForumNextId", undefined, "after_getForumDetails");
+	}
+
+	createEditForumForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadDimensions (options)
+{
+	globalDimensions = new Object(options);
+
+	createEditForumForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadAllPages (options)
+{
+	globalAllPages = new Object(options);
+
+	createEditForumForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadLayouts (options)
+{
+	globalLayouts = new Object(options);
+
+	createEditForumForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getForumDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	createEditForumForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function createEditForumForm_continue ()
+{
+	type = globalType;
+
+	if (globalDimensions == undefined || globalAllPages == undefined || globalLayouts == undefined || globalDetailsXml == undefined) return;
+
+	if (editForumFormId == -1)
+		editForumFormId   = pageObj.addForm ();
+
+	pageObj.resetForm (editForumFormId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	if (type == "updateForum")
+	{
+		pageObj.setFormXml (editForumFormId, globalDetailsXml);
+
+		var forumId = commonGetInnerData (globalDetailsXml, forumIdCol.xmlTag);	
+		var url		= commonGetInnerData (globalDetailsXml, "siteUrl") + "?id=" + forumId;
+
+		showPage = "<div style='float:left'><a href='" + url + "' target='_blank' style='text-decoration:none;'>הצגת הפורום</a></div>";
+		showPageEng = "<div style='float:right'><a href='" + url + "' target='_blank' style='text-decoration:none;'>Show Forum</a></div>";
+
+		pageObj.updatePageTitle (updateForumTitleId, showPage + "עדכון הגדרות פורום " + forumId, showPageEng + "Update forum " + forumId);
+
+		titleAction = "generalSetWinTitle(\"title\", \"update\", editForumFormId)";
+	}
+	else
+	{
+		var forumId = commonGetInnerData (globalDetailsXml, forumIdCol.xmlTag)
+
+		titleAction = "generalSetWinTitle(\"title\", \"add\", editForumFormId)";
+	}
+	
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(200,200,200,200),
+					ENG : new Array(200,200,200,200)}
+
+	var fieldWidth   = 190;
+	var fieldWidth3  = 590;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (editForumFormId, "פרטים מזהים", "Identification"); 
+
+	hidden	   = {type			: "hidden",		
+				  dataFld		: forumIdCol.xmlTag,
+				  defaultValue	: forumId}
+			
+
+	field1 	   = {type			: "hidden",					textHEB		 : forumIdCol.textHEB,
+			 	  spanData		: 1,						textENG		 : forumIdCol.textENG,
+				  dataFld		: "name",					width	 	 : fieldWidth,
+				  maxLength		: "100",					lang		 : langArray}
+
+	field2 	   = {type			: "text",					textHEB		 : "כותרת הפורום",
+			 	  spanData		: 3,						textENG		 : "Forum title",
+				  dataFld		: "title",					width	 	 : fieldWidth3,
+				  maxLength		: "100",					lang		 : langArray,
+		  		  action		: titleAction}
+
+	field3     = {type			: "text",					textHEB		 : "כותרת לסרגל ניווט",
+			  	  spanData		: 1,						textENG		 : "Navigation title",
+			  	  dataFld		: "navTitle",				width	 	 : fieldWidth,
+			  	  minLength		: "1",						mandatory	 : false,
+			  	  maxLength		: "50",						lang		 : langArray}
+
+	field4    = {type			: "select",					textHEB		 : "קישור אב בסרגל ניווט",
+			     spanData		: 1,						textENG		 : "Navigation parent",
+			     dataFld		: "navParentId",			width		 : fieldWidth,
+			     mandatory		: false,					defaultValue : "1",
+			     options		: globalAllPages}
+
+  	field5     = {type			: "text",					textHEB		 : "שם מנהל הפורום",
+			  	  spanData		: 1,						textENG		 : "Administrator name",
+				  dataFld		: "ownerName",				width	 	 : fieldWidth,
+			  	  minLength		: "1",						mandatory	 : false,
+			  	  maxLength		: "100",					lang		 : langArray}
+
+	field6 	   = {type			: "textEng",				textHEB		 : "דוא\"ל מנהל הפורום",
+			  	  spanData		: 1,						textENG		 : "Administrator E-Mail",
+			  	  dataFld		: "ownerEmail",				width	 	 : fieldWidth,
+				  minLength		: "1",						mandatory	 : false,
+				  maxLength		: "100",					lang		 : langArray}
+
+  	field7     = {type			: "span",					textHEB		 : "שם משתמש ל-iBos",
+			  	  spanData		: 1,						textENG		 : "i-Bos User",
+				  dataFld		: "forumUserNameSpn",		width	 	 : fieldWidth,
+			  	  defaultValue  : commonGetGlobalData("websiteShortName") + forumId}
+
+  	field8     = {type			: "text",					textHEB		 : "סיסמת כניסה ל-iBos",
+			  	  spanData		: 1,						textENG		 : "i-Bos Password",
+				  dataFld		: "forumUserPassword",		width	 	 : fieldWidth,
+			  	  minLength		: "1",						mandatory	 : false,
+			  	  maxLength		: "20"}
+
+	var fields = new Array(hidden, field1, field2, field3, field4, field5, field6, field7, field8);
+
+	hidden	  = {type			: "hidden",					dataFld		 : "forumUserName",
+				 defaultValue   : commonGetGlobalData("websiteShortName") + forumId}
+	fields.push (hidden);
+
+	if (globalIsSuperUser)
+	{
+		field1 = {type			: "select",					textHEB		 : layoutCol.textHEB,
+				  spanData		: 1,						textENG		 : layoutCol.textENG,
+				  dataFld		: layoutCol.xmlTag,			width	 	 : fieldWidth,
+				  options		: globalLayouts,
+				  mandatory	    : true}
+		
+		fields.push (field1);
+	}
+
+	field1     = {type			: "yesNoSelect",			textHEB		 : "לגולשים רשומים בלבד",
+				  spanData		: 1,						textENG		 : "For registered only?",
+				  dataFld		: "membersOnly",			width		 : fieldWidth,
+				  mandatory		: false,					defaultValue : "0"}
+
+	field2 	   = {type			: "yesNoSelect",			textHEB		 : "הצגת הדף באתר",
+				  spanData		: 1,						textENG		 : "Page Ready",
+				  dataFld		: "isReady",				width		 : fieldWidth,
+				  mandatory		: true,						defaultValue : "1",
+	  		  												lang		 : langArray}
+
+	field3	  = {type			: "yesNoSelect",			textHEB		 : "הצגה במפת האתר",
+			     spanData		: 1,						textENG		 : "Show on sitemap",
+			     dataFld		: "showOnSitemap",			width		 : fieldWidth,
+			     mandatory		: false,					defaultValue : "1"}
+
+	
+	field4	  = {type			: "span",					textHEB		 : "מספר צפיות",
+			     spanData		: 1,						textENG		 : "Views count",
+				 dataFld		: "countViews",				width		 : fieldWidth}
+
+	
+	fields.push (field1, field2, field3, field4);
+	
+	pageObj.addFormFields (editForumFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(250,170,240,170),
+					ENG : new Array(250,170,240,170)}
+
+	var fieldWidth   = 160;
+
+	fields = new Array();
+
+	var frameId = pageObj.addFormFrame (editForumFormId, "הגדרות לפורום", "Definions"); 
+
+	field1 	   = {type			: "number",					textHEB		 : "מספר הודעות בדף בפורום",
+			  	  spanData		: 1,						textENG		 : "Messages per page",
+			  	  dataFld		: "numMsgsInPage",			width	 	 : fieldWidth,
+				  minLength		: "1",						mandatory	 : false,
+				  maxLength		: "2",						defaultValue : 10,					
+				  lang		 	: langArray}
+
+	field2 	   = {type			: "number",					textHEB		 : "מספר דפים פעילים",
+			  	  spanData		: 1,						textENG		 : "Active pages",
+			  	  dataFld		: "numActivePages",			width	 	 : fieldWidth,
+				  minLength		: "1",						mandatory	 : false,
+				  maxLength		: "2",						defaultValue : 10,					
+				  lang		 	: langArray}
+
+	field3 	   = {type			: "number",					textHEB		 : "מספר הודעות בדף תוצאות חיפוש",
+			  	  spanData		: 1,						textENG		 : "Messages in search results page",
+			  	  dataFld		: "numResultsInPage",		width	 	 : fieldWidth,
+				  minLength		: "1",						mandatory	 : false,
+				  maxLength		: "2",						defaultValue : 25,					
+				  lang		 	: langArray}
+
+	field4 	   = {type			: "number",					textHEB		 : "מספר דפים מוצגים בארכיון",
+			  	  spanData		: 1,						textENG		 : "Pages in Archive",
+			  	  dataFld		: "numArchivePages",		width	 	 : fieldWidth,
+				  minLength		: "1",						mandatory	 : false,
+				  maxLength		: "2",						defaultValue : 5,					
+				  lang		 	: langArray}
+
+	field5 	   = {type			: "select",					textHEB		 : "האם ניתן להוסיף תגובות להודעות",
+				  spanData		: 1,						textENG		 : "Allow responses",
+				  dataFld		: "canReplay",				width		 : fieldWidth,
+				  defaultValue  : "1",						lang		 : langArray,
+				  options		: canReplayOptions.getOptions()}
+
+	field6 	   = {type			: "yesNoSelect",			textHEB		 : "האם לסמן את שליחת התגובות",
+				  spanData		: 1,						textENG		 : "Suggest e-mail notifications",
+				  dataFld		: "emailWhenReplay",		width		 : fieldWidth,
+				  defaultValue  : "0",						lang		 : langArray}
+
+	field7 	  = {type			: "select",					textHEB		 : "הסתרת דוא\"ל בפורום",
+			     spanData		: 1,						textENG		 : "Hide E-mail addresses",
+			     dataFld		: "hideMsgEmail",			width		 : fieldWidth,
+			     options		: hideOptions.getOptions(),	defaultValue : "yes",					
+				  lang		 	: langArray}
+
+	field8 	  = {type			: "select",					textHEB		 : "שליחת אימייל למנהל הפורום",
+			     spanData		: 1,						textENG		 : "Send E-mail to Administrator",
+			     dataFld		: "emailOwner",				width		 : fieldWidth,
+				 options		: emailOwnerOptions.getOptions(),	
+				 defaultValue   : "never",					lang		 : langArray}
+
+	field9 	   = {type			: "yesNoSelect",			textHEB		 : "האם הודעות הפורום פרוסות?",
+				  spanData		: 1,						textENG		 : "Opened messages",
+				  dataFld		: "openedMsgs",				width		 : fieldWidth,
+				  defaultValue  : "0"}
+
+	fields.push (field1, field2, field3, field4, field5, field6, field7,field8, field9);
+	
+	pageObj.addFormFields (editForumFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(0,830),
+					ENG : new Array(0,830)}
+
+	var frameId = pageObj.addFormFrame (editForumFormId, "תיאור הפורום", "Description"); 
+
+	field1 = {type			: "xstandard",				textHEB		 : "",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "forumDescription",		width	 	 : 810,
+			  height  		: 280,						mandatory	 : false,
+			  lang		 	: langArray}
+
+  	fields = new Array(field1);
+	
+	pageObj.addFormFields (editForumFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	commonAddSeoFrame (editForumFormId, 650);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths2 = {HEB : new Array(200,200,200,200),
+				 	 ENG : new Array(200,200,200,200)}
+
+	var fieldWidth  = 180;
+
+	fields = new Array();
+
+	var frameId = pageObj.addFormFrame (editForumFormId, "WEB2", "Web2"); 
+
+	field1 	   = {type			: "yesNoSelect",		textHEB		 : "האם לשלב עורך?",
+				  spanData		: 1,					textENG		 : "WYSIWYG Editor",
+				  dataFld		: "useEditor",			width		 : fieldWidth,
+				  defaultValue  : "0"}
+
+	field2 	   = {type			: "yesNoSelect",		textHEB		 : "האם לעריכת חברים בלבד?",
+				  spanData		: 1,					textENG		 : "Members only?",
+				  dataFld		: "membersPostOnly",	width		 : fieldWidth,
+				  defaultValue  : "0"}
+
+	field3 	   = {type			: "number",				textHEB		 : "קוד מנהל פורום כגולש",
+			  	  spanData		: 1,					textENG		 : "Administrator Id",
+				  dataFld		: "memberManager",		width	 	 : fieldWidth}
+
+	field4 	   = {type			: "select",				textHEB		 : "מימד בשילוב תמונה",
+			  	  spanData		: 1,					textENG		 : "Picture Size",
+				  dataFld		: "uploadPicDimension",	width	 	 : fieldWidth,
+				  options		: globalDimensions}
+
+	field5 	   = {type			: "yesNoSelect",		textHEB		 : "האם ניתן לשלב קובץ?",
+				  spanData		: 3,					textENG		 : "Enable file upload",
+				  dataFld		: "uploadDoc",			width		 : fieldWidth,
+				  defaultValue  : "0"}
+
+	fields.push (field1, field2, field3, field4, field5);
+	
+	hidden 	   = {type			: "hidden",				dataFld   	 : "picSource"}
+  	fields.push (hidden);
+
+	hidden 	   = {type			: "hidden",				dataFld   	 : "fileDeleted",
+			  											defaultValue : "0"}
+  	fields.push (hidden);
+
+	field1 	   = {type			: "onlineUpload",		textHEB	 	 : "תמונה מייצגת",
+			  	  spanData		: 1,					textENG		 : "Picture",
+				  dataFld		: "picFile",			width		 : fieldWidth}
+
+
+	field2 	   = {type      	: "select",				textHEB 	 : "גודל",
+				  spanData  	: 1,					textENG      : "Size",
+				  dataFld   	: "dimensionId",		width     	 : fieldWidth,
+				  options		: globalDimensions}	
+
+	show   	   = {type			: "span",				textHEB		 : "הצגת קובץ",
+			  	  spanData		: 1,					textENG		 : "Show file",
+				  dataFld   	: "show",				width		 : fieldWidth,
+				  className 	: "styleLink", 			action       : "showFile()"}
+
+	del    	   = {type			: "span",				textHEB		 : "מחיקה",
+			  	  spanData		: 1,					textENG		 : "Delete file",
+				  dataFld  		: "delete",				width		 : fieldWidth,
+				  className 	: "styleLink", 			action       : "deleteFile()"}
+
+	hidden1	   = {type			: "hidden",				dataFld   	 : "linkToFile"}
+
+  	fields.push (field1, field2);
+			  
+	if (type == "updateForum")
+		fields.push (show, del, hidden1);
+
+	pageObj.addFormFields (editForumFormId, frameId, fieldsWidths2, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	if (type == "updateForum")
+		type = "update";
+	else
+		type = "add";
+
+	if (globalIsSuperUser)
+	{
+		fieldsWidths = {HEB : new Array(0,637),
+						ENG : new Array(0,637)}
+
+		categories_addFormFrame (editForumFormId, type, "קטגוריות הפורום", "Categories", fieldsWidths, forumId, "forum", "createEditForumForm_finish")
+	}
+	else
+	{
+		createEditForumForm_finish ();
+	}
+}
+
+function createEditForumForm_finish ()
+{
+	type = globalType;
+
+	pageObj.generateForm  (editForumFormId, true);
+
+	// ------------------------------------------------------------------------------------ 
+
+	formTableObj = new Object(pageObj.getFormTableId (editForumFormId, 6));	// 6 is the frame index
+
+	commonSetGlobalData ("formTableObj", 	 formTableObj);	// save it for categoryOfItem iframe
+		
+	if (multiUploadStart(undefined, editForumFormId))
+	{
+		createEditForumButtons (type);	
+		handleDisplay 		   (type);	
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteFile																				*/
+/* ---------------------------------------------------------------------------------------- */
+function deleteFile ()
+{
+	pageObj.setFieldValue(editForumFormId, "formSourceFile", "");
+	pageObj.setFieldValue(editForumFormId, "fileDeleted", 	"1");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showFile																					*/
+/* ---------------------------------------------------------------------------------------- */
+function showFile ()
+{
+	window.open (pageObj.getFieldValue(editForumFormId, "linkToFile"), "_blank");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* addCategory																				*/
+/* ---------------------------------------------------------------------------------------- */
+function addCategory (type)
+{
+	if (type == "add")
+	{
+		commonMsgBox ("info", "יש לבצע שמירה של הפורום לפני קישור לקטגוריות", "Save new forum before adding categories");
+		return false;
+	}
+	
+	commonSetGlobalData ("action", "add");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (editForumFormId, forumIdCol.xmlTag));
+	commonSetGlobalData ("catType", "forum");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* updateCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function updateCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור שורה", "Choose a row")
+		return false;
+	}
+
+	commonSetGlobalData ("action", "update");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (editForumFormId, forumIdCol.xmlTag));
+	commonSetGlobalData ("catType", "forum");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function deleteCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור שורה", "Choose a row")
+		return false;
+	}
+
+	var itemId 		= pageObj.getFieldValue(forumFormId, forumIdCol.xmlTag);
+	var categoryId 	= pageObj.getSelectedValueOf (formTableObj, "id");
+	
+	categories_deleteCategory (editForumFormId, formTableObj, itemId, categoryId, "forum");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadItemCategories																		*/
+/* ---------------------------------------------------------------------------------------- */
+function loadItemCategories ()
+{
+	var itemId 	= pageObj.getFieldValue(forumFormId, forumIdCol.xmlTag);
+
+	categories_loadItemCategories (editForumFormId, formTableObj, itemId, "forum");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditForumButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditForumButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+   if (type == "addForum") 
+	   	btnType = "add";
+	else 
+		btnType = "update";
+	
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + editForumFormId + ")"}
+
+	btn3	= {type			: btnType,
+			  action		: "submitEditForumForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3));
+
+	if (editForumButtonsId == -1)
+		editForumButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (editForumButtonsId, btnsGroups, pageObj.getFormWidth(editForumFormId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitEditForumForm																		*/
+/* ---------------------------------------------------------------------------------------- */
+function submitEditForumForm (type)
+{
+	if (!pageObj.validateForm(editForumFormId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(editForumFormId));
+
+	var picFile = uploadGetFileName();
+	if (picFile == ERROR_WAIT_LOADING)
+		return false;
+
+	serverObj.addTag ("picSource",   picFile);
+	serverObj.addTag ("fileDeleted", pageObj.getFieldValue(editForumFormId, "fileDeleted"));
+
+	serverObj.sendRequest("forums." + type, undefined, "submitEditForumForm_continue");
+}
+
+function submitEditForumForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		if (type == "addForum")
+		{
+			pageObj.resetForm (forumFormId);
+			createForumForm   ();
+		}
+
+		doRefresh 		();
+		handleDisplay	("report");
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* viewMembers																				*/
+/* ---------------------------------------------------------------------------------------- */
+function viewMembers ()
+{
+	if (pageObj.getFieldValue(forumFormId, forumIdCol.xmlTag) == "")
+	{
+		commonMsgBox ("info", "יש לבחור פורום", "Choose a forum");
+		return false;
+	}
+
+	if (m_tableId == -1)
+	{
+		m_tableId  	= pageObj.addTable ();
+		pageObj.tableIsMultiSelection (m_tableId);
+
+		pageObj.setLoadFunction (msgsTableId, "loadMembers");
+
+		column1		= {textHEB	: m_idCol.textHEB,			widthHEB 	: 70,
+					   textENG	: m_idCol.textENG,			widthENG 	: 70,
+					   xmlTag   : m_idCol.xmlTag}
+		   
+		column2		= {textHEB	: m_nameCol.textHEB,		widthHEB 	: 150,
+					   textENG	: m_nameCol.textENG,		widthENG 	: 150,
+					   xmlTag   : m_nameCol.xmlTag}
+		   
+		column3		= {textHEB	: m_typeCol.textHEB,		widthHEB 	: 150,
+					   textENG	: m_typeCol.textENG,		widthENG 	: 150,
+					   xmlTag   : m_typeCol.xmlTag}
+		   
+		column4		= {textHEB	: m_emailCol.textHEB,		widthHEB 	: 150,
+					   textENG	: m_emailCol.textENG,		widthENG 	: 150,
+					   xmlTag   : m_emailCol.xmlTag}
+		   
+		column5		= {textHEB	: m_statusCol.textHEB,		widthHEB 	: 120,
+					   textENG	: m_statusCol.textENG,		widthENG 	: 120,
+					   xmlTag   : m_statusCol.xmlTag}
+		  
+		column6		= {textHEB	: m_rDateCol.textHEB,		widthHEB 	: 150,
+					   textENG	: m_rDateCol.textENG,		widthENG 	: 150,
+					   xmlTag   : m_rDateCol.xmlTag}
+		   
+		column7		= {textHEB	: m_sDateCol.textHEB,		widthHEB 	: 150,
+					   textENG	: m_sDateCol.textENG,		widthENG 	: 150,
+					   xmlTag   : m_sDateCol.xmlTag}
+		   
+		columns = new Array ();
+		columns.push (column1, column2, column3, column4, column5, column6, column7);
+
+		pageObj.setTableColumns (m_tableId, columns);
+		pageObj.setTableHeight	(m_tableId, 370, 290);
+
+		m_rowBtnsId = pageObj.addRowOfButtons ();
+
+		btn1	= {type			: "",
+				   textHEB		: "הוספת משתמש",
+				   textENG		: "Add Member",
+				   action		: "openMemberForm('add')",
+				   inPopup		: false}
+
+		btn2	= {type			: "",
+				   textHEB		: "עדכון משתמש",
+				   textENG		: "Update Member",
+				   action		: "openMemberForm('update')"}
+
+		btn3	= {type			: "",
+				   textHEB		: "מחיקת משתמש",
+				   textENG		: "Delete Member",
+				   action		: "deleteMember()"}
+
+		btn4	= {type			: "",
+				   textHEB		: "אישור משתמש",
+				   textENG		: "Approve Member",
+				   action		: "updateMemberStatus('approved')"}
+
+		btn5	= {type			: "",
+				   textHEB		: "דחיית משתמש",
+				   textENG		: "Reject Member",
+				   action		: "updateMemberStatus('rejected')"}
+
+		btn6	= {type			: "back",
+			   	   action		: "handleDisplay('report')"}
+
+		btnsGroups = new Array ();
+
+		btnsGroups.push (new Array(btn1,btn2,btn3), new Array(btn4,btn5), new Array(btn6));
+
+		pageObj.generateRowOfButtons (m_rowBtnsId, btnsGroups, pageObj.getTableWidth(m_tableId));
+	}
+
+	var formName	= $("form#form1 select#form1_forumId option:selected").text();
+
+	pageObj.updatePageTitle (m_titleId, "משתמשי פורום " + formName);
+
+	loadMembers ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadMembers																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadMembers () 
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	  ("forumId", pageObj.getFieldValue(forumFormId, forumIdCol.xmlTag));
+	serverObj.sendRequest ("forums.getForumMembers", pageObj.getTablePaging(m_tableId), "loadMembers_continue"); 
+}
+
+function loadMembers_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (m_tableId, responseXml);
+		pageObj.setTablePaging (m_tableId, responseXml);
+
+		pageObj.generateTable (m_tableId);
+		
+		handleDisplay 		("members");	
+
+		return true;
+	}
+
+	return false;
+}
+
+var memberTypes = new selectOptionsObj();
+memberTypes.addOption ("all", 		"הרשאות מלאות", 		"");
+memberTypes.addOption ("newMsg", 	"הוספת הודעות בלבד", 	"");
+memberTypes.addOption ("reply", 	"הוספת תגובות בלבד" , 	"");
+
+/* ---------------------------------------------------------------------------------------- */
+/* openMemberForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function openMemberForm (type)
+{
+	globalType = type;
+
+	if (type == "update")
+	{
+		if (pageObj.areRowsSelected(m_tableId))
+		{
+			commonMsgBox ("info", "יש לבחור משתמש אחד בלבד");
+			return false;
+		}
+
+		if (!pageObj.isRowSelected(m_tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור משתמש");
+			return false;
+		}
+
+		globalDetailsXml = undefined;
+
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (forumIdCol.xmlTag, pageObj.getFieldValue (forumFormId, forumIdCol.xmlTag));
+		serverObj.addTag	   (m_idCol.xmlTag, pageObj.getSelectedValueOf (m_tableId, m_idCol.xmlTag));
+		serverObj.sendRequest("forums.getMemberDetails", undefined, "after_getMemberDetails");
+	}
+
+	openMemberForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getMemberDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openMemberForm_continue ();
+}
+
+function openMemberForm_continue ()
+{
+	var type = globalType;
+
+	if (type == "update" && globalDetailsXml == undefined) return;
+
+	if (m_formId == -1)
+		m_formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (m_formId);
+
+	fieldsWidths = {HEB : new Array(70,300),
+					ENG : new Array(70,300)}
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (m_formId, "פרטים", "details"); 
+
+	field1 = {type			: "text",					textHEB		 : m_idCol.textHEB,
+			  spanData		: 1,						textENG		 : m_idCol.textENG,
+			  dataFld		: m_idCol.xmlTag,			width	 	 : 100,
+	  		  action		: "viewMemberDetails()",	mandatory	 : true}
+
+	field2 = {type			: "span",					textHEB		 : "פרטים",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "details",				width		 : 290}
+
+	field3 = {type			: "select",					textHEB		 : m_typeCol.textHEB,
+			  spanData		: 1,						textENG		 : m_typeCol.textHEB,
+			  dataFld		: m_typeCol.xmlTag,			width		 : 200,
+			  mandatory 	: true,				   		defaultValue : "all",
+	  		  options		: memberTypes.getOptions()}
+
+	if (type == "update")
+		field1.type = "hidden";
+
+	var fields = new Array(field1, field2, field3);
+
+	pageObj.addFormFields (m_formId, frameId, fieldsWidths, fields);
+
+	if (type == "update")
+		pageObj.setFormXml (m_formId, globalDetailsXml);
+	
+	pageObj.generateForm  (m_formId, false);
+
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('members')"}
+
+	btn2	= {type			: type,
+			   action		: "submitMemberForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (m_formBtnsId == -1)
+		m_formBtnsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (m_formBtnsId, btnsGroups, pageObj.getFormWidth(m_formId));
+
+	handleDisplay 		 (type + "Member");
+}
+
+function viewMemberDetails ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag  	   ("forumId", 	   pageObj.getFieldValue(forumFormId, forumIdCol.xmlTag));
+	serverObj.addTag  	   (m_idCol.xmlTag, pageObj.getFieldValue (m_formId, m_idCol.xmlTag));
+	serverObj.sendRequest  ("forums.getMemberInfo", undefined, "after_getMemberInfo");
+}
+
+function after_getMemberInfo (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	pageObj.setFieldValue (m_formId, "details", commonGetInnerData (responseXml, "details"));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitMemberForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function submitMemberForm (type)
+{
+	if (!pageObj.validateForm(m_formId)) return false;
+	
+	serverObj.cleanRequest	();
+	serverObj.setXml 		(pageObj.getFormXml(m_formId));
+	serverObj.addTag  	   	("forumId", 	   pageObj.getFieldValue(forumFormId, forumIdCol.xmlTag));
+
+	serverObj.sendRequest("forums." + type + "ForumMember", undefined, "submitMemberForm_continue");
+}
+
+function submitMemberForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("members");
+		loadMembers ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteMember																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteMember() 
+{
+    if (!pageObj.isRowSelected(m_tableId) && !pageObj.areRowsSelected(m_tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור משתמש", "Choose a member");
+		return false;
+	}
+
+	var ids = pageObj.getSelectedValuesOf(m_tableId,m_idCol.xmlTag);
+	
+	if (ids.length == 1)
+	{
+		confirmMsg 	  = "מחיקת המשתמש מפורום זה";
+		confirmMsgEng = "delete member of this forum";
+	}
+	else
+	{
+		confirmMsg 	  = "מחיקת המשתמשים מפורום זה";
+		confirmMsgEng = "delete members of this forum";
+	}
+	
+	confirm(confirmMsg, confirmMsgEng, "deleteMember_confirm");
+}
+
+function deleteMember_confirm ()
+{
+	var ids = pageObj.getSelectedValuesOf(m_tableId,m_idCol.xmlTag);
+
+	serverObj.cleanRequest 	();
+	serverObj.addTag  	   	("forumId", 	   pageObj.getFieldValue(forumFormId, forumIdCol.xmlTag));
+	serverObj.addTags		(m_idCol.xmlTag, ids);
+	
+	serverObj.sendRequest	("forums.deleteForumMember", undefined, "deleteForumMember_continue");
+}
+
+function deleteForumMember_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		loadMembers ();
+	}
+}
+
+var global_newStatus;
+
+/* ---------------------------------------------------------------------------------------- */
+/* updateMemberStatus																		*/ 
+/* ---------------------------------------------------------------------------------------- */
+function updateMemberStatus(newStatus) 
+{
+	global_newStatus = newStatus;
+
+	if (pageObj.areRowsSelected(m_tableId))
+	{
+		commonMsgBox ("info", "יש לבחור משתמש אחד בלבד");
+		return false;
+	}
+
+
+    if (!pageObj.isRowSelected(m_tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור משתמש", "Choose a member");
+		return false;
+	}
+
+	var id = pageObj.getSelectedValuesOf(m_tableId,m_idCol.xmlTag);
+	
+	if (newStatus == "approved")
+	{
+		confirmMsg		= "אישור המשתמש";
+		confirmMsgEng	= "approve this member";
+	}
+	else
+	{
+		confirmMsg 	  = "דחיית המשתמש";
+		confirmMsgEng = "reject this member";
+	}
+	
+	confirm(confirmMsg, confirmMsgEng, "updateMemberStatus_confirm");
+}
+
+function updateMemberStatus_confirm ()
+{
+	serverObj.cleanRequest 	();
+	serverObj.addTag  	   	("forumId", 	   pageObj.getFieldValue(forumFormId, forumIdCol.xmlTag));
+	serverObj.addTag  	   	("newStatus", 	   global_newStatus);
+	serverObj.addTag		(m_idCol.xmlTag,   pageObj.getSelectedValueOf(m_tableId,m_idCol.xmlTag));
+	
+	serverObj.sendRequest	("forums.updateMemberStatus", undefined, "updateMemberStatus_continue");
+}
+
+function updateMemberStatus_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		loadMembers ();
+	}
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

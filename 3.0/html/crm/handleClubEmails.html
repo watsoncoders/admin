@@ -1,0 +1,758 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var pageTitleId		= -1;
+var addTitleId		= -1;
+var updateTitleId	= -1;
+var duplicateTitleId= -1;
+var tableId			= -1;
+var rowButtonsId	= -1;
+var formId			= -1;
+var formButtonsId	= -1;
+
+var idCol			= {textHEB	: "קוד", 			textENG	: "Id", 			xmlTag	: "id"				}
+var mailingListIdCol= {textHEB	: "רשימת תפוצה", 	textENG	: "Mailing list", 	xmlTag	: "mailingListId"	}
+var contactIdCol	= {textHEB	: "גולש התקשרות", 	textENG	: "Contact", 		xmlTag	: "contactId"		}
+var subjectCol		= {textHEB	: "נושא", 			textENG	: "Subject", 		xmlTag	: "subject"			}
+var htmlCodeCol		= {textHEB	: "תוכן המכתב", 	textENG	: "Content", 		xmlTag	: "htmlCode"		}
+var whenSentCol		= {textHEB	: "מועד השליחה", 	textENG	: "Sent at", 		xmlTag	: "whenSent"		}
+
+var wasSentAlready 	= 0;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();	
+	createDataTable     ();
+	createTableButtons  ();	
+	loadData			();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   		= pageObj.addPageTitle 	  ("ניהול דוא\"ל", "E-Mails management");
+	addTitleId			= pageObj.addPageSubTitle ("הוספת דוא\"ל",	"Add an E-Mail");
+	updateTitleId		= pageObj.addPageSubTitle ("עדכון דוא\"ל",	"Update an E-Mail");
+	duplicateTitleId	= pageObj.addPageSubTitle ("שכפול דוא\"ל",	"Duplicate an E-Mail");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,				widthHEB : 70,
+			   	   textENG	: idCol.textENG,				widthENG : 70,
+				   sortType	: "number",						sortDir  : "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: subjectCol.textHEB,			widthHEB : 400,
+				   textENG	: subjectCol.textENG,			widthENG : 400,
+				   sortType	: "text",						sortDir  : "ascending",
+				   xmlTag  	: subjectCol.xmlTag}
+		   
+	column3		= {textHEB	: mailingListIdCol.textHEB,		widthHEB : 200,
+				   textENG	: mailingListIdCol.textENG,		widthENG : 200,
+				   sortType	: "text",						sortDir  : "ascending",
+				   xmlTag   : "mailingListName"}
+		   
+	column4		= {textHEB	: whenSentCol.textHEB,			widthHEB : 150,
+				   textENG	: whenSentCol.textENG,			widthENG : 150,
+				   sortType	: "text",						sortDir  : "ascending",
+				   xmlTag   : whenSentCol.xmlTag}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 350, 270);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "duplicate",
+			   action		: "openForm('duplicate')"}
+
+	btn4	= {type			: "delete",
+			   action		: "deleteEmail()"}
+
+	btn5	= {type			: "",
+			   textHEB		: "שליחת בדיקה",
+			   action		: "sendEmail(1)"}
+
+	btn6	= {type			: "",
+			   textHEB		: "שליחה",
+			   textENG		: "Send",
+			   action		: "sendEmail(0)"}
+
+	btn7	= {type			: "",
+			   textHEB		: "המשך שליחה",
+			   textENG		: "Continue Sending",
+			   inPopup		: false,
+			   action		: "continueSendEmail()"}
+
+	btn8	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3, btn4), new Array(btn5, btn6, btn7), new Array(btn8));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (duplicateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update" || type == "duplicate")
+	{
+		// hide table
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	serverObj.cleanRequest ();
+	serverObj.sendRequest("club.getEmails", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay ("report");
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+var globalContacts;
+var globalConfigXml;
+var globalLayouts;
+var globalLists;
+var globalMembersOfList;
+
+var globalDetailsXml;
+
+var globalType;
+var globalId;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type, id)
+{
+	globalType = type;
+	globalId   = id;
+
+	if ((type == "update" && id == undefined) || type == "duplicate")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור דוא\"ל", "Choose an E-Mail");
+			return false;
+		}
+
+		globalId = pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+	}
+
+	if (globalContacts == undefined)
+		serverOptions_getContacts(true, "after_getContacts");
+
+	if (globalConfigXml == undefined)
+		serverObj.sendRequest("club.getClubConfig", undefined, "after_getClubConfig");
+
+	if (globalLayouts == undefined)
+		serverOptions_getLayoutsByType ("newsletter", "after_getLayouts");
+
+	if (globalLists == undefined)
+		serverOptions_getMailingLists("", "after_getMailingLists");
+
+	if (type == "update" || type == "duplicate")
+	{
+		globalDetailsXml = undefined;
+
+		serverObj.cleanRequest ();
+		serverObj.addTag 	   (idCol.xmlTag, globalId);
+		serverObj.addTag	   ("action", type);
+		serverObj.sendRequest  ("club.getEmailDetails", undefined, "after_getDetails");
+	}
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getContacts (options)
+{
+	globalContacts = options;
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getClubConfig (i)
+{
+	globalConfigXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getLayouts (options)
+{
+	globalLayouts = options;
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getMailingLists (options)
+{
+	globalLists = options;
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	var theMailingListId = commonGetInnerData(globalDetailsXml, mailingListIdCol.xmlTag);
+
+	if (globalType == "duplicate")
+		wasSentAlready = false;
+	else
+		wasSentAlready = (commonGetInnerData(globalDetailsXml, "wasSentAlready") == "1");
+
+	if (wasSentAlready)
+	{
+		globalMembersOfList = "";
+	}
+	else
+	{
+	   	if (theMailingListId != "")
+		{
+			serverOptions_getMailingListMembers(theMailingListId, "after_getMailingListMembers");
+		} 
+		else
+		{
+			globalMembersOfList = "";
+		}
+	}
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getMailingListMembers (options)
+{
+	globalMembersOfList = options;
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+
+function openForm_continue (type, id)
+{
+	var type = globalType;
+	var id   = globalId;
+
+	if (globalContacts == undefined || globalConfigXml == undefined || globalLayouts == undefined || globalLists == undefined ||
+	    (type != "add" && (globalDetailsXml == undefined || globalMembersOfList == undefined))) return;
+
+	// ------------------------------------------------------------------------------------ 
+
+	if (formId == -1)
+		formId   		= pageObj.addForm ();
+	
+	defaultLayout	= commonGetInnerData(globalConfigXml, "defaultMailingLayout");
+
+	pageObj.resetForm (formId);
+
+	contactOptions = "";
+
+	// ------------------------------------------------------------------------------------ 
+
+	if (type == "update" || type == "duplicate")
+	{
+		pageObj.setFormXml (formId, globalDetailsXml);
+
+		if (!wasSentAlready)
+		{
+			var theMailingListId = commonGetInnerData(globalDetailsXml, mailingListIdCol.xmlTag);
+
+		   	if (theMailingListId != "")
+			{
+				contactOptions = globalMembersOfList;
+			} 
+			else
+			{
+				contactOptions = globalContacts;
+			}
+		}
+
+	}
+	else
+	{
+		if (type == "add")
+			wasSentAlready = 0;
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(100,300,110,300),
+					ENG : new Array(100,300,110,300)}
+
+
+	var fieldWidth  = 260;
+	var fieldWidth2 = 570;
+
+	var frameId = pageObj.addFormFrame (formId, "פרטי הדוא\"ל", "E-Mail details"); 
+
+	field1 = {type			: "span",						textHEB		 : idCol.textHEB,
+			  spanData		: 1,							textENG		 : idCol.textENG,
+			  dataFld		: idCol.xmlTag,					width	 	 : fieldWidth}
+
+	field2 = {type			: "span",						textHEB		 : whenSentCol.textHEB,
+			  spanData		: 1,							textENG		 : whenSentCol.textENG,
+			  dataFld		: whenSentCol.xmlTag,			width	 	 : fieldWidth,
+			  defaultValue	: "טרם נשלח"}
+
+  	field3 = {type			: "multiSelect",				textHEB		 : "רשימה",
+			  spanData		: 1,						  	textENG		 : mailingListIdCol.textENG,
+			  dataFld		: mailingListIdCol.xmlTag,		width	 	 : fieldWidth,
+			  options		: globalLists,					height		 : 80,
+			  action		: "onSelectEmail(\"mailingList\")"}
+
+  	field4 = {type			: "select",						textHEB		 : contactIdCol.textHEB,
+			  textENG		: contactIdCol.textENG,
+			  spanData		: 1,							width	 	 : fieldWidth,
+			  dataFld		: contactIdCol.xmlTag,			mandatory	 : false,
+			  options		: contactOptions,
+			  action		: "onSelectEmail(\"contact\")"}
+
+	if (wasSentAlready == 1)
+	{
+			field3.type 	= "span";
+			field3.dataFld += "Text";
+			field4.type 	= "span";
+			field4.dataFld += "Text";
+	}
+
+	fields = new Array(field1, field2, field3, field4);
+	
+	if (wasSentAlready == 1)
+	{
+		field1 = {type		: "span",						textHEB		 : "מספר נמענים",
+			  	  spanData	: 3,							textENG		 : "",
+				  dataFld	: "countMembers",				width	 	 : fieldWidth}
+
+		  fields.push (field1);
+	}
+
+  	field1 = {type			: "text",						textHEB		 : subjectCol.textHEB,
+			  spanData		: 1,							textENG		 : subjectCol.textENG,
+			  dataFld		: subjectCol.xmlTag,			width	 	 : fieldWidth,
+			  maxLength 	: "200"}
+
+  	field2 = {type			: "select",						textHEB		 : layoutCol.textHEB,
+			  textENG		: layoutCol.textENG,
+			  spanData		: 1,							width	 	 : fieldWidth,
+			  dataFld		: layoutCol.xmlTag,				mandatory	 : true,
+			  options		: globalLayouts, 				defaultValue : defaultLayout}
+
+	field3 = {type			: "xstandard",					textHEB		 : "תוכן",
+			  spanData		: 3,							textENG		 : "",
+			  dataFld		: "htmlCode",					width	 	 : 670,
+			  height	 	: 280}
+
+	if (wasSentAlready == 1)
+	{
+		field1.type = "span";
+		field2.type = "span";
+		field2.dataFld += "Text";
+	}
+
+	fields.push (field1, field2, field3);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	pageObj.generateForm  (formId, false);
+	createEditFormButtons (type);
+
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectEmail																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectEmail (which)
+{
+	if (which == "mailingList")
+	{
+	   	if (pageObj.getFieldValue (formId, mailingListIdCol.xmlTag) != "")
+		{
+			serverOptions_getMailingListMembers(pageObj.getFieldValue (formId, mailingListIdCol.xmlTag), "setMembers");
+		} 
+		else 
+		{
+		 	pageObj.setFieldOptions (formId, contactIdCol.xmlTag, globalContacts);
+			pageObj.setFieldValue   (formId, contactIdCol.xmlTag, "");
+		}
+	}
+}
+
+function setMembers (options)
+{
+	pageObj.setFieldOptions (formId, contactIdCol.xmlTag, options);
+	pageObj.setFieldValue	(formId, contactIdCol.xmlTag, "");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	actionType = type;
+	if (type == "duplicate")
+		actionType = "add"
+
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')",
+			   textHEB		: "סגירת הטופס ללא שמירה"}
+
+    btn2	= {type			: "",
+			   textHEB		: "שלח בדיקה",
+			   action		: "submitForm('" + actionType + "','test')",
+			   titleHEB		: "שמירת הדוא\"ל ושליחתו אל בעל האתר לבדיקה"}
+
+    btn3	= {type			: "",
+			   textHEB		: "שמור ושלח",
+			   action		: "submitForm('" + actionType + "','real')",
+			   titleHEB		: "שמירת הדוא\"ל, שליחתו לרשימת התפוצה וחזרה לטבלת הדוא\"ל"}
+
+	if (type == "add")
+		typeText = "הוספת";
+	else if (type == "duplicate")
+		typeText = "שכפול";
+	else
+		typeText = "עדכון";
+
+	btn4	= {type			: type,
+			   action		: "submitForm('" + actionType + "','')",
+			   titleHEB		: typeText + " הדוא\"ל וסגירת הטופס"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1));
+	
+	if (type == "add" || wasSentAlready == 0)
+	{
+		btnsGroups.push (new Array(btn2, btn3));
+		btnsGroups.push (new Array(btn4));
+	}
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+var globalSubmitType;
+var globalSendType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type, sendType)
+{
+	if (pageObj.getFieldValue (formId, contactIdCol.xmlTag) == "" &&
+		pageObj.getFieldValue (formId, mailingListIdCol.xmlTag) == "")
+	{
+		pageObj.displayAndSetError (formId, mailingListIdCol.xmlTag, "יש לבחור רשימת תפוצה או גולש התקשרות", "Choose a mailing list or contact");
+		return false;
+	}
+
+	if (!pageObj.validateForm(formId)) return false;
+	
+	globalSubmitType = type;
+	globalSendType 	 = sendType;
+
+	if (sendType == "real")
+	{
+		confirm ("שליחת הדוא\"ל", "sending newsletter", "submitForm_confirm");
+	}
+	else
+	{
+		submitForm_confirm ();
+	}
+}
+
+function submitForm_confirm ()
+{
+	serverObj.setXml (pageObj.getFormXml(formId));
+	serverObj.addTag ("sendType", globalSendType);
+
+	serverObj.sendRequest("club." + globalSubmitType + "Email", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var type 		= globalSubmitType;
+	var sendType 	= globalSendType;
+
+	var responseXml = asyncResponseXml.getResponseXml (i);
+	
+	if (responseXml != null && sendType != "test")
+	{
+		handleDisplay	("report");
+	}
+
+	if (sendType == "test")
+	{
+		commonMsgBox ("info", "שליחת בדיקת הדוא\"ל התבצעה בהצלחה", "Newsletter testing was sent successfully");
+
+		if (type == "add")
+		{
+			pageObj.hideComponent (formId);
+			pageObj.hideComponent (formButtonsId);
+
+			id = commonGetInnerData (responseXml, idCol.xmlTag);
+
+			pageObj.hideComponent (addTitleId);
+			pageObj.showComponent (updateTitleId);
+			
+			openForm ("update", id);
+		}
+	}
+
+	doRefresh 		();
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteEmail																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteEmail() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור דוא\"ל", "Choose an E-Mail");
+		return false;
+	}
+
+	var id 	= pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	
+	confirm("מחיקת דוא\"ל " + id, "delete E-Mail " + id, "deleteEmail_confirm");
+}
+
+function deleteEmail_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	("id", pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+	
+	serverObj.sendRequest("club.deleteEmail", undefined, "deleteEmail_continue");
+}
+
+function deleteEmail_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+var globalIsTest;
+
+/* ---------------------------------------------------------------------------------------- */
+/* sendEmail																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function sendEmail(isTest) 
+{
+	globalIsTest = isTest;
+
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור דוא\"ל", "Choose an E-Mail");
+		return false;
+	}
+
+	if (pageObj.getSelectedValueOf(tableId, "statusCode") == "sent")
+	{
+		commonMsgBox ("info", "דוא\"ל זה כבר נשלח. לא ניתן לשלוחו שוב", "");
+		return false;
+	}
+
+	var id 	= pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	
+	confirm ("שליחת דוא\"ל " + id, "send E-Mail " + id, "sendEmail_confirm");
+}
+
+function sendEmail_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	   ("id", pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+	serverObj.addTag	   ("isTest", globalIsTest);
+	
+	serverObj.sendRequest ("club.sendEmail", undefined, "sendEmail_continue");
+}
+
+function sendEmail_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* continueSendEmail																		*/ 
+/* ---------------------------------------------------------------------------------------- */
+function continueSendEmail() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור דוא\"ל", "Choose an E-Mail");
+		return false;
+	}
+
+	var id 	= pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	
+	serverObj.cleanRequest ();
+	serverObj.addTag	("id", id);
+	
+	serverObj.sendRequest("club.continueSendEmail", undefined, "continueSendEmail_continue");
+}
+
+function continueSendEmail_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>
+

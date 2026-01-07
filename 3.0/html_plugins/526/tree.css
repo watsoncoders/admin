@@ -1,0 +1,231 @@
+.DefineTree
+{
+	list-style: none;
+	line-height: 1.42857143;
+	font-family: Arial;
+}
+
+.DefineTree li
+{
+	position: relative;padding: 5px 20px 5px 0px;
+}
+
+.DefineTree li a, 
+.treeplant li span
+{
+	color: #4D4D4D;
+	font-size: 18px;
+	cursor: pointer;
+	text-decoration: none;
+}
+
+.DefineTree li a.insExtra:before
+{
+	content:"\f147";
+	font-family: FontAwesome;
+	position: absolute;
+	right:0px;
+	top:5px;
+	color: #7B9521;
+	background: #FFF !important;
+	height: 17px;
+	width: 13px;
+	z-index: 1;
+}
+
+.DefineTree li a.collapsed:before
+{
+	color:#7B9521;
+}
+
+.DefineTree li ul li:before
+{
+	content:"";
+	height: 100%;
+	width:2px;
+	content:"";
+	position: absolute;
+	right:-15px;
+	top: -18px;
+	background: #7B9521;
+}
+
+.DefineTree li ul li:after
+{
+	content:"";
+	height:2px;
+	width:25px;
+	content:"";
+	position: absolute;
+	right:-15px;
+	top:15px;
+	background: #7B9521;
+}
+
+.tree-top
+{
+	margin-top: 45px;
+	margin-bottom: 45px;
+}
+
+.tree-star
+{
+	padding-top: 5px;
+}
+
+.try-top
+{
+	margin-top: 30px;
+}
+
+.line-tree
+{
+	position: relative;
+	right: -40px;
+}
+
+.treemargin
+{
+	margin-right: 46px;
+	margin-top: 0px;
+	font-size: 18px;
+	color: #000046;
+}
+
+.treedefine p  a.collapsed:before
+{
+	color:#ffa801;
+}
+
+.DefineTree li a.collapsed4:before
+{
+	content:"\f196" !important;
+}
+
+.DefineTree li a.collapsed7:before 
+{
+	content:"\f196" !important;
+}
+
+.fromtree
+{
+	color: #212121 !important;
+}
+
+.fromtree1
+{
+	color: #ffa801 !important;
+}
+
+.treecolor ul li::before
+{
+	background: #BCBCBC !important;
+}
+
+.treecolor ul li::after 
+{
+	background: #BCBCBC !important;
+}
+
+.treecolor li a.collapsed::before 
+{
+    color: #BCBCBC !important;
+}
+
+.treeplant li a, .treeplant li span
+{
+	color: #4D4D4D !important;
+}	
+
+.treedetails
+{
+	color:#000046 !important;
+}	
+
+.DefineTree li a.collapsed
+{
+	color: #010044;
+}
+
+.DefineTree li ul
+{
+	margin: 0px;
+	list-style: none;
+}
+
+.DefineTree li ul li
+{
+	position: relative; 
+	width: 100%;
+}
+
+.DefineTree li ul li a.insExtra:before
+{
+	content:"\f147" !important;
+	font-family: FontAwesome;
+	position: absolute;
+	right:0px;
+	top:5px;
+	color: #7B9521;
+	background: #FFF !important;
+	height: 17px;
+	width: 13px;
+	z-index: 1;
+}
+
+.DefineTree li ul li a.collapsed:before
+{
+/*	content:"\f147" !important;*/
+	content:"\f196" !important;
+	display:none
+	
+}
+
+.DefineTree li ul li a.insExtra:before
+{
+	display:block!important;
+}
+
+.DefineTree li a.collapsed:before
+{
+	content:"\f196" !important;
+}
+
+.treeplant li span.ui-button 
+{
+	color: #000046 !important;
+	display: inline-block;
+	padding: 0 5px;
+}
+
+.clRmvse
+{
+	margin-top: 10px;
+}
+
+.expertCatsTitle
+{
+	color: #7B9521;
+	font-weight: bold;
+	padding-right: 15px;
+	margin-top: 5px;
+}
+
+#expertCats
+{
+	position: absolute;
+	top: 0px;
+	right: 500px;
+}
+
+#tree
+{
+	height: 400px;
+	overflow-y: scroll;
+	direction: ltr;
+}
+
+.tree_in
+{
+	direction: rtl;
+}

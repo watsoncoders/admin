@@ -1,0 +1,589 @@
+<html>
+<head>
+
+<meta http-equiv = "Pragma"  content="no-cache">
+<meta http-equiv = "Expires" content="-1">
+<meta http-equiv = "content-type" content="text/html;charset=windows-1255">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray			= top.globalFrame.langArray;
+
+var pageObj				= new dynamicPageObj();						// page object
+var serverObj			= new serverInterfaceObj();					// server object
+
+var pageTitleId			= -1;
+var addTitleId			= -1;
+var updateTitleId		= -1;
+var showTitleId			= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+var spanFileId			= -1;
+var showButtonsId		= -1;
+
+var idCol;
+var textCol;
+var typeCol;
+var fileCol;
+var productCol;
+
+var picsXml		= null;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	idCol		= {textHEB	: "קוד",
+				   textENG	: "",
+				   xmlTag	: "picId"}
+
+	textCol		= {textHEB	: "שם תמונה",
+				   textENG	: "",
+				   xmlTag	: "picText"}
+
+	typeCol		= {textHEB	: "סוג התמונה",
+				   textENG	: "",
+				   xmlTag	: "picType"}
+
+	fileCol		= {textHEB	: "קובץ התמונה",
+				   textENG	: "",
+				   xmlTag	: "picFile"}
+
+	productCol	= {textHEB	: "שם מוצר",
+				   textENG	: "",
+				   xmlTag	: "productId"}
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();					// page titles
+
+	createSpanFile		();					// for showing file 
+
+	addSearchSection    ();					// search query form & buttons
+
+	createDataTable     ();					// pics table
+
+	createTableButtons  ();					// table buttons
+
+	// after table created - add collapse support to the search form and generate it + buttons
+	createSearchSection ();
+
+	loadData			();					// load pics 
+
+	handleDisplay ("report");				// show page
+	
+	pageObj.collapseSection (searchFormId, false);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	 = pageObj.addPageTitle ("ניהול תמונות מוצר",  "");
+	addTitleId		 = pageObj.addPageTitle ("הוספת תמונה למוצר",	"");
+	updateTitleId	 = pageObj.addPageTitle ("עדכון תמונת מוצר",	"");
+	showTitleId		 = pageObj.addPageTitle ("הצגת תמונה",          "");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createSpanFile																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createSpanFile ()
+{
+	spanFileId = pageObj.addSpan	();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	// create search form (if needed)
+	// ------------------------------------------------------------------------------------ 
+	if (searchFormId == -1)
+	{
+		// first creation
+		searchFormId   = pageObj.addForm ();
+	}
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+var typeOptions = new selectOptionsObj();
+typeOptions.addOption ("" , 	  "", 		     		 "");
+typeOptions.addOption ("1" , 	  "תמונה ראשית מוקטנת",  "");
+typeOptions.addOption ("2" , 	  "תמונה ראשית מוגדלת",	 "");
+typeOptions.addOption ("3" , 	  "תמונת דף מוצר",     	 "");
+
+var productsOptions = serverOptions_getShopProducts();
+
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	field1 = {type      : "select",					textHEB		 : productCol.textHEB,
+			  spanData  : 1,						textENG		 : productCol.textENG,
+			  dataFld   : productCol.xmlTag,		width   	 : 220,
+			  mandatory : false,					defaultValue : top.globalFrame.globalProductId,
+			  options	: productsOptions}
+
+  	fields.push (field1);
+	
+	width = "*" + pageObj.getTableWidth(tableId);	// reset but max
+	fieldsWidths = {HEB	: new Array(60,width),
+					ENG : new Array(60,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);// parms : 1) form with collapse 
+																 //			2) all other collapse items
+																 //			3) all expand tables
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "report",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");	// for paging when load function is not loadReport
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,			widthHEB 	: 35,
+				   textENG	: idCol.textENG,			widthENG 	: 35,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: textCol.textHEB,			widthHEB 	: 200,
+				   textENG	: textCol.textENG,			widthENG 	: 200,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : textCol.xmlTag}
+		   
+	column3		= {textHEB	: typeCol.textHEB,			widthHEB 	: 150,
+				   textENG	: typeCol.textENG,			widthENG 	: 150,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : typeCol.xmlTag + "Text"}
+		   
+	column4		= {textHEB	: fileCol.textHEB,			widthHEB 	: 100,
+				   textENG	: fileCol.textENG,			widthENG 	: 100,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : fileCol.xmlTag,			dir			: "ltr"}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 340, 340);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deletePic()"}
+
+   	btn4	= {type			: "show",
+			   action		: "showPic()"}
+
+    btn5	= {type			: "back",
+			   action		: "top.mainFrame.location.replace('handleShopProducts.html')"}
+
+	btn6	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3, btn4), new Array(btn5), new Array(btn6));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// hide show
+		pageObj.hideComponent (showTitleId);
+		pageObj.hideComponent (showButtonsId);
+		pageObj.hideComponent (spanFileId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update" || type == "show")
+	{
+		// hide table
+		pageObj.hideComponent (pageTitleId);
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		if (type == "show")
+		{
+			pageObj.showComponent (showTitleId);
+			pageObj.showComponent (showButtonsId);
+		}
+		else
+		{
+			// show from
+			pageObj.showComponent (eval(type + "TitleId"));
+			pageObj.showComponent (formId);
+			pageObj.showComponent (formButtonsId);
+		}
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	if (!pageObj.validateForm (searchFormId)) return false;
+
+	serverObj.setXml (pageObj.getFormXml(searchFormId));
+
+	var responseXml = serverObj.sendRequest("shop.getProductPics", pageObj.getTablePaging(tableId)); 
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		picsXml = responseXml;
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showExcelReport																			*/
+/* ---------------------------------------------------------------------------------------- */
+function showExcelReport ()
+{
+	serverObj.setXml (pageObj.getFormXml(searchFormId));
+
+	serverObj.showExcelReport("getProductPics");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	if (type == "update")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור תמונה");
+			return false;
+		}
+	}
+
+	createUploadForm  	  	(type);	// create update/add pic form
+
+	createUploadFormButtons (type);	// create the form buttons
+
+	handleDisplay 		 	(type);	// show form
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createUploadForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createUploadForm (type)
+{
+	if (formId == -1)
+	{
+		formId = pageObj.addForm ();
+	}
+	pageObj.resetForm (formId);
+
+	var frameId = pageObj.addFormFrame (formId, "פרטי תמונה", "");
+
+	var fields = new Array();
+
+	hidden = {type		: "hidden",					
+			  dataFld   : idCol.xmlTag}
+
+	hidden2= {type		: "hidden",					
+			  dataFld   : productCol.xmlTag,			defaultValue : top.globalFrame.globalProductId}
+
+	hidden3= "";
+
+	field1 = {type		: "span",						textHEB		 : productCol.textHEB,
+			  spanData  : 1,							textENG		 : productCol.textENG,
+			  dataFld   : productCol.xmlTag+"Text",		width   	 : 220,
+			  											defaultValue : pageObj.getOptionText (searchFormId, productCol.xmlTag)}
+			  
+  	field2 = {type		: "text",						textHEB		 : textCol.textHEB,
+			  spanData	: 1,							textENG		 : textCol.textENG,
+			  dataFld	: textCol.xmlTag,				width	 	 : 335,
+			  minLength	: "1",							mandatory	 : false,
+			  maxLength	: "100",						lang		 : langArray}
+
+	if (type == "add")
+	{
+		field4 = {type		: "hidden",					
+				  dataFld   : "sourceFile"}
+
+	    manadatory = true;
+
+	}
+	else
+	{
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (idCol.xmlTag, pageObj.getSelectedValueOf (tableId, idCol.xmlTag));
+		var responseXml = serverObj.sendRequest("shop.getProductPicDetails");
+			
+		if (responseXml != null)
+			pageObj.setFormXml (formId, responseXml.xml);
+
+		field4 = {type		: "span",					textHEB		 : "קובץ מקור",
+				  spanData  : 1,						textENG		 : "",
+				  dataFld	: "formSourceFile",			width   	 : 335}
+
+		hidden3 = {type		: "hidden",					
+			 	   dataFld   : "sourceFile"}
+
+		manadatory = false;
+	}
+
+	field5 = {type		: "uploadFile",				textHEB		 : "קובץ תמונה", 
+			  spanData	: 1,						textENG		 : "",
+			  dataFld	: "picFile",				width		 : 335,
+			  mandatory : manadatory,				defaultValue : ""}
+
+    langs  = {type			: "hidden",					dataFld		 : "usedLangs",
+			  defaultValue  : langArray.join(",")}
+
+  	fields.push (hidden, hidden2, field1, field2, field4, field5, langs);
+
+	if (hidden3 != "")
+	{
+		fields.push (hidden3);
+	}
+
+	widths = {HEB : new Array (100,345),
+			  ENG : new Array (100,345)};
+
+	pageObj.addFormFields (formId, frameId, widths, fields);
+
+	pageObj.setFormAction (formId, 
+						   "http://www.i-bos.co.il/3.0/php/uploadShopFile.php?action=" + type, 
+						   "submitForm");
+
+	pageObj.generateForm  (formId);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createUploadFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createUploadFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + formId + ")"}
+
+	btn3	= {type			: type,
+			   action		: "submit",
+			   formName		: pageObj.getFormName(formId)}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm ()
+{
+	var picFile = pageObj.getFieldValue(formId,"picFile");
+	if (picFile != "")
+		pageObj.setFieldValue (formId, "sourceFile", picFile);
+
+	if (!pageObj.validateForm(formId)) return false;
+	
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showPic																					*/
+/* ---------------------------------------------------------------------------------------- */
+function showPic ()
+{
+	if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור תמונה");
+		return false;
+	}
+
+	createShowPage    	();
+
+	createShowButtons 	();
+
+	handleDisplay 		("show");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createShowPage																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createShowPage ()
+{
+	fileHtml = "<iframe frameborder='0' width='100%' height='420' style='background-color:#f8f8f8' src='" + 
+						pageObj.getSelectedValueOf(tableId, "fullFileName") + "'" +
+			   "</iframe>";
+
+	pageObj.initSpan      (spanFileId, fileHtml);
+
+	pageObj.showComponent (spanFileId);   
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createShowButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createShowButtons ()
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1));
+
+	if (showButtonsId == -1)
+		showButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (showButtonsId, btnsGroups, 10);
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deletePic																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deletePic() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור תמונה");
+		return false;
+	}
+
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag,   pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+	serverObj.addTag	(fileCol.xmlTag, pageObj.getSelectedValueOf(tableId,fileCol.xmlTag));
+	
+	if (confirm("מחיקת התמונה"))
+	{
+		responseXml = serverObj.sendRequest("shop.deleteProductPic");
+
+		if (responseXml != null)
+		{
+			doRefresh ();
+		}
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

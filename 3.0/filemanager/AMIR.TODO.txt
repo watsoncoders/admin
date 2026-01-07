@@ -1,0 +1,65 @@
+
+1) In both filemanager/plugin.min.js and tinymce/plugins/responsivefilemanager/plugin.min.js
+
+Add this to the dialog.php call:
+ +"&"+top.location.search.substring(1)
+
+After r.value=e.convertURL(n); Add this:
+$.ajax({url:e.settings.external_filemanager_path+"upload2website.php?targetFile="+r.value+"&"+top.location.search.substring(1)});r.value="loadedFiles"+r.value.substring(r.value.lastIndexOf("/"));
+
+2) In filemanager/dialog.php just before scandir add:
+
+if (!file_exists($current_path.$subfolder.$subdir))
+		mkdir($current_path.$subfolder.$subdir);
+
+Also in dialog.php, in the definition of $get_params add
+	'sessionCode'=> $_GET['sessionCode']
+
+3) In filemanager/config/config.php change these lines:
+
+// connect to interuse db
+include "../php/commonAdminMini.php";
+commonConnectToDB();
+if ($_GET['sessionCode'])
+		$sess = $_GET['sessionCode'];
+else
+{
+		$sess	= substr($_SERVER['HTTP_REFERER'], strrpos($_SERVER['HTTP_REFERER'], '=')+1);
+		if (strpos($sess, "&"))
+			$sess	= substr($sess, 0, strpos($sess, "&"));
+}
+$userRow 	= commonGetUserRow ($sess);
+$userId		= $userRow['id'];
+
+$base_url="http://".$_SERVER['HTTP_HOST'];  // DON'T TOUCH (base url (only domain) of site (without final /)).
+$upload_dir = "/3.0/uploads/$userId/"; // path from base_url to base of upload folder (with start and final /)
+$current_path = "../uploads/$userId/"; // relative path from filemanager folder 
+
+...
+
+$create_folders=false;
+
+.... at the end of the file add:
+
+
+function transliterator_transliterate($dummy, $filename)
+{
+	$bads = array(' ','ā','č','ē','ģ','ī','ķ','ļ','ņ','ŗ','š','ū','ž','Ā','Č','Ē','Ģ','Ī','Ķ','Ļ','Ņ','Ŗ','Š','Ū','Ž','$','&','А','Б','В','Г','Д','Е','Ё','Ж','З','И','Й','К','Л','М','Н','О','П','Р','С','Т','У','Ф','Х','Ц','Ч','Ш','Щ','Ъ','ЫЬ','Э','Ю','Я','а','б','в','г','д','е','ё','ж','з','и','й','к','л','м','н','о','п','р','с','т','у','ф','х','ц','ч','шщ','ъ','ы','ь','э','ю','я','א','ב','ג','ד','ה','ו','ז','ח','ט','י','כ','ך','ל','מ','ם','נ','ן','ס','ע','פ','ף','צ','ץ','ק','ר','ש','ת','!','\'');
+	$good = array('-','a','c','e','g','i','k','l','n','r','s','u','z','A','C','E','G','I','K','L','N','R','S','U','Z','s','and','A','B','V','G','D','E','J','Z','Z','I','J','K','L','M','N','O','P','R','S','T','U','F','H','C','C','S','S','T','T','E','Ju','Ja','a','b','v','g','d','e','e','z','z','i','j','k','l','m','n','o','p','r','s','t','u','f','h','c','c','s','t','t','y','z','e','ju','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','T','1','w');
+	if (strspn($filename, "אבגדהוזחטיכךלמםנןסעפףצץקרשת") > 0) // filename conains hebrew characters
+		$filename = "__heb__$filename";
+	$filename = str_replace($bads,$good,$filename);
+	$filename = str_replace('&#039;', '_', $filename);
+	$filename = str_replace('&#037;', '_', $filename);
+	return $filename;
+}
+
+
+4) Add our new file upload2website.php
+
+5) At the begining of ajax_calls.php add these:
+
+$_GET['sessionCode'] = substr($_SERVER['HTTP_REFERER'], strrpos($_SERVER['HTTP_REFERER'], '=')+1);
+$_GET['sessionCode'] = substr($_GET['sessionCode'], 0, strpos($_GET['sessionCode'], "&"));
+
+6) In dialog.php put in remark the line with the Download icon, since it didn't work for us

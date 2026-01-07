@@ -1,0 +1,469 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var pageTitleId		= -1;
+var addTitleId		= -1;
+var updateTitleId	= -1;
+var duplicateTitleId= -1;
+var searchFormId	= -1;
+var searchButtonsId	= -1;
+var tableId			= -1;
+var rowButtonsId	= -1;
+var formId			= -1;
+var formButtonsId	= -1;
+
+var idCol		= {textHEB	: "קוד", 			textENG	: "ID", 	xmlTag	: "id"		}
+var nameCol		= {textHEB	: "שם תיבה", 		textENG	: "Name", 	xmlTag	: "boxName"	}
+var typeCol		= {textHEB	: "סוג תיבה", 		textENG	: "Type", 	xmlTag	: "type"	}
+var titleCol	= {textHEB	: "כותרת לתיבה", 	textENG	: "Title", 	xmlTag	: "title"	}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();	
+	createDataTable     ();	
+	createTableButtons  ();	
+
+	loadData			();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	 = pageObj.addPageTitle 	("ניהול תיבות", "Boxes");
+	addTitleId		 = pageObj.addPageSubTitle 	("הוספת תיבה",	"Add a box");
+	updateTitleId	 = pageObj.addPageSubTitle 	("עדכון תיבה",	"Update a box");
+	duplicateTitleId = pageObj.addPageSubTitle 	("שכפול תיבה",	"Duplicate a box");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,			widthHEB : 70,
+				   textENG	: idCol.textENG,			widthENG : 70,
+				   sortType : "number",					sortDir  : "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: nameCol.textHEB,			widthHEB : 250,
+				   textENG	: nameCol.textENG,			widthENG : 250,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : nameCol.xmlTag}
+		   
+	column3		= {textHEB	: titleCol.textHEB,			widthHEB : 600,
+				   textENG	: titleCol.textENG,			widthENG : 600,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : titleCol.xmlTag}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 500, 350);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "duplicate",
+			   action		: "openForm('duplicate')"}
+
+	btn4	= {type			: "delete",
+			   action		: "deleteBox()"}
+
+	btn5	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3,btn4), new Array(btn5));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (duplicateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update" || type == "duplicate")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		if (type == "update")
+			pageObj.selectTab (formId, 1);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	serverObj.cleanRequest ();
+	serverObj.sendRequest("boxes.getBoxes", pageObj.getTablePaging(tableId), "loadData_continue"); 
+
+	return true;
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i) 
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay 		("report");
+			global_firstTime = false;
+		}
+	}
+}
+
+var globalType;
+var globalId;
+var globalDetailsXml;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type, id)
+{
+	globalType 	= type;
+	globalId	= id;
+
+	if ((type == "update" && id == undefined) || type == "duplicate")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור תיבה", "Please choose a box");
+			return false;
+		}
+	}
+
+	globalDetailsXml = undefined;
+
+	if (type == "update" || type == "duplicate")
+	{
+		serverObj.cleanRequest ();
+
+		if (globalId == undefined)
+			globalId = pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+
+		serverObj.addTag	   (idCol.xmlTag, globalId);
+
+		serverObj.sendRequest("boxes.getBoxDetails", undefined, "after_loadDetails");
+	}
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function openForm_continue ()
+{
+	type = globalType;
+
+	if (type == "update" && globalDetailsXml == undefined) return;
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(150,620),
+					ENG : new Array(150,620)}
+
+	var frameId = pageObj.addFormFrame (formId, "הגדרות התיבה", "Definitions"); 
+
+  	field1 = {type			: "textEng",				textHEB		 : nameCol.textHEB,
+			  spanData		: 1,						textENG		 : nameCol.textENG,
+			  dataFld		: nameCol.xmlTag,			width	 	 : 610,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "50"}
+
+  	field2 = {type			: "text",					textHEB		 : titleCol.textHEB,
+			  spanData		: 1,						textENG		 : titleCol.textENG,
+			  dataFld		: titleCol.xmlTag,			width	 	 : 610,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "100",					lang		 : langArray}
+
+    hidden = {type			: "hidden", 				dataFld		: idCol.xmlTag}
+
+	fields = new Array(field1, field2, hidden);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(0,770),
+					ENG : new Array(0,770)}
+
+	var frameId = pageObj.addFormFrame (formId, "תוכן התיבה", "Content"); 
+
+	field1 = {type			: "xstandard",				textHEB		 : "",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "content",				width	 	 : 750,
+		  	  height  		: 280,						mandatory	 : false,
+			  state			: "lock",					lang		 : langArray}
+
+  	fields = new Array(field1);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+	if (type == "update" || type == "duplicate")
+	{
+		pageObj.setFormXml (formId, globalDetailsXml);
+	}
+	
+	pageObj.generateForm  (formId, true);
+
+	createEditFormButtons (type);
+
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + formId + ")"}
+
+	actionType = type;
+	if (type == "duplicate")
+		actionType = "add";
+
+	btn3	= {type			: "save",
+			   action		: "submitForm('" + actionType + "Save')"}
+
+	btn4	= {type			: type,
+			   action		: "submitForm('" + actionType + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3, btn4));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+}
+
+var global_submitType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	global_submitType = type;
+
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	command = type + "Box";
+	
+	if (type == "addSave")
+	{
+		command = "addBox";
+	}
+		
+	if (type == "updateSave")
+	{
+		command = "updateBox";
+	}
+		
+	serverObj.sendRequest("boxes." + command, undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var type = global_submitType;
+
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		if (type != "addSave" && type != "updateSave")
+		{
+			handleDisplay	("report");
+			doRefresh		();
+		}
+		else
+		{
+			doRefresh		();
+			commonMsgBox 	("info", "נתוני התיבה נשמרו בהצלחה", "Box details has been saved successfully");
+		}
+		
+		if (type == "addSave")
+		{
+			pageObj.hideComponent (formId);
+			pageObj.hideComponent (formButtonsId);
+			
+			var id = commonGetInnerData (responseXml, idCol.xmlTag);
+
+			pageObj.setSelectedRow (tableId, idCol.xmlTag, id);
+
+			pageObj.hideComponent (addTitleId);
+			pageObj.hideComponent (duplicateTitleId);
+			pageObj.showComponent (updateTitleId);
+			
+			openForm ("update", id);
+			createEditFormButtons ("update");
+			
+			pageObj.showComponent (formId);
+			pageObj.showComponent (formButtonsId);
+		}
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteBox																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteBox() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור תיבה", "Please choose a box");
+		return false;
+	}
+
+	var id 	= pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	
+	confirm("מחיקת תיבה " + id, "delete box " + id, "deleteBox_confirm");
+}
+
+function deleteBox_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	("id", pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+
+	serverObj.sendRequest("boxes.deleteBox", undefined, "deleteBox_continue");
+}
+
+function deleteBox_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>
+

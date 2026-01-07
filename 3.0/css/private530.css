@@ -1,0 +1,20 @@
+.panel-tool a:hover, 
+.combo-arrow-hover,
+.combobox-item-hover,
+.tabs li a.tabs-inner:hover,
+.tabs-p-tool a:hover, .tabs li a.tabs-close:hover, .tabs-scroller-over,
+.l-btn:hover, .l-btn-plain:hover,
+.datagrid-row-over, .datagrid-header td.datagrid-header-over,
+.calendar-hover, .calendar-nav-hover, .calendar-menu-hover,
+.spinner-arrow-hover,
+.menu-active,
+.m-btn-active,
+.m-btn-plain-active,
+.tree-node-hover,
+div#floatMenu div#floatMenuTitle,
+div#floatMenu div.floatMenu_link.green,
+div#floatMenu div.floatMenu_link:hover,
+td.formTab
+{
+    background-color: #793496;
+}

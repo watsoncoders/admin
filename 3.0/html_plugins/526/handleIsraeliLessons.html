@@ -1,0 +1,560 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<style>
+/*		span#form2_meetingNumberText_spn,
+		span#form2_meetingNameText_spn, 
+		span#form2_lessonNoText_spn,
+		span#form2_codeText_spn
+		{ 
+			color: #ABB0B6; 
+		}*/
+</style>
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var addTitleId			= -1;
+var updateTitleId		= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+
+var	idCol				= {textHEB	: "קוד",				textENG	: "",	xmlTag	: "id"				}
+var	codeCol				= {textHEB	: "קוד פנימי",	 		textENG	: "",   xmlTag	: "code"			}
+var titleCol			= {textHEB	: "כותרת הרצאה",		textENG : "", 	xmlTag	: "title"			}
+var	durationCol			= {textHEB	: "משך",		 		textENG	: "",   xmlTag	: "duration"		}
+var lecturerCol			= {textHEB	: "מרצה",				textENG	: "",	xmlTag	: "lecturerId"		}
+var meetingNumberCol	= {textHEB	: "מס' מפגש",			textENG	: "",	xmlTag	: "meetingNumber"	}
+var meetingNameCol		= {textHEB	: "שם מפגש",			textENG	: "",	xmlTag	: "meetingName"		}
+var lessonNoCol			= {textHEB	: "מס' הרצאה",			textENG	: "",	xmlTag	: "lessonNo"		}
+
+var lecturers;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage 	  ();
+
+	serverObj.cleanRequest 	();
+	serverObj.addTag		("all", "1");
+	serverObj.sendRequest	("israeliLecturers.getLecturers", undefined, "onLoad_continue"); 
+}
+
+function onLoad_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	var selectOptions	= new selectOptionsObj();
+
+	if (responseXml != null)
+	{
+		var itemsNode = responseXml.getElementsByTagName("items").item(0);
+
+		if (itemsNode != null)
+		{
+			selectOptions.addOption ("", "", "");
+
+			for (i=0; i < itemsNode.childNodes.length; i++)
+			{
+				var currNode    = itemsNode.childNodes[i];
+
+				if (currNode.nodeName != "item") continue;
+	
+				var id   	= commonGetInnerData (currNode, "pageId");
+				var name  	= commonGetInnerData (currNode, "name");
+
+				selectOptions.addOption (id, name, name);
+			}
+		}
+	}
+
+	lecturers = selectOptions.getOptions ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();
+	addSearchSection    ();
+	createDataTable     ();	
+	createTableButtons  ();	
+	createSearchSection ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   		= pageObj.addPageTitle 	  ("ניהול הרצאות", 	 	"");
+	addTitleId			= pageObj.addPageSubTitle ("הוספת הרצאה",		"");
+	updateTitleId		= pageObj.addPageSubTitle ("עדכון פרטי הרצאה",	"");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	commonFormSetQueryXml ("israeliLessonsQueryXml");
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	field1 = {type      : "select",					textHEB		 : lecturerCol.textHEB,
+			  spanData  : 1,						textENG		 : lecturerCol.textENG,
+			  dataFld   : lecturerCol.xmlTag,		width   	 : 200,
+			  options	: lecturers}
+
+  	fields.push (field1);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(70,width),
+					ENG : new Array(70,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+
+	loadData			();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// ------------------------------------------------------------------------------------
+	column1		=  {textHEB		: idCol.textHEB,			widthHEB : 60,
+			   		textENG		: idCol.textENG,			widthENG : 60,
+			   		sortType	: "number",					sortDir  : "ascending",
+				   	xmlTag   	: idCol.xmlTag}
+		   
+	column2		=  {textHEB		: codeCol.textHEB,			widthHEB : 100,
+			   		textENG		: codeCol.textENG,			widthENG : 100,
+			   		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: codeCol.xmlTag}
+
+	column3		=  {textHEB		: titleCol.textHEB,			widthHEB : 200,
+			   		textENG		: titleCol.textENG,			widthENG : 200,
+			   		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: titleCol.xmlTag}
+
+	column4		=  {textHEB		: "# מפגש",					widthHEB : 80,
+			   		textENG		: meetingNumberCol.textENG,	widthENG : 80,
+			   		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: meetingNumberCol.xmlTag}
+
+	column5		=  {textHEB		: meetingNameCol.textHEB,	widthHEB : 140,
+			   		textENG		: meetingNameCol.textENG,	widthENG : 140,
+			   		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: meetingNameCol.xmlTag}
+
+	column6		=  {textHEB		: "# הרצאה",				widthHEB : 85,
+			   		textENG		: lessonNoCol.textENG,		widthENG : 85,
+			   		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: lessonNoCol.xmlTag}
+
+	column7		=  {textHEB		: durationCol.textHEB,		widthHEB : 60,
+			  		textENG		: durationCol.textENG,		widthENG : 60,
+			   		sortType	: "text",					sortDir  : "ascending",
+			  		xmlTag   	: durationCol.xmlTag}
+		   
+	column8		=  {textHEB		: lecturerCol.textHEB,		widthHEB : 200,
+			  		textENG		: lecturerCol.textENG,		widthENG : 200,
+			   		sortType	: "text",					sortDir  : "ascending",
+			  		xmlTag   	: lecturerCol.xmlTag}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5, column6, column7, column8);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 350, 270);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteLesson()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+	else
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		if (type == "add" || type == "update")
+		{
+			// show from
+			pageObj.showComponent (eval(type + "TitleId"));
+			pageObj.showComponent (formId);
+			pageObj.showComponent (formButtonsId);
+		}
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	commonSaveQueryXml ("israeliLessonsQueryXml");
+
+	serverObj.sendRequest("israeliLessons.getLessons", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay 		("report");	
+	
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+var globalType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	globalType = type;
+
+	if (type == "update")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור הרצאה");
+			return false;
+		}
+
+		serverObj.cleanRequest 	();
+		serverObj.addTag		(idCol.xmlTag, pageObj.getSelectedValueOf (tableId, idCol.xmlTag));
+		serverObj.sendRequest	("israeliLessons.getLessonDetails", undefined, "openForm_continue");
+	}
+	else
+	{
+		openForm_continue ();
+	}
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function openForm_continue (i)
+{
+	var type = globalType;
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	if (type == "update")
+	{
+		var responseXml = asyncResponseXml.getResponseXml (i);
+			
+		pageObj.setFormXml (formId, responseXml);
+	}
+	
+	// -----------------------------------------------------------------------------------------------------------
+
+	fieldsWidths = {HEB : new Array(120,400),
+					ENG : new Array(120,400)}
+
+	var fieldWidth  = 390;
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	var frameId = pageObj.addFormFrame (formId, "זיהוי", ""); 
+
+	fields = new Array();
+
+  	field1 	 = {type		: "text",						textHEB		 : "[" + codeCol.textHEB + "]",
+		  		spanData	: 1,							textENG		 : codeCol.textENG,
+		  		dataFld		: codeCol.xmlTag,				width	 	 : fieldWidth,
+				mandatory 	: true}
+
+  	field2 	 = {type		: "text",						textHEB		 : titleCol.textHEB,
+		  		spanData	: 1,							textENG		 : titleCol.textENG,
+		  		dataFld		: titleCol.xmlTag,				width	 	 : fieldWidth,
+				mandatory 	: true}
+
+  	field3 	 = {type		: "text",						textHEB		 : durationCol.textHEB,
+		  		spanData	: 1,							textENG		 : durationCol.textENG,
+				dataFld		: durationCol.xmlTag,			width	 	 : fieldWidth}
+
+	field4   = {type      	: "select",						textHEB		 : lecturerCol.textHEB,
+			    spanData  	: 1,							textENG		 : lecturerCol.textENG,
+			    dataFld   	: lecturerCol.xmlTag,			width   	 : fieldWidth,
+			    options		: lecturers}
+
+  	field5 	 = {type		: "text",						textHEB		 : "[" + meetingNumberCol.textHEB + "]",
+		  		spanData	: 1,							textENG		 : meetingNumberCol.textENG,
+				dataFld		: meetingNumberCol.xmlTag,		width	 	 : fieldWidth}
+
+  	field6 	 = {type		: "text",						textHEB		 : "[" + meetingNameCol.textHEB + "]",
+		  		spanData	: 1,							textENG		 : meetingNameCol.textENG,
+				dataFld		: meetingNameCol.xmlTag,		width	 	 : fieldWidth}
+
+  	field7 	 = {type		: "text",						textHEB		 : "[" + lessonNoCol.textHEB + "]",
+		  		spanData	: 1,							textENG		 : lessonNoCol.textENG,
+				dataFld		: lessonNoCol.xmlTag,			width	 	 : fieldWidth}
+
+   	fields = new Array(field1, field2, field3, field4, field5, field6, field7);
+
+	hidden = {type			: "hidden",						dataFld   	 : idCol.xmlTag}
+	fields.push (hidden);
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(0,680),
+					ENG : new Array(0,680)}
+
+	var frameId = pageObj.addFormFrame (formId, "מטרות", ""); 
+
+	field1 = {type		: "xstandard",				textHEB		 : "",
+			  spanData	: 1,						textENG		 : "",
+			  dataFld	: "targets",				width	 	 : 670,
+			  height  	: 350}
+
+  	fields = new Array(field1);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "ראשי פרקים", ""); 
+
+	field1 = {type		: "xstandard",				textHEB		 : "",
+			  spanData	: 1,						textENG		 : "",
+			  dataFld	: "syllabus",				width	 	 : 670,
+			  height  	: 350}
+
+  	fields = new Array(field1);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	pageObj.generateForm  (formId);
+	createEditFormButtons (type);
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	if (!pageObj.validateForm(formId)) return false;
+
+	serverObj.cleanRequest ();
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	serverObj.sendRequest("israeliLessons." + type + "Lesson", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+		doRefresh 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteLesson																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteLesson() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור הרצאה");
+		return false;
+	}
+
+	confirm("מחיקת ההרצאה", "", "deleteLesson_confirm");
+}
+
+function deleteLesson_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+	
+	serverObj.sendRequest("israeliLessons.deleteLesson", undefined, "deleteLesson_continue");
+}
+
+function deleteLesson_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

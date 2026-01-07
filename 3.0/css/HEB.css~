@@ -1,0 +1,210 @@
+html
+{
+	direction: rtl;
+}
+
+body
+{
+	direction: rtl;
+	text-align: right;
+}
+
+div#logo
+{
+	float: right;
+	margin-right: 12px;
+}
+
+div#support
+{
+	left: 0px;
+}
+
+div#loginDetails
+{
+	float: left;
+	margin-top: 12px;
+}
+
+div#topMenu
+{
+	float: left;
+	margin-right: 40px;
+	margin-top: 12px;
+}
+
+div#siteNameBox
+{
+	margin-right: 50px;
+}
+
+div.rowOfButtons div.btn
+{
+	margin-left: 10px;
+}
+
+div.rowOfButtons div.btn.last
+{
+	margin-left: 0px;
+}
+
+div.homepageNewsBox
+{
+		float: right;
+		width: 400px;
+		margin-left: 50px;
+		margin-top: 30px;
+}
+
+div.homepageNewsBox div.newsTitle div
+{
+		padding-top: 4px;
+		padding-right: 10px;
+}
+
+div#loginBox
+{
+	background: url(../designFiles/loginBox_bg.jpg) no-repeat;
+}
+
+div#loginBox_in
+{
+	padding-right: 215px;
+}
+
+div#canNotEnterText
+{
+	padding-right: 15px;
+}
+
+td.login_col23 input
+{
+	padding-right: 5px;
+}
+
+td.login_col1 div, td.login_col23 div
+{
+	padding-left: 2px;
+}
+
+td.login_col3
+{
+	text-align: left;
+}
+
+div#headerTop
+{
+	left: 10px;
+}
+
+div#headerTop span.sep
+{
+	float: left;
+	margin-right: 5px;
+}
+
+div.icon-active
+{
+	margin-right: 2px;
+}
+
+div#floatMenu
+{
+	right: 0px;
+}
+
+div#floatMenu div.floatMenu_link div,
+div#floatMenu div#floatMenuTitle div
+{
+	padding-right: 10px;
+}
+
+div.infoMsg_confirm
+{
+	padding-right: 110px;
+}
+
+td.first
+{
+	border-right: 0px !important;
+}
+
+td.last
+{
+	border-left: 0px !important;
+}
+
+.dataScroll 
+{
+	direction:ltr;
+}
+
+table.dataTbl_header td.headerCol
+{
+	border-left: 0px;
+}
+
+table.moreDataTbl td.moreDataTbl_textCol
+{
+	border-left: 1px solid #E7E7E7;
+}
+
+table.moreDataTbl td.moreDataTbl_textCol div
+{
+	padding: 5px 10px 5px 0px;
+}
+
+table.formFrameTbl div.styleTdText_in 
+{
+	padding: 12px 15px 10px 0px;
+}
+
+table.noTabsTbl select.styleInput,
+table.formFrameTbl select.styleInput
+{
+    background-position: 8px 8px;
+	padding-left: 17px;
+}
+
+.styleColorPicker
+{
+	margin-right: 7px;
+}
+
+div.inFormLinks
+{
+	float: left;
+	padding-left: 5px;
+}
+
+div.fieldCounter
+{
+	padding-right: 5px;
+}
+
+td.noTabsTbl_title img
+{
+	margin-right: 15px;
+}
+
+table.rowPopupTbl div.rowPopup_text
+{
+	background: url(../designFiles/iconLeftArrow.png) no-repeat 90% 9px;
+}
+
+div.mce-flow-layout
+{
+		text-align: right;
+}
+
+.mce-menubtn span,
+.mce-btn button
+{
+		line-height: 16px !important;
+}
+
+.styleEditor
+{
+	padding-left: 10px;
+}
+

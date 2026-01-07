@@ -1,0 +1,21 @@
+@media print 
+{
+
+body
+{
+	background-color: white !important;
+}
+
+.dataScroll 
+{
+	overflow: none !important;
+}
+
+table.dataTbl_footer img,
+form#pagingForm,
+table.moreDataTbl,
+div.rowOfButtons
+{
+	display: none !important;
+
+}

@@ -1,0 +1,133 @@
+.bold
+{
+	font-weight: bold;
+}
+
+.red
+{
+	color: red;
+	text-align: center;
+}
+
+.green
+{
+	color: green;
+	text-align: center;
+}
+
+.blue
+{
+	color: #5083B8;
+	text-align: center;
+}
+
+.white
+{
+	color: #FFFFFF;
+}
+
+.highlight
+{
+	background-color: #FFFF00;
+	text-align: center;
+}
+
+.highlight2
+{
+	background-color: #AFD135;
+	text-align: center;
+}
+
+.formData
+{
+	padding-bottom: 10px;
+}
+
+ul.resumeFiles, ul.dataList
+{
+	margin: 0px;
+	padding: 0px;
+	padding-bottom: 10px;
+}
+
+ul.resumeFiles li,
+ul.dataList li
+{
+	list-style-type: none;
+	padding-bottom: 5px;
+	direction: ltr;
+}
+
+ul.dataList li
+{
+	direction: rtl;
+}
+
+ul.resumeFiles li a, 
+ul.dataList li a,
+ul.dataList li span
+{
+	text-decoration: none;
+	font-size: 14px;
+	color: #AFD135;
+}
+
+body#fdContactsPage tr#form2_frame1 div.spanField
+{
+	padding-top: 0px !important;
+}
+
+body#fdContactsPage table#form2_openTbl span#form2_content
+{
+	height: 459px;
+	overflow-y: scroll;
+	direction: ltr;
+	display: block;
+}
+
+table.contactTbl
+{
+	margin: 10px 20px;
+	direction: rtl;
+}
+
+td.contactTbl_col1
+{
+	font-weight: bold;
+	vertical-align: top;
+	width: 55px;
+}
+
+td.contactTbl_col2
+{
+	width: 590px;
+}
+
+td.contactTbl_col2 p
+{
+	padding: 0px;
+	margin: 0px;
+}
+
+tr.contactTbl_gap
+{
+	height: 8px;
+}
+
+tr.contactTbl_gap td div
+{
+	border-bottom: 1px dashed #ABB0B6;
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+
+td.contactTbl_col2 div.in
+{
+	padding-bottom: 5px;
+}
+
+td.contactTbl_col2 div.date
+{
+	float: left;
+	font-size: 12px;
+}

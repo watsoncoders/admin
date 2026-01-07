@@ -1,0 +1,313 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var pageTitleId		= -1;
+var editTitleId		= -1;
+var tableId			= -1;
+var formId			= -1;
+var rowButtonsId	= -1;
+var formButtonsId	= -1;
+
+var nameCol			= {textHEB	: "שם קובץ", textENG	: "File name", xmlTag	: "fileName"}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();
+	createDataTable     ();
+	createTableButtons  ();
+	loadData			();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	= pageObj.addPageTitle 	  ("ניהול קבצי סגנונות", "CSS files management");
+	editTitleId		= pageObj.addPageSubTitle ("עדכון קובץ", "Update CSS File");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	columns = new Array ();
+
+	column1		= {textHEB	: nameCol.textHEB,			widthHEB : 200,
+				   textENG	: nameCol.textENG,			widthENG : 200,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : nameCol.xmlTag,			dir		 : "ltr"}
+
+	column2		= {textHEB	: "גודל קובץ",				widthHEB : 80,
+				   textENG	: "File size",				widthENG : 80,
+				   sortType : "number",					sortDir  : "ascending",
+				   xmlTag   : "fileSize"}
+		   
+	column3		= {textHEB	: "תאריך עדכון",			widthHEB : 120,
+				   textENG	: "Update date",			widthENG : 120,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : "date"}
+		   
+	column4		= {textHEB	: "הרשאות",					widthHEB : 80,
+				   textENG	: "Permissions",			widthENG : 80,
+				   sortType : "number",					sortDir  : "ascending",
+				   xmlTag   : "permissions"}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 260, 260);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+   	btn1	= {type			: "update",
+			   action		: "openForm()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// edit table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+
+		// hide edit
+		pageObj.hideComponent (editTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+	}
+
+	if (type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+		pageObj.showComponent (formId);
+		pageObj.showComponent (editTitleId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	var responseXml = serverObj.sendRequest("designCssFiles.getFiles", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+	}
+
+	if (global_firstTime)
+	{
+		handleDisplay 		("report");	
+		global_firstTime = false;
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* editExcelReport																			*/
+/* ---------------------------------------------------------------------------------------- */
+function editExcelReport ()
+{
+	serverObj.editExcelReport("getFiles");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm ()
+{
+	if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור קובץ", "Choose a row");
+		return false;
+	}
+
+	serverObj.cleanRequest ();
+
+	serverObj.addTag	  (nameCol.xmlTag, pageObj.getSelectedValueOf (tableId, nameCol.xmlTag));
+	serverObj.sendRequest ("designCssFiles.getFile", undefined, "openForm_continue");
+}
+
+function openForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(0,750),
+					ENG : new Array(0,750)}
+
+	var frameId = pageObj.addFormFrame (formId, "הגדרות", "Definitions"); 
+
+	field1 = {type			: "textarea",				textHEB		 : "",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "content",				width	 	 : 750,
+			  rows  		: 25,						dir			 : "ltr"}
+
+  	fields = new Array(field1);
+	
+	if (responseXml != null)
+		pageObj.setFormXml (formId, responseXml);
+
+	hidden = {type		: "hidden",			dataFld	: nameCol.xmlTag}
+	fields.push (hidden);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	pageObj.generateForm  (formId, false);
+
+	createEditFormButtons 	();
+	handleDisplay 			("update");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons ()
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: "save",
+			   action		: "submitForm('updateSave')"}
+
+	btn3	= {type			: "update",
+			   action		: "submitForm('update')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2,btn3));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+var global_submitType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	global_submitType	 = type;
+
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	serverObj.sendRequest("designCssFiles.updateFile", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i) 
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		if (global_submitType != "updateSave")
+		{
+			handleDisplay	("report");
+			doRefresh 		();
+		}
+		else
+		{
+			doRefresh 		();
+			commonMsgBox ("info", "הנתוניה נשמרו בהצלחה", "Data saved successfully");
+		}
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage 	();
+	loadData			();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>
+

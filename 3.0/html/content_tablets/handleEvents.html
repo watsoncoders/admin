@@ -1,0 +1,1487 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/multiUpload.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var pageTitleId		= -1;
+var addTitleId		= -1;
+var updateTitleId	= -1;
+var searchFormId	= -1;
+var searchButtonsId	= -1;
+var tableId			= -1;
+var rowButtonsId	= -1;
+var addFormId		= -1;
+var updateFormId	= -1;
+var formButtonsId	= -1;
+var formTableObj	= -1;
+
+var	idCol			= {textHEB	: "קוד",				textENG	: "Id",				xmlTag	: "eventId"			}
+var	statusCol		= {textHEB	: "סטטוס",			   	textENG	: "Status",   		xmlTag	: "status"			}
+var	typeCol			= {textHEB	: "סוג",			   	textENG	: "Type",   		xmlTag	: "type"			}
+var	categoryIdCol	= {textHEB	: "קטגוריה",		 	textENG	: "Category",   	xmlTag	: "categoryId"		}
+var	nameCol			= {textHEB	: "שם האירוע",		   	textENG	: "Name",   		xmlTag	: "name"			}
+var organizationCol	= {textHEB	: "גוף מארגן",			textENG : "Organization",	xmlTag	: "organization"	}
+var placeCol		= {textHEB  : "מקום",				textENG : "Location",		xmlTag  : "place"			}
+var instructorCol	= {textHEB 	: "מרצה/מנחה",			textENG : "Guide",			xmlTag	: "instructor"		}
+var descCol			= {textHEB  : "תיאור",				textENG : "Description",	xmlTag	: "description"		}
+var remarksCol		= {textHEB	: "הערות",				textENG : "Remarks",		xmlTag	: "remarks"			}
+
+var membersOnlyCol	= {textHEB	: "לגולשים רשומים בלבד",textENG : "Members only",	xmlTag	: "membersOnly"		}
+
+var contactNameCol  = {textHEB	: "איש קשר",			textENG : "Contact person",	xmlTag  : "contactName"		}
+var contactPhoneCol = {textHEB  : "טלפון",				textENG : "Phone number",	xmlTag  : "contactPhone"	}
+var contactMoreCol	= {textHEB	: "פרטים נוספים",		textENG : "More details",	xmlTag  : "contactDetails"	}
+var	emailCol		= {textHEB	: "אימייל",		   		textENG	: "E-Mail",   		xmlTag	: "email"			}
+var	faxCol			= {textHEB	: "פקס",				textENG	: "Fax",   			xmlTag	: "fax"				}
+var siteUrlCol		= {textHEB  : "אתר הבית",			textENG : "Website",		xmlTag	: "siteUrl"			}
+
+var linkCol			= {textHEB	: "קישור",				textENG : "Link",			xmlTag	: "link"			}
+var linkNameCol		= {textHEB  : "שם קישור",			textENG : "Link name",		xmlTag	: "linkName"		}
+
+var albumIdCol		= {textHEB  : "קישור לאלבום",		textENG : "Album",			xmlTag	: "albumId"			}
+
+var priceCol		= {textHEB	: "מחיר רגיל",			textENG : "Regular price",	xmlTag	: "price"			}
+var memberPriceCol	= {textHEB	: "מחיר לחבר",			textENG : "Member price",	xmlTag	: "memberPrice"		}
+var priceTextCol	= {textHEB	: "תיאור מחיר",			textENG : "Price remark",	xmlTag	: "priceText"		}
+var earlyPriceCol	= {textHEB	: "מחיר בהרשמה מוקדמת",	textENG : "Early price",	xmlTag	: "earlyPrice"		}
+var earlyDateCol	= {textHEB	: "תאריך הרשמה מוקדמת",	textENG	: "Early date",		xmlTag	: "earlyDate"		}
+var couponPriceCol	= {textHEB	: "מחיר מוזל",			textENG	: "Sale price",		xmlTag	: "couponPrice"		}
+var	couponCodeCol	= {textHEB	: "קוד למחיר מוזל",		textENG	: "Sale code",		xmlTag	: "couponCode"		}
+
+var fromDateCol		= {textHEB	: "מתאריך",				textENG : "From",			xmlTag	: "fromDate"		}
+var toDateCol		= {textHEB	: "עד תאריך",			textENG : "Until",			xmlTag	: "toDate"			}
+var dateCol			= {textHEB	: "תאריך",				textENG : "Date",			xmlTag	: "date"			}
+
+var dayCol			= {textHEB	: "יום",				textENG	: "Day",			xmlTag	: "day"				}
+
+var fromTimeCol		= {textHEB	: "משעה",				textENG : "From",			xmlTag	: "fromTime"		}
+var toTimeCol		= {textHEB  : "עד שעה",				textENG	: "To",				xmlTag	: "toTime"			}
+
+var cycleCountCol	= {textHEB	: "מס' פעמים",			textENG : "Occurences",		xmlTag 	: "cycleCount"		}
+
+var byDateCol		= {textHEB	: "לפי תאריך",			textENG : "By Date",		xmlTag	: "byDate"			}
+
+var datesXml;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage 	  ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();
+	addSearchSection    ();
+	createDataTable     ();	
+	createTableButtons  ();	
+	createSearchSection ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	= pageObj.addPageTitle 	  ("ניהול לוח אירועים",  	"Events management");
+	addTitleId		= pageObj.addPageSubTitle ("הוספת אירוע",			"Add an event");
+	updateTitleId	= pageObj.addPageSubTitle ("עדכון אירוע",			"Update an event");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+var statusOptions = new selectOptionsObj();
+statusOptions.addOption ("" , 	  	  "", 	   	 		"");
+statusOptions.addOption ("new", 	  "אירועים חדשים", 	"New events");
+statusOptions.addOption ("approved",  "אירועים שאושרו", "Approved");
+statusOptions.addOption ("rejected",  "אירועים שנדחו", 	"Denied");
+
+var globalCats;
+
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	var queryXml = commonGetGlobalData ("eventsQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (searchFormId, queryXml);
+	}
+
+	serverOptions_getCategories("choose", "event", undefined, undefined, "createSearchSection_continue");
+}
+
+function createSearchSection_continue (options)
+{
+	globalCats = new Object(options);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	field1 = {type      : "text",					textHEB		 : nameCol.textHEB,
+			  spanData  : 1,						textENG		 : nameCol.textENG,
+			  dataFld   : nameCol.xmlTag,			width   	 : 100,
+			  maxLength : "50"}
+
+	field2 = {type      : "select",					textHEB		 : statusCol.textHEB,
+			  spanData  : 1,						textENG		 : statusCol.textENG,
+			  dataFld   : statusCol.xmlTag,			width   	 : 120,
+			  mandatory : false,				 	defaultValue : "approved",
+			  options	: statusOptions.getOptions()}
+
+	field3 = {type      : "date",					textHEB		 : fromDateCol.textHEB,
+			  spanData  : 1,						textENG		 : fromDateCol.textENG,
+			  dataFld   : fromDateCol.xmlTag,		width   	 : 100}
+
+	field4 = {type      : "date",					textHEB		 : toDateCol.textHEB,
+			  spanData  : 1,						textENG		 : toDateCol.textENG,
+			  dataFld   : toDateCol.xmlTag,			width   	 : 100}
+
+	field5 = {type		: "select",					textHEB		 : categoryIdCol.textHEB,
+		  	  spanData  : 1,						textENG 	 : categoryIdCol.textENG,
+			  dataFld	: categoryIdCol.xmlTag,		width		 : 120,
+			  options	: globalCats}
+
+  	fields.push (field1, field2, field3, field4, field5);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(70,120,40,140,50,120,60,120,50,width),
+				    ENG : new Array(70,120,40,140,50,120,60,120,50,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+
+	loadData			();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// ------------------------------------------------------------------------------------
+	column1		=  {textHEB		: idCol.textHEB,			widthHEB : 70,
+			   		textENG		: idCol.textENG,			widthENG : 70,
+			   		sortType	: "number",					sortDir  : "ascending",
+				   	xmlTag   	: idCol.xmlTag}
+		   
+	column2		=  {textHEB		: contactNameCol.textHEB,	widthHEB : 120,
+			   		textENG		: contactNameCol.textENG,	widthENG : 120,
+			  	 	sortType 	: "text",					sortDir  : "ascending",
+			  		xmlTag   	: contactNameCol.xmlTag + "1"}
+		   
+	column3		=  {textHEB		: nameCol.textHEB,			widthHEB : 350,
+			   		textENG		: nameCol.textENG,			widthENG : 350,
+			   		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: nameCol.xmlTag}
+		   
+	column4		=  {textHEB		: fromDateCol.textHEB,		widthHEB : 100,
+			   		textENG		: fromDateCol.textENG,		widthENG : 100,
+			  	 	sortType 	: "date",					sortDir  : "ascending",
+			  		xmlTag   	: fromDateCol.xmlTag}
+		   
+	column5		=  {textHEB		: toDateCol.textHEB,		widthHEB : 100,
+			   		textENG		: toDateCol.textENG,		widthENG : 100,
+			  	 	sortType 	: "date",					sortDir  : "ascending",
+			  		xmlTag   	: toDateCol.xmlTag}
+		   
+	column6		=  {textHEB		: statusCol.textHEB,		widthHEB : 80,
+			   		textENG		: statusCol.textENG,		widthENG : 80,
+			  		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: statusCol.xmlTag}
+
+	column7		=  {textHEB		: "נרשמים",					widthHEB : 120,
+			   		textENG		: "",						widthENG : 120,
+			   		xmlTag   	: "registers"}
+
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5, column6, column7);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 350, 270);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteEvent()"}
+
+	btn4	= {type			: "",
+			   textHEB		: "רשימת נרשמים",
+			   textENG		: "Registrants",
+			   action		: "showEventRegistersPage()"}
+
+	btn5	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4), new Array(btn5));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (addFormId);
+		pageObj.hideComponent (updateFormId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (eval(type + "FormId"));
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("eventsQueryXml", queryXml);
+
+	serverObj.cleanRequest ();
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("events.getEvents", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay 		("report");	
+	
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+var globalLayouts;
+var globalAlbums;
+var globalAllPages;
+var globalDimensions;
+
+var globalDetailsXml;
+var globalDatesXml;
+
+var globalType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	globalType = type;
+
+	if (type == "update")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור אירוע", "Choose an event");
+			return false;
+		}
+	}
+
+	if (globalLayouts == undefined)
+		serverOptions_getLayoutsByType		("page", "after_loadLayouts");
+
+	if (globalDimensions == undefined)
+		serverOptions_getDimensions (true, "after_loadDimensions");
+
+	if (globalAlbums == undefined)	
+		serverOptions_getAlbums (true, "after_loadAlbums");
+
+	if (globalAllPages == undefined)
+		serverOptions_getPagesNames("empty", "after_loadPages");
+
+	if (type == "update")
+	{
+		globalDetailsXml = undefined;
+
+		var id = pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+
+		serverObj.cleanRequest ();
+		serverObj.addTag (idCol.xmlTag, id);
+		serverObj.sendRequest("events.getEventDetails", undefined, "after_loadDetails");
+
+		globalDatesXml = undefined;
+
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (idCol.xmlTag, id);
+		serverObj.sendRequest("events.getEventDates", undefined, "after_loadDates");
+	}
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadLayouts (options)
+{
+	globalLayouts = new Object(options);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadDimensions (options)
+{
+	globalDimensions = options;
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadAlbums (options)
+{
+	globalAlbums = options;
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadPages (options)
+{
+	globalAllPages = options;
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadDates (i)
+{
+	globalDatesXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+var eventTypes = new selectOptionsObj();
+eventTypes.addOption ("page", "דף אירוע", "Event page");
+eventTypes.addOption ("url",  "קישור", "Link");
+
+var oneStatusOptions = new selectOptionsObj();
+oneStatusOptions.addOption ("new", 	  	 "חדש", 			"New");
+oneStatusOptions.addOption ("approved",  "מאושר", 			"Approved");
+oneStatusOptions.addOption ("rejected",  "דחוי", 			"Denied");
+
+var byDateOptions = new selectOptionsObj();
+byDateOptions.addOption    ("day",		 "חד יומי",			"One-day");
+byDateOptions.addOption	   ("range",	 "טווח תאריכים",	"Few days");
+byDateOptions.addOption	   ("cycle",	 "מחזורי",			"Cyclic");
+
+function openForm_continue ()
+{
+	type = globalType;
+
+	if (globalLayouts == undefined || globalAlbums == undefined || globalAllPages == undefined || globalDimensions == undefined ||
+		(type == "update" && (globalDetailsXml == undefined || globalDatesXml == undefined))) return;
+
+	var formId = eval(type + "FormId");
+
+	if (addFormId == -1)
+	{
+		addFormId   	= pageObj.addForm ();
+		updateFormId    = pageObj.addForm ();
+
+		if (type == "add")
+			formId = addFormId;
+		else
+			formId = updateFormId;
+	}
+
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	urlState  = "lock";
+	pageState = "unlock";
+	if (type == "update")
+	{
+		pageObj.setFormXml (formId, globalDetailsXml);
+
+		var id = commonGetInnerData(globalDetailsXml, idCol.xmlTag);
+
+		if (commonGetInnerData(globalDetailsXml, typeCol.xmlTag) == "url")
+		{
+			urlState  = "unlock";
+			pageState = "lock";
+		}
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(160,180,160,180),
+					ENG : new Array(160,180,160,180)}
+
+	var fieldWidth  = 170;
+	var fieldWidth2 = 513;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "זיהוי", "Identification"); 
+
+	hidden	 = {type		: "hidden", 					dataFld		 : idCol.xmlTag}
+
+	field1   = {type		: "select",						textHEB		 : statusCol.textHEB,
+			  	spanData  	: 1,							textENG 	 : statusCol.textENG,
+			 	dataFld		: statusCol.xmlTag,				width		 : fieldWidth,
+				options		: oneStatusOptions.getOptions(),defaultValue : "approved",
+				mandatory	: true}
+
+	field2   = {type		: "select",						textHEB		 : categoryIdCol.textHEB,
+			  	spanData  	: 1,							textENG 	 : categoryIdCol.textENG,
+			 	dataFld		: categoryIdCol.xmlTag,			width		 : fieldWidth,
+			  	options		: globalCats}
+
+	field3   = {type		: "select",						textHEB		 : typeCol.textHEB,
+			  	spanData  	: 1,							textENG 	 : typeCol.textENG,
+			 	dataFld		: typeCol.xmlTag,				width		 : fieldWidth,
+				options		: eventTypes.getOptions (),		defaultValue : "page",
+				action		: "onSelectType(" + formId + ")"}
+
+	field4   = {type		: "yesNoSelect",				textHEB		 : membersOnlyCol.textHEB ,
+			    spanData	: 1,							textENG		 : membersOnlyCol.textENG,
+			    dataFld		: membersOnlyCol.xmlTag,		width		 : fieldWidth,
+				mandatory	: false,						defaultValue : "0",
+				state		: pageState}
+
+	field5   = {type		: "yesNoSelect",				textHEB		 : "ניתן להירשם",
+			    spanData	: 1,							textENG		 : "Allow registration",
+			    dataFld		: "canRegister",				width		 : fieldWidth,
+				mandatory	: false,						defaultValue : "0"}
+
+	field6   = {type		: "number",						textHEB		 : "מקסימום נרשמים",
+			    spanData	: 1,							textENG		 : "Max registrations",
+				dataFld		: "maxRegisters",				width		 : fieldWidth}
+
+	field7   = {type		: "select",						textHEB		 : layoutCol.textHEB,
+			  	spanData	: 1,							textENG		 : layoutCol.textENG,
+			  	dataFld		: layoutCol.xmlTag,				width	 	 : fieldWidth,
+			  	options		: globalLayouts,				state		 : pageState}
+
+	field8   = {type		: "text",						textHEB		 : "קוד/מק\"ט",
+			  	spanData	: 1,							textENG		 : "Code",
+				dataFld		: "eventCode",					width	 	 : fieldWidth}
+
+	field9   = {type		: "textEng",					textHEB		 : "קישור",
+			  	spanData	: 1,							textENG		 : "Link",
+				dataFld		: "url",						width	 	 : fieldWidth,
+				state		: urlState}
+
+	field10  = {type		: "yesNoSelect",				textHEB		 : "להציג בחלון חדש",
+			    spanData	: 1,							textENG		 : "Open new window",
+				dataFld		: "isNewWin",					width		 : fieldWidth,
+				defaultValue: "0", 							state		 : urlState}
+
+  	field11	 = {type		: "text",						textHEB		 : nameCol.textHEB,
+		  		spanData	: 3,							textENG		 : nameCol.textENG,
+		  		dataFld		: nameCol.xmlTag,				width	 	 : fieldWidth2,
+				maxLength 	: "200",						lang		 : langArray}
+
+  	field12  = {type		: "text",						textHEB		 : organizationCol.textHEB,
+		  		spanData	: 3,							textENG		 : organizationCol.textENG,
+		  		dataFld		: organizationCol.xmlTag,		width	 	 : fieldWidth2,
+		  		maxLength 	: "100",						lang		 : langArray}
+
+  	field13	 = {type		: "text",						textHEB		 : instructorCol.textHEB,
+		  		spanData	: 3,							textENG		 : instructorCol.textENG,
+		  		dataFld		: instructorCol.xmlTag,			width	 	 : fieldWidth2,
+		  		maxLength 	: "100",						lang		 : langArray}
+
+  	field14	 = {type		: "text",						textHEB		 : placeCol.textHEB,
+		  		spanData	: 3,							textENG		 : placeCol.textENG,
+		  		dataFld		: placeCol.xmlTag,				width	 	 : fieldWidth2,
+		  		maxLength 	: "200",						lang		 : langArray}
+
+  	field15  = {type		: "textEng",					textHEB		 : siteUrlCol.textHEB,
+		  		spanData	: 3,							textENG		 : siteUrlCol.textENG,
+		  		dataFld		: siteUrlCol.xmlTag,			width	 	 : fieldWidth2,
+		  		maxLength 	: "200"}
+
+	fields = new Array(hidden, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, 
+					   field11, field12, field13, field14, field15);
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths2 = {HEB : new Array(80,660),
+				 	 ENG : new Array(80,660)}
+
+	var frameId = pageObj.addFormFrame (formId, "תיאור", "Description"); 
+
+	field1 = {type			: "xstandard",				textHEB			: descCol.textHEB,
+			  spanData		: 1,						textENG		 	: descCol.textENG,
+			  dataFld		: descCol.xmlTag,			width	 	 	: 640,
+			  height  		: 220,						lang		 	: langArray}
+
+	field2 = {type			: "textarea",				textHEB		 	: remarksCol.textHEB,
+			  spanData		: 1,						textENG		 	: remarksCol.textENG,
+			  dataFld		: remarksCol.xmlTag,		width	 	 	: 650,
+			  rows  		: 5,						lang		 	: langArray}
+
+  	fields = new Array(field1, field2);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths2, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "התקשרות", "Contacts"); 
+
+  	field1   = {type		: "text",						textHEB		 : contactNameCol.textHEB + " 1",
+		  		spanData	: 1,							textENG		 : contactNameCol.textENG + " 1",
+		 		dataFld		: contactNameCol.xmlTag+"1",	width	 	 : fieldWidth,
+		 		maxLength 	: "50",							lang		 : langArray}
+
+  	field2   = {type		: "phone",						textHEB		 : contactPhoneCol.textHEB + " 1",
+		  		spanData	: 1,							textENG		 : contactPhoneCol.textENG + " 1",
+		  		dataFld		: contactPhoneCol.xmlTag+"1",	width	 	 : fieldWidth,
+		  		maxLength 	: "20"}
+
+  	field3   = {type		: "text",						textHEB		 : contactNameCol.textHEB + " 2",
+		  		spanData	: 1,							textENG		 : contactNameCol.textENG + " 2",
+		 		dataFld		: contactNameCol.xmlTag+"2",	width	 	 : fieldWidth,
+		 		maxLength 	: "50",							lang		 : langArray}
+
+  	field4   = {type		: "phone",						textHEB		 : contactPhoneCol.textHEB + " 2",
+		  		spanData	: 1,							textENG		 : contactPhoneCol.textENG + " 2",
+		  		dataFld		: contactPhoneCol.xmlTag+"2",	width	 	 : fieldWidth,
+		  		maxLength 	: "20"}
+
+  	field5   = {type		: "phone",						textHEB		 : faxCol.textHEB,
+		  		spanData	: 1,							textENG		 : faxCol.textENG,
+		  		dataFld		: faxCol.xmlTag,				width	 	 : fieldWidth,
+		  		maxLength 	: "20"}
+
+  	field6 	= {type			: "email",						textHEB		 : emailCol.textHEB,
+		  	   spanData		: 1,							textENG		 : emailCol.textENG,
+			   dataFld		: emailCol.xmlTag,				width	 	 : fieldWidth,
+		  	   maxLength 	: "50"}
+
+	field7   = {type		: "textarea",					textHEB		 : contactMoreCol.textHEB,
+		   		spanData	: 3,							textENG		 : contactMoreCol.textENG,
+		   		dataFld		: contactMoreCol.xmlTag,		rows  		 : 4,
+		   		width		: fieldWidth2*1+1,				lang		 : langArray}
+
+   	fields = new Array(field1, field2, field3, field4, field5, field6, field7);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "מחירים", "Prices"); 
+
+  	field1   = {type		: "amount",						textHEB		 : priceCol.textHEB,
+		  		spanData	: 1,							textENG		 : priceCol.textENG,
+		  		dataFld		: priceCol.xmlTag,				width	 	 : fieldWidth}
+
+  	field2   = {type		: "amount",						textHEB		 : memberPriceCol.textHEB,
+		  		spanData	: 1,							textENG		 : memberPriceCol.textENG,
+		  		dataFld		: memberPriceCol.xmlTag,		width	 	 : fieldWidth}
+
+  	field3   = {type		: "amount",						textHEB		 : earlyPriceCol.textHEB,
+		  		spanData	: 1,							textENG		 : earlyPriceCol.textENG,
+		  		dataFld		: earlyPriceCol.xmlTag,			width	 	 : fieldWidth}
+
+  	field4   = {type		: "date",						textHEB		 : earlyDateCol.textHEB,
+		  		spanData	: 1,							textENG		 : earlyDateCol.textENG,
+		  		dataFld		: earlyDateCol.xmlTag,			width	 	 : fieldWidth}
+
+  	field5    = {type		: "amount",						textHEB		 : couponPriceCol.textHEB,
+		  		spanData	: 1,							textENG		 : couponPriceCol.textENG,
+		  		dataFld		: couponPriceCol.xmlTag,			width	 	 : fieldWidth}
+
+  	field6   = {type		: "textEng",					textHEB		 : couponCodeCol.textHEB,
+		  		spanData	: 1,							textENG		 : couponCodeCol.textENG,
+		 		dataFld		: couponCodeCol.xmlTag,			width	 	 : fieldWidth,
+		 		maxLength 	: "20"}
+
+	field7   = {type		: "textarea",					textHEB		 : priceTextCol.textHEB,
+		   		spanData	: 3,							textENG		 : priceTextCol.textENG,
+		   		dataFld		: priceTextCol.xmlTag,			rows  		 : 4,
+		   		width		: fieldWidth2*1+1,				lang		 : langArray}
+
+   	fields = new Array(field1, field2, field3, field4, field5, field6, field7);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "פרטים נוספים", "Extra details"); 
+
+  	field1   = {type		: "textEng",					textHEB		 : linkCol.textHEB + " 1",
+		  		spanData	: 1,							textENG		 : linkCol.textENG + " 1",
+		 		dataFld		: linkCol.xmlTag+"1",			width	 	 : fieldWidth,
+		 		maxLength 	: "100"}
+
+  	field2   = {type		: "text",						textHEB		 : linkNameCol.textHEB + " 1",
+		  		spanData	: 1,							textENG		 : linkNameCol.textENG + " 1",
+		  		dataFld		: linkNameCol.xmlTag+"1",		width	 	 : fieldWidth,
+		  		maxLength 	: "100",						lang		 : langArray}
+
+  	field3   = {type		: "textEng",					textHEB		 : linkCol.textHEB + " 2",
+		  		spanData	: 1,							textENG		 : linkCol.textENG + " 2",
+		 		dataFld		: linkCol.xmlTag+"2",			width	 	 : fieldWidth,
+		 		maxLength 	: "100"}
+
+  	field4   = {type		: "text",						textHEB		 : linkNameCol.textHEB + " 2",
+		  		spanData	: 1,							textENG		 : linkNameCol.textENG + " 2",
+		  		dataFld		: linkNameCol.xmlTag+"2",		width	 	 : fieldWidth,
+		  		maxLength 	: "100",						lang		 : langArray}
+
+  	field5   = {type		: "textEng",					textHEB		 : linkCol.textHEB + " 3",
+		  		spanData	: 1,							textENG		 : linkCol.textENG + " 3",
+		 		dataFld		: linkCol.xmlTag+"3",			width	 	 : fieldWidth,
+		 		maxLength 	: "100"}
+
+  	field6   = {type		: "text",						textHEB		 : linkNameCol.textHEB + " 3",
+		  		spanData	: 1,							textENG		 : linkNameCol.textENG + " 3",
+		  		dataFld		: linkNameCol.xmlTag+"3",		width	 	 : fieldWidth,
+		  		maxLength 	: "100",						lang		 : langArray}
+
+	field7   = {type		: "select",						textHEB		 : albumIdCol.textHEB,
+			  	spanData  	: 3,							textENG 	 : albumIdCol.textENG,
+			 	dataFld		: albumIdCol.xmlTag,			width		 : fieldWidth,
+			  	options		: globalAlbums}
+
+   	fields = new Array(field1, field2, field3, field4, field5, field6, field7);
+	
+	hidden = {type		: "hidden",						dataFld   	 : "attachSource"}
+  	fields.push (hidden);
+
+	hidden = {type		: "hidden",						dataFld   	 : "fileDeleted",
+			  											defaultValue : "0"}
+  	fields.push (hidden);
+
+	hidden = {type		: "hidden",						dataFld   	 : "fullFileName"}
+  	fields.push (hidden);
+
+	field1 = {type		: "onlineUpload",				textHEB	 	 : "צירוף קובץ",
+			  spanData	: 3,							textENG		 : "Attach File",
+			  dataFld	: "attachFile",					width		 : fieldWidth}
+
+	show   = {type		: "span",						textHEB		 : "הצגת קובץ",
+			  spanData	: 1,							textENG		 : "Show file",
+			  dataFld   : "show",						width		 : fieldWidth,
+			  className : "styleLink", 					action       : "showFile(" + formId + ")"}
+
+	del    = {type		: "span",						textHEB		 : "מחיקה",
+			  spanData	: 1,							textENG		 : "Delete file",
+			  dataFld  	: "delete",						width		 : fieldWidth,
+			  className : "styleLink", 					action       : "deleteFile(" + formId + ")"}
+
+  	fields.push (field1);
+			  
+	if (type == "update")
+		fields.push (show, del);
+
+	hidden = {type		: "hidden",						dataFld   	 : "picSource"}
+  	fields.push (hidden);
+
+	hidden = {type		: "hidden",						dataFld   	 : "picDeleted",
+			  											defaultValue : "0"}
+  	fields.push (hidden);
+
+	hidden = {type		: "hidden",						dataFld   	 : "fullPicName"}
+  	fields.push (hidden);
+
+	field1 = {type		: "onlineUpload",				textHEB	 	 : "תמונת אירוע",
+			  spanData	: 1,							textENG		 : "Picture",
+			  dataFld	: "picFile",					width		 : fieldWidth}
+
+	dim1   = {type     	: "select",						textHEB 	 : "גודל",
+			  spanData 	: 1,							textENG      : "Size",
+			  dataFld  	: "dimensionId",				width     	 : fieldWidth,
+			  options	: globalDimensions,				mandatory	 : false}
+
+	show   = {type		: "span",						textHEB		 : "הצגת קובץ",
+			  spanData	: 1,							textENG		 : "Show picture",
+			  dataFld   : "showPic",					width		 : fieldWidth,
+			  className : "styleLink", 					action       : "showPic(" + formId + ")"}
+
+	del    = {type		: "span",						textHEB		 : "מחיקה",
+			  spanData	: 1,							textENG		 : "Delete picture",
+			  dataFld  	: "deletePic",					width		 : fieldWidth,
+			  className : "styleLink", 					action       : "deletePic(" + formId + ")"}
+
+  	fields.push (field1, dim1);
+			  
+	if (type == "update")
+		fields.push (show, del);
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+	
+	var frameId = pageObj.addFormFrame (formId, "מתקדם", "Advanced"); 
+
+    field1 = {type			: "yesNoSelect",			textHEB		 : "הצגה במפת האתר",
+			  spanData		: 1,						textENG		 : "Show in Sitemap",
+			  dataFld		: "showOnSitemap",			width		 : fieldWidth,
+			  mandatory		: true,						defaultValue : "1"}
+
+	field2 = {type			: "select",					textHEB		 : "קישור אב בסרגל ניווט",
+			  spanData		: 1,						textENG		 : "Navigation parent",
+			  dataFld		: "navParentId",			width		 : fieldWidth,
+			  mandatory		: false,					defaultValue : "1",
+			  options		: globalAllPages}
+
+	field3 = {type			: "text",					textHEB		 : "כותרת לסרגל ניווט",
+			  spanData		: 1,						textENG		 : "Navigation title",
+			  dataFld		: "navTitle",				width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "50",						lang		 : langArray}
+
+	fields = new Array(field1, field2, field3);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(220,120,90,120,90,120),
+					ENG : new Array(220,120,90,120,90,120)}
+
+	var fieldWidth  = 110;
+
+	var frameId = pageObj.addFormFrame (formId, "תאריכים", "Time table"); 
+
+	if (type == "add")
+	{
+		field1 	=  {type		: "select",						textHEB		 : byDateCol.textHEB,
+			  		spanData  	: 5,							textENG 	 : byDateCol.textENG,
+				 	dataFld		: byDateCol.xmlTag,				width		 : fieldWidth,
+					options		: byDateOptions.getOptions(),	defaultValue : "day",
+					mandatory	: true,							action		 : "onSelectByDate(" + formId + ")"}
+
+		field2 	=  {type      	: "date",						textHEB		 : "<b><u>י ו מ י</u></b> - <span style='width:71px;text-align:left;'>" + 
+																				dateCol.textHEB + "</span>",
+					spanData  	: 1,							textENG		 : "<b><u>D a i l y</u></b> - <span style='width:71px;text-align:right;'>" +
+																				dateCol.textENG + "</span>",
+					dataFld   	: "day_"+dateCol.xmlTag,		width   	 : fieldWidth,
+					mandatory	: true}
+
+		field3 	=  {type      	: "time",						textHEB		 : fromTimeCol.textHEB,
+			  		spanData  	: 1,							textENG		 : fromTimeCol.textENG,
+			  		dataFld   	: "day_"+fromTimeCol.xmlTag,	width   	 : fieldWidth}
+
+		field4 	=  {type      	: "time",						textHEB		 : toTimeCol.textHEB,
+			  		spanData  	: 1,							textENG		 : toTimeCol.textENG,
+			  		dataFld   	: "day_"+toTimeCol.xmlTag,		width   	 : fieldWidth}
+
+		field5 	=  {type      	: "date",						textHEB		 : "<b><u>טווח תאריכים</u></b> - " + fromDateCol.textHEB,
+					spanData  	: 1,							textENG		 : "<b><u>Dates range</u></b> - " + fromDateCol.textENG,
+					dataFld   	: "range_"+fromDateCol.xmlTag,	width   	 : fieldWidth,
+					state		: "lock"}
+
+		field6 	=  {type      	: "date",						textHEB		 : toDateCol.textHEB,
+			  		spanData  	: 3,							textENG		 : toDateCol.textENG,
+					dataFld   	: "range_"+toDateCol.xmlTag,	width   	 : fieldWidth,
+					state		: "lock"}
+
+		field7 	=  {type      	: "time",						textHEB		 : fromTimeCol.textHEB,
+			  		spanData  	: 1,							textENG		 : fromTimeCol.textENG,
+			  		dataFld   	: "range_"+fromTimeCol.xmlTag,	width   	 : fieldWidth,
+					state		: "lock"}
+
+		field8 	=  {type      	: "time",						textHEB		 : toTimeCol.textHEB,
+			  		spanData  	: 3,							textENG		 : toTimeCol.textENG,
+			  		dataFld   	: "range_"+toTimeCol.xmlTag,	width   	 : fieldWidth,
+					state		: "lock"}
+
+		field9 	=  {type      	: "date",						textHEB		 : "<b><u>מחזורי</u></b> - <span style='width:64px;text-align:left;'>" + 
+																				dateCol.textHEB + "</span>",
+					spanData  	: 1,							textENG		 : "<b><u>Cyclic</u></b> - <span style='width:64px;text-align:right;'>" +
+																				dateCol.textENG + "</span>",
+					dataFld   	: "cycle_"+dateCol.xmlTag,		width   	 : fieldWidth,
+					state		: "lock"}
+
+		field10 =  {type      	: "number",						textHEB		 : cycleCountCol.textHEB,
+			  		spanData  	: 3,							textENG		 : cycleCountCol.textENG,
+					dataFld   	: cycleCountCol.xmlTag,			width   	 : fieldWidth,
+					state		: "lock",						minValue	 : "2",
+					maxLength	: "2"}
+
+		field11 =  {type      	: "time",						textHEB		 : fromTimeCol.textHEB,
+			  		spanData  	: 1,							textENG		 : fromTimeCol.textENG,
+			  		dataFld   	: "cycle_"+fromTimeCol.xmlTag,	width   	 : fieldWidth,
+					state		: "lock"}
+
+		field12 =  {type      	: "time",						textHEB		 : toTimeCol.textHEB,
+			  		spanData  	: 3,							textENG		 : toTimeCol.textENG,
+			  		dataFld   	: "cycle_"+toTimeCol.xmlTag,	width   	 : fieldWidth,
+					state		: "lock"}
+
+		fields = new Array(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12);
+
+		pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+	}
+	else
+	{
+		col1	=  {textHEB		: dateCol.textHEB,				widthHEB	 : 120,
+					textENG		: dateCol.textENG,				widthENG	 : 120,
+					xmlTag		: dateCol.xmlTag}
+
+		col2	=  {textHEB		: dayCol.textHEB,				widthHEB	 : 80,
+					textENG		: dayCol.textENG,				widthENG	 : 80,
+					xmlTag		: dayCol.xmlTag}
+
+		col3	=  {textHEB		: fromTimeCol.textHEB,			widthHEB	 : 80,
+					textENG		: fromTimeCol.textENG,			widthENG	 : 80,
+					xmlTag		: fromTimeCol.xmlTag}
+
+		col4	=  {textHEB		: toTimeCol.textHEB,			widthHEB	 : 320,
+					textENG		: toTimeCol.textENG,			widthENG	 : 320,
+					xmlTag		: toTimeCol.xmlTag}
+
+		tableCols = new Array(col1, col2, col3, col4);
+
+		btn1 = {type	: "add",
+				textHEB	: "הוספה",
+		 		textENG : "Add",
+				action	: "addDate()"}
+	
+		btn2 = {type	: "update",
+				textHEB	: "עדכון",
+				textENG : "Update",
+				action	: "updateDate()"}
+	
+		btn3 = {type	: "delete",
+				textHEB	: "מחיקה",
+				textENG : "Delete",
+				action	: "deleteDate()"}
+
+		field1 = {type      : "table",
+    	          height    : 100,
+				  tableCols : tableCols,
+				  xml		: globalDatesXml,
+		  	      btns		: new Array(btn1,btn2,btn3)}
+
+    	fields = new Array(field1);
+
+		pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId);
+
+	if (type == "update")
+	{
+		formTableObj = new Object(pageObj.getFormTableId (formId, 7));
+
+		commonSetGlobalData ("formTableObj", formTableObj);
+	}
+
+	if (multiUploadStart(undefined, formId))
+	{
+		createEditFormButtons (type);
+		handleDisplay 		  (type);
+	}
+}	
+
+/* ---------------------------------------------------------------------------------------- */
+/* showFile																					*/
+/* ---------------------------------------------------------------------------------------- */
+function showFile (formId)
+{
+	window.open (pageObj.getFieldValue(formId, "fullFileName"), "_blank");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteFile																				*/
+/* ---------------------------------------------------------------------------------------- */
+function deleteFile (formId)
+{
+	pageObj.setFieldValue(formId, "formSourceFile", "");
+	pageObj.setFieldValue(formId, "fileDeleted", 	"1");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showPic																					*/
+/* ---------------------------------------------------------------------------------------- */
+function showPic (formId)
+{
+	window.open (pageObj.getFieldValue(formId, "fullPicName"), "_blank");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deletePic																				*/
+/* ---------------------------------------------------------------------------------------- */
+function deletePic (formId)
+{
+	pageObj.setFieldValue(formId, "formSourcePic", "");
+	pageObj.setFieldValue(formId, "picDeleted", 	"1");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectType																				*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectType (formId)
+{
+	if (pageObj.getFieldValue (formId, typeCol.xmlTag) == "page")
+	{
+		pageObj.setFieldValue 	(formId, "url",					"");
+		pageObj.setFieldValue 	(formId, "isNewWin",			"0");
+
+		pageObj.setFieldState (formId, membersOnlyCol.xmlTag, "unlock");
+		pageObj.setFieldState (formId, layoutCol.xmlTag, 	  "unlock");
+
+		pageObj.setFieldState (formId, "url", 	  			  "lock");
+		pageObj.setFieldState (formId, "isNewWin", 			  "lock");
+	}
+	else
+	{
+		pageObj.setFieldValue 	(formId, membersOnlyCol.xmlTag,	"0");
+		pageObj.setFieldValue 	(formId, layoutCol.xmlTag,		"");
+
+		pageObj.setFieldState (formId, membersOnlyCol.xmlTag, "lock");
+		pageObj.setFieldState (formId, layoutCol.xmlTag, 	  "lock");
+
+		pageObj.setFieldState (formId, "url", 	  			  "unlock");
+		pageObj.setFieldState (formId, "isNewWin", 			  "unlock");
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* addDate																					*/
+/* ---------------------------------------------------------------------------------------- */
+function addDate ()
+{
+	commonSetGlobalData ("action", "add");
+	commonSetGlobalData ("eventId", pageObj.getFieldValue (updateFormId, idCol.xmlTag));
+
+	showDatePage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* updateDate																				*/
+/* ---------------------------------------------------------------------------------------- */
+function updateDate ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור תאריך", "Please choose one of the dates")
+		return false;
+	}
+
+	commonSetGlobalData ("action", "update");
+	commonSetGlobalData ("eventId", pageObj.getFieldValue (updateFormId, idCol.xmlTag));
+
+	showDatePage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteDate																				*/
+/* ---------------------------------------------------------------------------------------- */
+function deleteDate ()
+{
+	confirm ("מחיקת התאריך", "delete date", "deleteDate_confirm");
+}
+
+function deleteDate_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	   (idCol.xmlTag, 			pageObj.getSelectedValueOf (tableId, 	 idCol.xmlTag));
+	serverObj.addTag	   (dateCol.xmlTag,			pageObj.getSelectedValueOf (formTableObj, dateCol.xmlTag));
+	serverObj.addTag	   (fromTimeCol.xmlTag,		pageObj.getSelectedValueOf (formTableObj, fromTimeCol.xmlTag));
+	serverObj.addTag	   (toTimeCol.xmlTag,		pageObj.getSelectedValueOf (formTableObj, toTimeCol.xmlTag));
+	
+	serverObj.sendRequest("events.deleteEventDate", undefined, "loadEventDates");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showDatePage																				*/
+/* ---------------------------------------------------------------------------------------- */
+function showDatePage ()
+{
+	if (document.getElementById("eventDates") == undefined)
+	{
+		var oDialog = document.createElement("DIV"); 
+		oDialog.id 	= "eventDates";
+		oDialog.style.display = "none";
+
+		document.body.appendChild(oDialog); 
+
+		var oIframe = document.createElement("IFRAME");
+		oIframe.setAttribute ("id",  "dateOfEvent")
+		oIframe.setAttribute ("src", "dateOfEvent.html")
+		oIframe.setAttribute ("width",  330)
+		oIframe.setAttribute ("height", 230)
+		oIframe.setAttribute ("frameborder", 0)
+		oIframe.setAttribute ("style",  "margin:0px")
+
+		oDialog.appendChild(oIframe); 
+	}
+	else
+	{
+		document.getElementById("dateOfEvent").contentWindow.location.reload();
+	}
+
+	$("#eventDates").dialog({
+		modal: true,
+		width: 330,
+		height: 230,
+		resizable: false,
+		dialogClass: "no-close",
+		cache: false 
+    });
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadEventDates																			*/
+/* ---------------------------------------------------------------------------------------- */
+function loadEventDates ()
+{
+	pageObj.resetTable (formTableObj);
+
+	serverObj.cleanRequest ();
+	serverObj.addTag	   (idCol.xmlTag, 		pageObj.getSelectedValueOf (tableId, idCol.xmlTag));
+	
+	serverObj.sendRequest("events.getEventDates", undefined, "after_loadEventDates");
+}
+
+function after_loadEventDates (i)
+{
+	globalDatesXml = asyncResponseXml.getResponseXml (i);
+
+	pageObj.loadFormTable (updateFormId, formTableObj, globalDatesXml);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectByDate																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectByDate (formId)
+{
+	var byDate = pageObj.getFieldValue(formId, byDateCol.xmlTag);
+
+	switch (byDate)
+	{
+		case "day"	 :
+
+			// empty other fields
+			pageObj.setFieldValue 	(formId, "range_"+fromDateCol.xmlTag,	"");
+			pageObj.setFieldValue 	(formId, "range_"+toDateCol.xmlTag,		"");
+			pageObj.setFieldValue	(formId, "range_"+fromTimeCol.xmlTag,	"");
+			pageObj.setFieldValue 	(formId, "range_"+toTimeCol.xmlTag,		"");
+
+			pageObj.setFieldValue 	(formId, "cycle_"+dateCol.xmlTag,		"");
+			pageObj.setFieldValue 	(formId, cycleCountCol.xmlTag,			"");
+			pageObj.setFieldValue 	(formId, "cycle_"+fromTimeCol.xmlTag,	"");
+			pageObj.setFieldValue 	(formId, "cycle_"+toTimeCol.xmlTag,		"");
+
+			// change fields state
+			pageObj.setFieldState	(formId, "day_"+dateCol.xmlTag,			"unlock");
+			pageObj.setFieldState	(formId, "day_"+fromTimeCol.xmlTag,		"unlock");
+			pageObj.setFieldState	(formId, "day_"+toTimeCol.xmlTag,		"unlock");
+
+			pageObj.setFieldState 	(formId, "range_"+fromDateCol.xmlTag,	"lock");
+			pageObj.setFieldState 	(formId, "range_"+toDateCol.xmlTag,		"lock");
+			pageObj.setFieldState	(formId, "range_"+fromTimeCol.xmlTag,	"lock");
+			pageObj.setFieldState 	(formId, "range_"+toTimeCol.xmlTag,		"lock");
+
+			pageObj.setFieldState 	(formId, "cycle_"+dateCol.xmlTag,		"lock");
+			pageObj.setFieldState 	(formId, cycleCountCol.xmlTag,			"lock");
+			pageObj.setFieldState 	(formId, "cycle_"+fromTimeCol.xmlTag,	"lock");
+			pageObj.setFieldState 	(formId, "cycle_"+toTimeCol.xmlTag,		"lock");
+
+			// change mandatory fields
+			pageObj.changeMandatory	(formId, "day_"+dateCol.xmlTag,			true);
+			pageObj.changeMandatory	(formId, "range_"+fromDateCol.xmlTag,	false);
+			pageObj.changeMandatory	(formId, "range_"+toDateCol.xmlTag,		false);
+			pageObj.changeMandatory	(formId, "cycle_"+dateCol.xmlTag,		false);
+			pageObj.changeMandatory	(formId, cycleCountCol.xmlTag,			false);
+
+			break;
+
+		case "range" :
+
+			// empty other fields
+			pageObj.setFieldValue	(formId, "day_"+dateCol.xmlTag,			"");
+			pageObj.setFieldValue	(formId, "day_"+fromTimeCol.xmlTag,		"");
+			pageObj.setFieldValue	(formId, "day_"+toTimeCol.xmlTag,		"");
+
+			pageObj.setFieldValue 	(formId, "cycle_"+dateCol.xmlTag,		"");
+			pageObj.setFieldValue 	(formId, cycleCountCol.xmlTag,			"");
+			pageObj.setFieldValue 	(formId, "cycle_"+fromTimeCol.xmlTag,	"");
+			pageObj.setFieldValue 	(formId, "cycle_"+toTimeCol.xmlTag,		"");
+
+			// change fields state
+			pageObj.setFieldState	(formId, "day_"+dateCol.xmlTag,			"lock");
+			pageObj.setFieldState	(formId, "day_"+fromTimeCol.xmlTag,		"lock");
+			pageObj.setFieldState	(formId, "day_"+toTimeCol.xmlTag,		"lock");
+
+			pageObj.setFieldState 	(formId, "range_"+fromDateCol.xmlTag,	"unlock");
+			pageObj.setFieldState 	(formId, "range_"+toDateCol.xmlTag,		"unlock");
+			pageObj.setFieldState	(formId, "range_"+fromTimeCol.xmlTag,	"unlock");
+			pageObj.setFieldState 	(formId, "range_"+toTimeCol.xmlTag,		"unlock");
+
+			pageObj.setFieldState 	(formId, "cycle_"+dateCol.xmlTag,		"lock");
+			pageObj.setFieldState 	(formId, cycleCountCol.xmlTag,			"lock");
+			pageObj.setFieldState 	(formId, "cycle_"+fromTimeCol.xmlTag,	"lock");
+			pageObj.setFieldState 	(formId, "cycle_"+toTimeCol.xmlTag,		"lock");
+
+			// change mandatory fields
+			pageObj.changeMandatory	(formId, "day_"+dateCol.xmlTag,			false);
+			pageObj.changeMandatory	(formId, "range_"+fromDateCol.xmlTag,	true);
+			pageObj.changeMandatory	(formId, "range_"+toDateCol.xmlTag,		true);
+			pageObj.changeMandatory	(formId, "cycle_"+dateCol.xmlTag,		false);
+			pageObj.changeMandatory	(formId, cycleCountCol.xmlTag,			false);
+
+			break;
+
+		case "cycle" :
+
+			// empty other fields
+			pageObj.setFieldValue	(formId, "day_"+dateCol.xmlTag,			"");
+			pageObj.setFieldValue	(formId, "day_"+fromTimeCol.xmlTag,		"");
+			pageObj.setFieldValue	(formId, "day_"+toTimeCol.xmlTag,		"");
+
+			pageObj.setFieldValue 	(formId, "range_"+fromDateCol.xmlTag,	"");
+			pageObj.setFieldValue 	(formId, "range_"+toDateCol.xmlTag,		"");
+			pageObj.setFieldValue	(formId, "range_"+fromTimeCol.xmlTag,	"");
+			pageObj.setFieldValue 	(formId, "range_"+toTimeCol.xmlTag,		"");
+
+			// change fields state
+			pageObj.setFieldState	(formId, "day_"+dateCol.xmlTag,			"lock");
+			pageObj.setFieldState	(formId, "day_"+fromTimeCol.xmlTag,		"lock");
+			pageObj.setFieldState	(formId, "day_"+toTimeCol.xmlTag,		"lock");
+
+			pageObj.setFieldState 	(formId, "range_"+fromDateCol.xmlTag,	"lock");
+			pageObj.setFieldState 	(formId, "range_"+toDateCol.xmlTag,		"lock");
+			pageObj.setFieldState	(formId, "range_"+fromTimeCol.xmlTag,	"lock");
+			pageObj.setFieldState 	(formId, "range_"+toTimeCol.xmlTag,		"lock");
+
+			pageObj.setFieldState 	(formId, "cycle_"+dateCol.xmlTag,		"unlock");
+			pageObj.setFieldState 	(formId, cycleCountCol.xmlTag,			"unlock");
+			pageObj.setFieldState 	(formId, "cycle_"+fromTimeCol.xmlTag,	"unlock");
+			pageObj.setFieldState 	(formId, "cycle_"+toTimeCol.xmlTag,		"unlock");
+
+			// change mandatory fields
+			pageObj.changeMandatory	(formId, "day_"+dateCol.xmlTag,			false);
+			pageObj.changeMandatory	(formId, "range_"+fromDateCol.xmlTag,	false);
+			pageObj.changeMandatory	(formId, "range_"+toDateCol.xmlTag,		false);
+			pageObj.changeMandatory	(formId, "cycle_"+dateCol.xmlTag,		true);
+			pageObj.changeMandatory	(formId, cycleCountCol.xmlTag,			true);
+
+			break;
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	var formId = eval(type + "FormId");
+
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + formId + ")"}
+
+	btn3	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	var formId = eval(type + "FormId");
+
+	if (!pageObj.validateForm(formId)) return false;
+	
+	// check dates
+	var byDate = pageObj.getFieldValue(formId, byDateCol.xmlTag);
+	switch (byDate)
+	{
+		case "day"	:
+			if (pageObj.getFieldValue(formId, "day_"+dateCol.xmlTag) == "")
+			{
+				pageObj.displayAndSetError(formId, "day_"+dateCol.xmlTag, "יש להזין תאריך עבור אירוע יומי", "Enter date for one-day event");
+				return false;
+			}
+			break;
+		case "range" :
+			fromDate = pageObj.getFieldValue(formId, "range_"+fromDateCol.xmlTag);
+			if (fromDate == "")
+			{
+				pageObj.displayAndSetError(formId, "range_"+fromDateCol.xmlTag, "יש להזין מתאריך עבור אירוע בטווח תאריכים", "Enter from date");
+				return false;
+			}
+			toDate = pageObj.getFieldValue(formId, "range_"+toDateCol.xmlTag);
+			if (toDate == "")
+			{
+				pageObj.displayAndSetError(formId, "range_"+toDateCol.xmlTag, "יש להזין עד תאריך עבור אירוע בטווח תאריכים", "Enter to date");
+				return false;
+			}
+
+			fromDate = fromDate.substr(6,4) + "" + fromDate.substr(3,2) + "" + fromDate.substr(0,2);
+			toDate   = toDate.substr(6,4) + "" + toDate.substr(3,2) + "" + toDate.substr(0,2);
+
+			if (fromDate > toDate)
+			{
+				pageObj.displayAndSetError(formId, "range_"+toDateCol.xmlTag, "יש להזין טווח תאריכים תקין עבור אירוע בטווח תאריכים",
+		   									"Enter valid dates range");
+				return false;
+			}
+
+			break;
+		case "cycle" :
+			if (pageObj.getFieldValue(formId, "cycle_"+dateCol.xmlTag) == "")
+			{
+				pageObj.displayAndSetError(formId, "cycle_"+dateCol.xmlTag, "יש להזין תאריך עבור אירוע מחזורי", "Enter starting date");
+				return false;
+			}
+			if (pageObj.getFieldValue(formId, cycleCountCol.xmlTag) == "")
+			{
+				pageObj.displayAndSetError(formId, cycleCountCol, "יש להזין מס' פעמים עבור אירוע מחזורי", "Enter number of repeats");
+				return false;
+			}
+			break;
+	}
+
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	var file = uploadGetFileName(0);
+	if (file == ERROR_WAIT_LOADING)
+		return false;
+
+	serverObj.addTag ("attachSource",   file);
+	serverObj.addTag ("fileDeleted", 	pageObj.getFieldValue(formId, "fileDeleted"));
+
+	var file = uploadGetFileName(1);
+	if (file == ERROR_WAIT_LOADING)
+		return false;
+
+	serverObj.addTag ("picSource",   file);
+	serverObj.addTag ("picDeleted", 	pageObj.getFieldValue(formId, "picDeleted"));
+
+	serverObj.sendRequest("events." + type + "Event", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+//		window.location.reload ();
+		handleDisplay	("report");
+		doRefresh 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteEvent																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteEvent() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור אירוע", "Choose an event");
+		return false;
+	}
+	
+	confirm("מחיקת האירוע", "delete the event", "deleteEvent_confirm");
+}
+
+function deleteEvent_confirm ()
+{
+	var id 	= pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, id);
+	
+	serverObj.sendRequest("events.deleteEvent", undefined, "deleteEvent_continue");
+}
+
+function deleteEvent_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showEventRegistersPage																	*/ 
+/* ---------------------------------------------------------------------------------------- */
+function showEventRegistersPage () 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור אירוע", "Choose an event");
+		return false;
+	}
+
+	commonSetGlobalData ("globalEventId", pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+
+	window.location.replace ("handleEventRegisters.html");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	loadData ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>
+

@@ -1,0 +1,821 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/categories.js"></script>
+
+<script language="JavaScript">
+
+var langArray			= commonGetGlobalData ("langArray");
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var addTitleId			= -1;
+var updateTitleId		= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+var formTableObj		= -1;
+
+var idCol				= {textHEB : "מזהה",			textENG	: "Id",				xmlTag : "postId"			}
+var blogNameCol			= {textHEB : "שם הבלוג",		textENG : "Name",			xmlTag : "blogName"			}
+var bloggerNameCol		= {textHEB : "שם הבלוגר",		textENG : "Blogger",		xmlTag : "bloggerName"		}
+var blogIdCol			= {textHEB : "בלוג",			textENG : "Blog",			xmlTag : "blogId"			}
+var bloggerIdCol		= {textHEB : "בלוגר",			textENG : "Blogger",		xmlTag : "bloggerId"		}
+var insertTimeCol		= {textHEB : "תאריך ושעה",		textENG : "Date & Time",	xmlTag : "insertTime"		}
+var titleCol			= {textHEB : "כותרת",	 		textENG	: "Title", 			xmlTag : "title"			}
+var textCol				= {textHEB : "תוכן",	 		textENG	: "Content", 		xmlTag : "text"				}
+var isReadyCol			= {textHEB : "סטטוס",			textENG : "Status",			xmlTag : "isReady"			}
+var categoryCol			= {textHEB	: "קטגוריה",   	 	textENG	: "Category",   	xmlTag : "category"			}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();	
+	addSearchSection    ();	
+	createDataTable     ();
+	createTableButtons  ();
+	createSearchSection ();
+}
+
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	 = pageObj.addPageTitle 	("ניהול רשומות בלוגים", 	"Blog posts management");
+	addTitleId		 = pageObj.addPageSubTitle 	("הוספת רשומת בלוג",		"Add blog post");
+	updateTitleId	 = pageObj.addPageSubTitle 	("עדכון רשומת בלוג",		"Update blog post");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+var globalBlogs;
+var globalBloggers;
+
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	serverOptions_getBlogs 	  (true, "after_getBlogs");
+
+	serverOptions_getBloggers (true, "after_getBloggers");
+
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getBlogs (options)
+{
+	globalBlogs = options;
+	
+	createSearchSection_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getBloggers (options)
+{
+	globalBloggers = options;
+	
+	createSearchSection_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function createSearchSection_continue ()
+{
+	if (globalBlogs == undefined || globalBloggers == undefined) return;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	field1 = {type      : "select",					textHEB		 : bloggerIdCol.textHEB,
+			  spanData  : 1,						textENG		 : bloggerIdCol.textENG,
+			  dataFld   : bloggerIdCol.xmlTag,		width		 : 200,
+			  mandatory : false,					options		 : globalBloggers}
+
+	field2 = {type      : "select",					textHEB		 : blogIdCol.textHEB,
+			  spanData  : 1,						textENG		 : blogIdCol.textENG,
+			  dataFld   : blogIdCol.xmlTag,			width		 : 200,
+			  mandatory : false,					options		 : globalBlogs,
+													defaultValue : commonGetGlobalData("globalBlogId")}
+
+  	fields.push (field1, field2);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(45,240,40,width),
+					ENG : new Array(45,240,40,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "report",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+	
+	loadData ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");	// for paging when load function is not loadReport
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,			widthHEB 	: 70,
+				   textENG	: idCol.textENG,			widthENG 	: 70,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: blogNameCol.textHEB,		widthHEB 	: 150,
+				   textENG	: blogNameCol.textENG,		widthENG 	: 150,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : blogNameCol.xmlTag}
+		   
+	column3		= {textHEB	: bloggerNameCol.textHEB,	widthHEB 	: 150,
+				   textENG	: bloggerNameCol.textENG,	widthENG 	: 150,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : bloggerNameCol.xmlTag}
+		   
+	column4		= {textHEB	: insertTimeCol.textHEB,	widthHEB 	: 150,
+				   textENG	: insertTimeCol.textENG,	widthENG 	: 150,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : insertTimeCol.xmlTag}
+		   
+	column5		= {textHEB	: titleCol.textHEB,			widthHEB 	: 250,
+				   textENG	: titleCol.textENG,			widthENG 	: 250,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : titleCol.xmlTag,			onmouseover	: "showFullTitle(this)"}
+		   
+	column6		= {textHEB	: isReadyCol.textHEB,		widthHEB 	: 70,
+				   textENG	: isReadyCol.textENG,		widthENG 	: 70,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : isReadyCol.xmlTag}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5, column6);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 400, 300);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showFullTitle																			*/
+/* ---------------------------------------------------------------------------------------- */
+function showFullTitle (col)
+{
+    var rowOfCol   = col.parentNode;
+	var rowIndex   = rowOfCol.rowIndex;
+
+	var postTitle  = pageObj.getRowValueOf (tableId, rowIndex, "fullTitle");
+
+	col.title = postTitle;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteBlogPost()"}
+
+	btn4	= {type			: "",
+			   textHEB		: "הערות לרשומה",
+			   textENG		: "Post feedbacks",
+			   action		: "showPostsCommentsPage()"}
+
+	btn5	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4), new Array(btn5));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	if (!pageObj.validateForm (searchFormId)) return false;
+
+	serverObj.setXml (pageObj.getFormXml(searchFormId));
+
+	serverObj.sendRequest("blogs.getBlogsPosts", pageObj.getTablePaging(tableId), "loadData_continue");
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay ("report");
+
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+statusOptions = new selectOptionsObj();
+statusOptions.addOption ("0",  "טיוטה",  "Draft");
+statusOptions.addOption ("1",  "מאושר",  "Confirmed");
+
+var globalCats;
+var globalDetailsXml;
+var globalBlogBloggers;
+
+var globalType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	globalType = type;
+
+	if (type == "update")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור רשומה", "Choose a post");
+			return false;
+		}
+	}
+
+	if (globalCats == undefined)
+		serverOptions_getCategories("choose", "blogPost", undefined, false, "after_getCategories");
+
+	if (commonGetGlobalData ("blogPostExtraDataNamesXml") == undefined)
+		serverObj.sendRequest("blogs.getBlogPostExtraDataNames", undefined, "after_getExtraDataNames");
+
+	if (commonGetGlobalData("blogPostFlags") == undefined)
+		commonGetFlagsByType("blogPost", "after_getFlags");
+
+	if (type == "update")
+	{
+		globalDetailsXml = undefined;
+
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (idCol.xmlTag, pageObj.getSelectedValueOf (tableId, idCol.xmlTag));
+		serverObj.sendRequest  ("blogs.getBlogPostDetails", undefined, "after_getDetails");
+
+		globalBlogBloggers = undefined;
+
+		serverOptions_getBlogBloggers(pageObj.getSelectedValueOf (tableId, blogIdCol.xmlTag), "after_getBlogBloggers");
+	}
+	else
+	{
+		globalBlogBloggers = "";
+	}
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getCategories (options)
+{
+	globalCats = options;
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getExtraDataNames (i)
+{
+	commonSetGlobalData ("blogPostExtraDataNamesXml", asyncResponseXml.getResponseXml (i));
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getFlags (options)
+{
+	commonSetGlobalData("blogPostFlags", options);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getBlogBloggers (options)
+{
+	globalBlogBloggers = options;
+
+	openForm_continue ();
+}
+
+var globalCountFrames;
+
+// ---------------------------------------------------------------------------------------- 
+
+function openForm_continue ()
+{
+	var type 			= globalType;
+	var extraDataXml	= commonGetGlobalData("blogPostExtraDataNamesXml");
+	var flags			= commonGetGlobalData("blogPostFlags");
+
+	if (globalCats == undefined || extraDataXml == undefined || flags == undefined || 
+		(type == "update" && (globalDetailsXml == undefined || globalBlogBloggers == undefined))) return;
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+
+	var	extraData1Name = commonGetInnerData(extraDataXml, "extraData1");
+	var	extraData2Name = commonGetInnerData(extraDataXml, "extraData2");
+	var	extraData3Name = commonGetInnerData(extraDataXml, "extraData3");
+	var	extraData4Name = commonGetInnerData(extraDataXml, "extraData4");
+	var	extraData5Name = commonGetInnerData(extraDataXml, "extraData5");
+
+	pageObj.resetForm (formId);
+
+	globalCountFrames = 0;
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(150,230,150,230),
+					ENG : new Array(150,230,150,230)}
+
+	var fieldWidth   = 220;
+	var fieldWidth3  = 580;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "פרטים", "Details"); 
+	globalCountFrames++;
+
+	var id  = "";
+	if (type == "update")
+	{
+		id = pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+
+		pageObj.setFormXml (formId, globalDetailsXml);
+
+		field1	= {type		: "hidden", 				dataFld		 : idCol.xmlTag}
+
+		fields.push (field1);
+
+		titleAction = "generalSetWinTitle(\"title\", \"update\", formId, false)";
+	}
+	else
+	{
+		titleAction = "generalSetWinTitle(\"title\", \"add\", formId, false)";
+	}
+	
+	field1 = {type      	: "select",					textHEB		 : blogIdCol.textHEB,
+			  spanData  	: 1,						textENG		 : blogIdCol.textENG,
+			  dataFld   	: blogIdCol.xmlTag,			width		 : fieldWidth,
+			  mandatory 	: true,						options		 : globalBlogs,
+			  action		: "onSelectBlog()"}
+
+	field2 = {type			: "select",					textHEB	 	 : bloggerIdCol.textHEB,
+			  spanData  	: 1,						textENG	 	 : bloggerIdCol.textENG,
+			  dataFld   	: bloggerIdCol.xmlTag,		width      	 : fieldWidth,
+			  mandatory  	: true,				 	 	options		 : globalBlogBloggers}
+
+    field3 = {type			: "select",					textHEB		 : isReadyCol.textHEB,
+			  spanData		: 1,						textENG		 : isReadyCol.textENG,
+			  dataFld		: isReadyCol.xmlTag,		width		 : fieldWidth,
+			  mandatory		: true,						defaultValue : "0",
+			  options		: statusOptions.getOptions()}
+
+	field4 = {type			: "span",					textHEB		 : insertTimeCol.textHEB,
+			  spanData		: 1,						textENG		 : insertTimeCol.textENG,
+			  dataFld		: insertTimeCol.xmlTag,		width		 : fieldWidth,
+			  defaultValue  : now()}	  
+	
+	fields = new Array(field1, field2, field3, field4);
+
+	if (type == "add")
+	{
+		field1 = {type			: "select",					textHEB		 : "בחירת קטגוריה",
+				  spanData		: 3,						textENG		 : "Choose category",
+				  dataFld		: "categoryId",				width	 	 : fieldWidth,
+				  options		: globalCats}
+
+		fields.push(field1);
+	}
+	else
+	{
+		hidden = {type		: "hidden", dataFld	: idCol.xmlTag}
+
+		fields.push (hidden);
+	}
+
+	if (extraData1Name != "")
+	{
+		for (i=1; i<=5; i++)
+		{
+			fieldName = eval("extraData" + i + "Name");
+			if (fieldName == "") continue;
+
+	  		field = {type		: "textarea",			textHEB		 : fieldName,
+				 	 spanData	: 3,					textENG		 : fieldName,
+					 dataFld	: "extraData" + i,		width	 	 : fieldWidth3,
+					 rows		: 5}
+
+			fields.push (field);
+		}
+	}
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "תוכן", "Content"); 
+	globalCountFrames++;
+
+	fieldsWidths = {HEB : new Array(60,720),
+					ENG : new Array(60,720)}
+
+
+  	field1 = {type			: "text",					textHEB		 : titleCol.textHEB,
+			  spanData		: 1,						textENG		 : titleCol.textENG,
+			  dataFld		: titleCol.xmlTag,			width	 	 : 710,
+			  maxLength		: "50",						mandatory	 : true,
+	  		  action		: titleAction}
+
+	field2 = {type			: "xstandard",				textHEB		 : textCol.textHEB,
+			  spanData		: 1,						textENG		 : textCol.textENG,
+			  dataFld		: textCol.xmlTag,			width	 	 : 700,
+			  height  		: 280,						mandatory	 : false}
+
+	fields = new Array(field1, field2);
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	commonAddSeoFrame (formId, undefined, false);
+	globalCountFrames++;
+
+	// ------------------------------------------------------------------------------------ 
+
+	if (flags.length != 0)
+	{
+		fieldsWidths = {HEB : new Array(180,350),
+						ENG : new Array(180,350)}
+
+		commonCreateFlagsFrame (formId, fieldsWidths, 70, flags);
+		globalCountFrames++;
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	globalCountFrames++;
+	categories_addFormFrame (formId, type, "קטגוריות", "Categories", fieldsWidths, id, "blogPost", "after_createCategoriesFrame");
+}
+
+function after_createCategoriesFrame ()
+{
+	var type = globalType;
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId, true);
+
+	// ------------------------------------------------------------------------------------ 
+
+	formTableObj = new Object(pageObj.getFormTableId (formId, globalCountFrames));	// is the frame index
+
+	commonSetGlobalData ("formTableObj", 	 formTableObj);	// save it for categoryOfItem iframe
+
+	createEditFormButtons (type);
+
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* addCategory																				*/
+/* ---------------------------------------------------------------------------------------- */
+function addCategory (type)
+{
+	if (type == "add")
+	{
+		commonMsgBox ("info", "יש לבצע הוספה של הרשומה לפני קישור לקטגוריות", "You need to save the post first");
+		return false;
+	}
+	
+	commonSetGlobalData ("action", "add");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (formId, idCol.xmlTag));
+	commonSetGlobalData ("catType", "blogPost");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* updateCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function updateCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור רשומה", "Please choose an post")
+		return false;
+	}
+
+	commonSetGlobalData ("action", "update");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (formId, idCol.xmlTag));
+	commonSetGlobalData ("catType", "blogPost");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function deleteCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור כתבה", "Please choose an post")
+		return false;
+	}
+
+	var itemId 		= pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+	var categoryId 	= pageObj.getSelectedValueOf (formTableObj, "id");
+	
+	categories_deleteCategory (formId, formTableObj, itemId, categoryId, "blogPost");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadItemCategories																		*/
+/* ---------------------------------------------------------------------------------------- */
+function loadItemCategories ()
+{
+	var itemId 		= pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+
+	categories_loadItemCategories (formId, formTableObj, itemId, "blogPost");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectBlog																				*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectBlog (blogId)
+{
+	if (blogId == undefined)
+		blogId = pageObj.getFieldValue (formId, blogIdCol.xmlTag);
+
+	if (blogId == "")
+	{
+		pageObj.setFieldOptions (formId, bloggerIdCol.xmlTag, "");
+	}
+	else
+	{
+		serverOptions_getBlogBloggers(blogId, "setBloggers");
+	}
+}
+
+function setBloggers (options)
+{
+	pageObj.setFieldOptions (formId, bloggerIdCol.xmlTag, options);
+	pageObj.setFieldValue   (formId, bloggerIdCol.xmlTag, options[0].value);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	serverObj.sendRequest("blogs." + type + "BlogPost", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+		doRefresh 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteBlogPost																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteBlogPost() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור רשומה", "Choose a post");
+		return false;
+	}
+
+	confirm("מחיקת הרשומה", "delete blog post", "deleteBlogPost_confirm");
+}
+
+function deleteBlogPost_confirm ()
+{
+	var bloggerId = pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, bloggerId);
+	
+	serverObj.sendRequest("blogs.deleteBlogPost", undefined, "deleteBlogPost_continue");
+}
+
+function deleteBlogPost_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showPostsCommentsPage																	*/
+/* ---------------------------------------------------------------------------------------- */
+function showPostsCommentsPage ()
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור רשומה", "Choose a post");
+		return false;
+	}
+
+	var blogPostId = pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	commonSetGlobalData("globalBlogId", pageObj.getFieldValue(searchFormId, blogIdCol.xmlTag));
+	window.location.replace ("handlePostsComments.html");
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

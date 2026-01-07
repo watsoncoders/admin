@@ -1,0 +1,692 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<style>
+	table#table1_sortTbl td:nth-child(4) div,
+	table#table1_dataTbl td:nth-child(4) div { text-align: center; }
+
+	table#table1_sortTbl td:nth-child(4) div { padding-left: 0px; }
+
+	span#form2_details
+	{
+		display: block;
+		direction: ltr;
+	}
+
+	span#form2_details table
+	{
+		direction: rtl;
+	}
+
+	table.headers
+	{
+		position: fixed;
+		top: 100px;
+	}
+
+	table.headers th
+	{
+		text-align: right;
+		border-bottom: 2px solid #E1EEF4;
+	}
+
+	table.headers th div
+	{
+		padding-right: 8px;
+	}
+
+	div.profileData
+	{
+		height: 500px;
+		overflow-y: scroll;
+		margin-top: 15px;
+	}
+
+	div.profileData td
+	{
+		vertical-align: top;
+	}
+
+	div.profileData td > div
+	{
+		padding: 8px;
+		word-break: break-word;
+	}
+
+	div.profileData td:last-child > div
+	{
+		padding: 0px;
+		padding-right: 8px;
+	}
+
+	div.profileData td
+	{
+		border-left: 1px solid #E1EEF4;
+		border-bottom: 1px solid #E1EEF4;
+	}
+
+	div.profileData div.rowOfButtons
+	{
+		margin: 0px;
+		margin-top: 6px;
+	}
+
+	div.profileData div.rowOfButtons .btn
+	{
+		float: right;
+		margin-left: 0px;
+	}
+
+	div.profileData div.rowOfButtons .btn:first-child
+	{
+		margin-left: 5px;
+	}
+
+	div.profileData div.rowOfButtons div.btn div.btnText
+	{
+		font-size: 12px;
+		padding: 3px;
+		padding-bottom: 0px;
+	}
+
+</style>
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var formTitleId			= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+
+var	idCol				= {textHEB	: "קוד",				textENG	: "",	xmlTag	: "id"				}
+var nameCol				= {textHEB	: "שם",					textENG : "", 	xmlTag	: "name"			}
+var dateCol				= {textHEB  : "תאריך",				textENG : "",	xmlTag	: "insertTime"		}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage 	  ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();
+	addSearchSection    ();
+	createDataTable     ();	
+	createTableButtons  ();	
+	createSearchSection ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   		= pageObj.addPageTitle 	  ("ניהול נרשמים לקורס",	"");
+	formTitleId			= pageObj.addPageSubTitle ("",						"");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	commonFormSetQueryXml ("israeliNewMembersQueryXml");
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	var fieldWidth  = 160;
+
+	field1 = {type      : "text",					textHEB		 : "לפי שם",
+			  spanData  : 1,						textENG		 : "",
+			  dataFld   : "name",					width		 : fieldWidth}
+
+  	fields.push (field1);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(50,180,85,width),
+					ENG : new Array(50,180,85,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+
+	loadData			();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// ------------------------------------------------------------------------------------
+	column1		=  {textHEB		: idCol.textHEB,			widthHEB : 60,
+			   		textENG		: idCol.textENG,			widthENG : 60,
+			   		sortType	: "number",					sortDir  : "ascending",
+				   	xmlTag   	: idCol.xmlTag}
+		   
+	column2		=  {textHEB		: dateCol.textHEB,			widthHEB : 150,
+			   		textENG		: dateCol.textENG,			widthENG : 150,
+			  		sortType 	: "date",					sortDir  : "ascending",
+			   		xmlTag   	: dateCol.xmlTag}
+
+	column3		=  {textHEB		: nameCol.textHEB,			widthHEB : 200,
+			   		textENG		: nameCol.textENG,			widthENG : 200,
+			   		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: nameCol.xmlTag}
+
+	column4		=  {textHEB		: "דף מומחה",				widthHEB : 100,
+			   		textENG		: "",						widthENG : 100,
+			  	 	sortType 	: "number",					sortDir  : "ascending",
+			  		xmlTag   	: "pageLink"}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4);
+
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 350, 270);
+	pageObj.setTableSort	(tableId, dateCol.xmlTag, "desc");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "",
+			   textHEB		: "פרטים",
+			   action		: "openForm()"}
+
+	btn2	= {type			: "",
+			   textHEB		: "סילוק",
+			   action		: "deleteUpdate()"}
+
+	btn3	= {type			: "",
+			   textHEB		: "הפוך למשתלם",
+			   action		: "openMakeStudentForm()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2), new Array(btn3));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (formTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+	else
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		pageObj.showComponent (formTitleId);
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	commonSaveQueryXml ("israeliNewMembersQueryXml");
+
+	serverObj.addTag ("isNewForCourse",  "1");
+	serverObj.sendRequest("israeliProfileUpdates.getProfileUpdates", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay 		("report");	
+	
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm ()
+{
+	if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור שורת עדכון");
+		return false;
+	}
+
+	serverObj.cleanRequest 	();
+	serverObj.addTag		(idCol.xmlTag, pageObj.getSelectedValueOf (tableId, idCol.xmlTag));
+	serverObj.sendRequest	("israeliProfileUpdates.getProfileDetails", undefined, "openForm_continue");
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function openForm_continue (i)
+{
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var responseXml = asyncResponseXml.getResponseXml (i);
+			
+	pageObj.setFormXml (formId, responseXml);
+	
+	// -----------------------------------------------------------------------------------------------------------
+
+	fieldsWidths = {HEB : new Array(0,950),
+					ENG : new Array(0,950)}
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	var frameId = pageObj.addFormFrame (formId, "", ""); 
+
+	fields = new Array();
+
+  	field1 	 = {type		: "span",					textHEB		 : "",
+		  		spanData	: 1,						textENG		 : "",
+		  		dataFld		: "details",				width	 	 : 950,
+				rows		: 10}
+
+   	fields = new Array(field1);
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	pageObj.generateForm  (formId, false);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: "",
+			   textHEB		: "אישור כל השינויים",
+			   action		: "updateAll()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+	pageObj.updatePageTitle (formTitleId, "פרטי עדכונים");
+
+	handleDisplay 		  ("details");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* confirmUpdateProfile																		*/
+/* ---------------------------------------------------------------------------------------- */
+function confirmUpdateProfile (sqlCode, oBtn)
+{
+	serverObj.cleanRequest 	();
+	serverObj.addTag		("sqlCode", sqlCode);
+	serverObj.sendRequest	("israeliProfileUpdates.confirmUpdateProfile", undefined, "after_confirmUpdateProfile");
+}
+
+function after_confirmUpdateProfile (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* rejectUpdateProfile																		*/
+/* ---------------------------------------------------------------------------------------- */
+function rejectUpdateProfile (id, dbField)
+{
+	serverObj.cleanRequest 	();
+	serverObj.addTag		("id", 		id);
+	serverObj.addTag		("dbField", dbField);
+	serverObj.sendRequest	("israeliProfileUpdates.rejectUpdateProfile", undefined, "after_rejectUpdateProfile");
+}
+
+function after_rejectUpdateProfile (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* updateAll																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function updateAll() 
+{
+	confirm("אישור של השינויים", "", "updateAll_confirm");
+}
+
+function updateAll_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+	
+	serverObj.sendRequest("israeliProfileUpdates.updateAll", undefined, "updateAll_continue");
+}
+
+function updateAll_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+		handleDisplay ("report");
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteUpdate																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteUpdate() 
+{
+	if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור שורת עדכון");
+		return false;
+	}
+
+	confirm("סילוק שורת העדכון", "", "deleteUpdate_confirm");
+}
+
+function deleteUpdate_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+	
+	serverObj.sendRequest("israeliProfileUpdates.deleteUpdate", undefined, "deleteUpdate_continue");
+}
+
+function deleteUpdate_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+		handleDisplay ("report");
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+var globalCourses;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openMakeStudentForm																		*/
+/* ---------------------------------------------------------------------------------------- */
+function openMakeStudentForm ()
+{
+	if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור נרשם");
+		return false;
+	}
+
+	if (globalCourses == undefined)
+	{
+		serverObj.cleanRequest 	();
+		serverObj.addTag		(idCol.xmlTag, pageObj.getSelectedValueOf (tableId, idCol.xmlTag));
+		serverObj.sendRequest("israeliCourses.getCourses",undefined, "after_getCourses"); 
+	}
+	else
+	{
+		openMakeStudentForm_continue ();
+	}
+}
+
+function after_getCourses (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	var selectOptions	= new selectOptionsObj();
+
+	if (responseXml != null)
+	{
+		var itemsNode = responseXml.getElementsByTagName("items").item(0);
+
+		if (itemsNode != null)
+		{
+			selectOptions.addOption ("", "", "");
+
+			for (i=0; i < itemsNode.childNodes.length; i++)
+			{
+				var currNode    = itemsNode.childNodes[i];
+	
+				if (currNode.nodeName != "item") continue;
+	
+				var id   	= commonGetInnerData (currNode, "pageId");
+				var name  	= commonGetInnerData (currNode, "name");
+	
+				selectOptions.addOption (id, name, name);
+			}
+		}
+	}
+
+	globalCourses = selectOptions.getOptions ();
+
+	openMakeStudentForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function openMakeStudentForm_continue (i)
+{
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(100,350),
+					ENG : new Array(100,350)}
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	var frameId = pageObj.addFormFrame (formId, "", ""); 
+
+	fields = new Array();
+
+	field1 = {type      : "select",					textHEB		 : "בחירת קורס",
+			  spanData  : 1,						textENG		 : "",
+			  dataFld   : "course",					width   	 : 340,
+			  options	: globalCourses,			mandatory	 : true}
+
+   	fields = new Array(field1);
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	pageObj.generateForm  (formId, false);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: "",
+			   textHEB		: "הפוך למשתלם",
+			   action		: "makeStudent()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+	pageObj.updatePageTitle (formTitleId, "הפוך נרשם למשתלם");
+
+	handleDisplay 		  ("details");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* makeStudent																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function makeStudent() 
+{
+	var id 		= pageObj.getSelectedValueOf(tableId,"memberId");
+	var course	= pageObj.getFieldValue(formId, "course");
+
+	if (course == "")
+	{
+		commonMsgBox ("info", "יש לבחור קורס");
+		return false;
+	}
+	
+	serverObj.cleanRequest 	();
+	serverObj.addTag	(idCol.xmlTag, id);
+	serverObj.addTag	("course", course);
+	
+	serverObj.sendRequest("israeliExperts.makeStudent", undefined, "makeStudent_continue");
+}
+
+function makeStudent_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+		doRefresh 		();
+
+	}
+	return true;
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

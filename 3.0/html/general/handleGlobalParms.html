@@ -1,0 +1,239 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var formTitleId		= -1;
+var formId			= -1;
+var formButtonsId	= -1;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.initPage 	();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitle    	();
+	showForm 			();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitle																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitle ()
+{
+	formTitleId		= pageObj.addPageTitle ("פרמטרים כלליים", "Global Parameters");
+	pageObj.showComponent (formTitleId);
+}
+
+var countViewsPolicies = new selectOptionsObj();
+countViewsPolicies.addOption ("-1", "ללא ספירה",    "No count");
+countViewsPolicies.addOption ("0",  "ללא כפילות",   "Without duplicates");
+countViewsPolicies.addOption ("1",  "לאפשר כפילות", "With duplicates");
+
+var globalPages		= undefined;
+var globalLayouts	= undefined;
+var globalParmsXml	= undefined;
+
+/* ---------------------------------------------------------------------------------------- */
+/* showForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function showForm ()
+{
+	if (globalPages == undefined)
+		serverOptions_getPages		(undefined, "after_loadPages");
+
+	if (globalLayouts == undefined)
+		serverOptions_getLayouts	("after_loadLayouts");
+
+	if (globalParmsXml == undefined)
+		serverObj.sendRequest		("globalParms.getGlobalParms", undefined, "after_loadParms");
+	
+	showForm_continue ();
+}
+
+function after_loadPages (options)
+{
+	globalPages = new Object(options);
+
+	showForm_continue ();
+}
+
+function after_loadLayouts (options)
+{
+	globalLayouts = new Object(options);
+
+	showForm_continue ();
+}
+
+function after_loadParms (i)
+{
+	globalParmsXml = asyncResponseXml.getResponseXml (i);
+
+	showForm_continue ();
+}
+
+function showForm_continue ()
+{
+	if (globalPages == undefined || globalLayouts == undefined || globalParmsXml == undefined) return;
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.setFormXml (formId, globalParmsXml);
+
+	// ------------------------------------------------------------------------------------ 
+
+	frameId = pageObj.addFormFrame (formId, "פרמטרים", "Parameters"); 
+
+	fields = new Array();
+
+	var fieldWidth = 450;
+
+	field1 =  {type      : "text",					textHEB 	 : "הודעה על זכויות יוצרים",
+			   spanData  : 1,						textENG      : "Copyrights line text",
+			   dataFld   : "bottomText",			width     	 : fieldWidth,
+			   minLength : "5",					 	defaultValue : "",
+			   maxLength : "250",					mandatory 	 : false,
+	   												lang		 : langArray}
+
+	field2 =  {type      : "text",					textHEB 	 : "שם האתר",
+			   spanData  : 1,						textENG      : "Website Name",
+			   dataFld   : "siteName",				width     	 : fieldWidth,
+			   minLength : "2",					 	defaultValue : "",
+			   maxLength : "200",					mandatory 	 : false,
+	   												lang		 : langArray}
+
+	field3 =  {type      : "textEng",				textHEB 	 : "דוא\"ל בעל האתר (להפרדה ;)",
+			   spanData  : 1,						textENG      : "Site's owner E-mail",
+			   dataFld   : "siteEmail",				width     	 : fieldWidth,
+			   minLength : "5",					 	defaultValue : "",
+			   maxLength : "200",					mandatory 	 : false}
+
+	field4 =  {type      : "text",					textHEB 	 : "מילות מפתח",
+			   spanData  : 1,						textENG      : "Meta Keywords",
+			   dataFld   : "keywords",				width     	 : fieldWidth,
+			   minLength : "1",					 	defaultValue : "",
+			   maxLength : "1000",					mandatory 	 : false,
+	   												lang		 : langArray}
+
+	field5 =  {type      : "text",					textHEB 	 : "תיאור האתר",
+			   spanData  : 1,						textENG      : "Meta Description",
+			   dataFld   : "description",			width     	 : fieldWidth,
+			   minLength : "1",					 	defaultValue : "",
+			   maxLength : "600",					mandatory 	 : false,
+	   												lang		 : langArray}
+	
+	field6  = {type      : "select",				textHEB 	 : "דף לא קיים",
+		   	   spanData  : 1,						textENG      : "Page doesn't exist",
+			   dataFld   : "notReadyPageId",		width     	 : fieldWidth,
+			   options	 : globalPages}
+
+	field7  = {type      : "select",				textHEB 	 : "מדיניות ספירת צפיות",
+		   	   spanData  : 1,						textENG      : "Counting views policy",
+			   dataFld   : "countViewsPolicy",		width     	 : fieldWidth,
+			   options	 : countViewsPolicies.getOptions()}
+
+	field8  = {type      : "select",				textHEB 	 : "תבנית שליחת אימייל",
+		   	   spanData  : 1,						textENG      : "E-mail layout",
+			   dataFld   : "emailLayout",			width     	 : fieldWidth,
+			   options	 : globalLayouts}
+
+
+	fields.push (field1, field2, field3, field4, field5, field6, field7, field8);
+	
+	fieldsWidths = {HEB : new Array (180,460),
+					ENG : new Array (180,460)};
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId, false);
+
+	pageObj.showComponent (formId);
+
+	createFormButtons ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createFormButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createFormButtons ()
+{
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + formId + ")"}
+
+	btn3	= {type			: "update",
+			   action		: "submitForm()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn2), new Array(btn3));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+	pageObj.showComponent (formButtonsId);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm ()
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	serverObj.sendRequest("globalParms.updateGlobalParms", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		commonMsgBox ("info", "הנתונים נשמרו בהצלחה","Data was saved successfully");
+	}
+	return true;
+}
+
+//-->
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+</html>

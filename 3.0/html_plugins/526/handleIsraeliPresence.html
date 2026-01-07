@@ -1,0 +1,96 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<style>
+	table.formTbl { margin-right: 13px; }
+</style>
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/multiUpload.js"></script>
+
+<script language="JavaScript">
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var rowButtonsId		= -1;
+var spanId				= -1;
+
+var cycles	= new selectOptionsObj();
+cycles.addOption ("1",	"מחזור 2018",  "");
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage 	  ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageTitleId   		= pageObj.addPageTitle 	  ("רישום נוכחות", 	 	"");
+
+	searchFormId   = pageObj.addForm ();
+	
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	var fieldWidth  = 180;
+
+	field1 = {type      : "select",					textHEB		 : "מחזור",
+			  spanData  : 1,						textENG		 : "",
+			  dataFld   : "cycle",					width   	 : fieldWidth,
+			  options	: cycles.getOptions(),		action		 : "onSelectCycle()"}
+
+  	fields.push (field1);
+	
+	fieldsWidths = {HEB	: new Array(70,200),
+					ENG : new Array(70,200)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	pageObj.generateForm  (searchFormId, false);
+
+	// ------------------------------------------------------------------------------------ 
+
+	spanId 	= pageObj.addSpan ();
+
+	var dataHtml	= "<br/><iframe src='israeliPresence.php?cycle=1' width='100%' height='450' frameborder='0'></iframe>";
+
+	pageObj.initSpan (spanId, dataHtml);
+
+	pageObj.showComponent (pageTitleId);
+	pageObj.showComponent (searchFormId);
+	pageObj.showComponent (spanId);
+}
+
+function onSelectCycle ()
+{
+	var cycle		= pageObj.getFieldValue(searchFormId, "cycle");
+
+	var dataHtml	= "<br/><iframe src='israeliPresence.php?cycle=" + cycle + "' width='100%' height='450' frameborder='0'></iframe>";
+
+	pageObj.initSpan (spanId, dataHtml);
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

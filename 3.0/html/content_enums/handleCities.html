@@ -1,0 +1,631 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var pageTitleId		= -1;
+var addTitleId		= -1;
+var updateTitleId	= -1;
+var searchFormId	= -1;
+var searchButtonsId	= -1;
+var tableId			= -1;
+var rowButtonsId	= -1;
+var formId			= -1;
+var formButtonsId	= -1;
+
+var idCol			= {textHEB	: "קוד",			textENG	: "", 		xmlTag : "id"		}
+var	nameCol			= {textHEB	: "שם יישוב", 		textENG	: "", 		xmlTag : "name"		}
+var	countryCol		= {textHEB	: "מדינה",	 		textENG	: "", 		xmlTag : "countryId"}
+var	areaCol			= {textHEB	: "אזור",	 		textENG	: "", 		xmlTag : "areaId"	}
+var	typeCol			= {textHEB	: "סוג",	 		textENG	: "", 		xmlTag : "type"		}
+var	fictiveCol		= {textHEB	: "פקטיבי",	 		textENG	: "", 		xmlTag : "fictive"	}
+var	displayCol		= {textHEB	: "מוצג",	 		textENG	: "", 		xmlTag : "display"	}
+
+var globalAreas;
+var globalCountries;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();
+	addSearchSection    ();	
+	createDataTable     ();	
+	createTableButtons  ();
+
+	serverOptions_getAreas ("noAll", undefined, "after_loadAreas");
+
+	serverOptions_getCountries("noAll", 0, "after_loadCountries")
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadAreas (options)
+{
+	globalAreas = new Object(options);
+
+	createSearchSection ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadCountries (options)
+{
+	globalCountries = new Object(options);
+
+	createSearchSection ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+ 	pageTitleId   	= pageObj.addPageTitle 	  ("ניהול יישובים", "");
+	addTitleId		= pageObj.addPageSubTitle ("הוספת יישוב",   "");
+	updateTitleId	= pageObj.addPageSubTitle ("עדכון יישוב",   "");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	if (globalAreas == undefined || globalCountries == undefined) return;
+
+	var queryXml = commonGetGlobalData ("citiesQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (searchFormId, queryXml);
+	}
+
+	yesNoNullOptions = new selectOptionsObj();
+	yesNoNullOptions.addOption ("",  "",   "");
+	yesNoNullOptions.addOption ("1", "כן", "");
+	yesNoNullOptions.addOption ("0", "לא", "");
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB : new Array(55,150,35,150,30,150,30,120,45,width),
+					ENG : new Array(55,150,35,150,30,150,30,120,45,width)}
+
+
+	fields = new Array();
+
+	field1 = {type      : "text",					textHEB		 : nameCol.textHEB,
+			  spanData  : 1,						textENG		 : nameCol.textENG,
+			  dataFld   : nameCol.xmlTag,			width   	 : 120,
+			  maxLength : "100",					mandatory 	 : false}
+
+	field2 = {type		: "select",					textHEB		 : countryCol.textHEB,
+			  spanData  : 1,						textENG		 : countryCol.textENG,
+			  dataFld   : countryCol.xmlTag,		mandatory	 : false,
+			  options	: globalCountries,			width     	 : 120,		
+			  action	: "onSelectCountry(" + searchFormId + ")"}
+
+	field3 = {type		: "select",					textHEB		 : areaCol.textHEB,
+			  spanData  : 1,						textENG		 : areaCol.textENG,
+			  dataFld   : areaCol.xmlTag,			width     	 : 120,
+			  options	: globalAreas}	
+
+	field4 = {type		: "select",					textHEB		 : displayCol.textHEB,
+			  spanData  : 1,						textENG		 : displayCol.textENG,
+			  dataFld   : displayCol.xmlTag,		width     	 : 90,
+	  		  options	: yesNoNullOptions.getOptions()}
+	  
+	field5 = {type		: "select",					textHEB		 : fictiveCol.textHEB,
+			  spanData  : 3,						textENG		 : fictiveCol.textENG,
+			  dataFld   : fictiveCol.xmlTag,		width     	 : 90,
+	  		  options	: yesNoNullOptions.getOptions()}
+	  
+  	fields.push (field1, field2, field3, field4, field5);
+	
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+
+	loadData ();
+}
+
+var globalFormId;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectCountry																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectCountry (theFormId)
+{
+	globalFormId = theFormId;
+
+	var country = pageObj.getFieldValue (globalFormId, countryCol.xmlTag);
+
+	if (country == "")
+	{
+		pageObj.setFieldOptions (globalFormId, areaCol.xmlTag, globalAreas);
+	}
+	else
+	{
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (countryCol.xmlTag, country);
+		serverObj.addDummyTag  ("forWhat", 		 "noAll");
+		serverObj.addDummyTag  ("afterFunction", "after_getAreas");
+    	serverObj.sendRequest  ("areas.getAreas", undefined, "serverOptions_after_getAreas");
+	}
+}
+
+function after_getAreas (options)
+{
+	pageObj.setFieldOptions (globalFormId, areaCol.xmlTag, options);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	pageObj.tableIsMultiSelection (tableId);
+	
+	pageObj.setLoadFunction  (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	columns = new Array ();
+
+	column1		= {textHEB	: idCol.textHEB,			widthHEB : 70,
+				   textENG	: idCol.textENG,			widthENG : 70,
+				   sortType : "number",					sortDir  : "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: nameCol.textHEB,			widthHEB : 300,
+				   textENG	: nameCol.textENG,			widthENG : 300,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : nameCol.xmlTag}
+		   
+	column3		= {textHEB	: countryCol.textHEB,		widthHEB : 200,
+				   textENG	: countryCol.textENG,		widthENG : 200,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : countryCol.xmlTag}
+		   
+	column4		= {textHEB	: areaCol.textHEB,			widthHEB : 200,
+				   textENG	: areaCol.textENG,			widthENG : 200,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : areaCol.xmlTag}
+		   
+	column5		= {textHEB	: displayCol.textHEB,		widthHEB : 70,
+				   textENG	: displayCol.textENG,		widthENG : 70,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : displayCol.xmlTag}
+		   
+	column6		= {textHEB	: fictiveCol.textHEB,		widthHEB : 90,
+				   textENG	: fictiveCol.textENG,		widthENG : 90,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : fictiveCol.xmlTag}
+		   
+	columns.push (column1, column2, column3, column4, column5, column6);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 350, 270);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+    btn3	= {type			: "delete",
+			   action		: "deleteCity()"}
+
+	btn4	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+
+		if (!pageObj.isCollapse (searchFormId))
+		{
+			pageObj.showComponent (searchButtonsId);
+		}
+	}
+
+	if (type == "add" || type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("citiesQueryXml", queryXml);
+
+	serverObj.cleanRequest ();
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("cities.getCities", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+var global_selected;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay ("report");
+
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+
+		if (global_selected != undefined)
+		{
+			pageObj.setSelectedRow (tableId, idCol.xmlTag, global_selected);
+		}
+	}
+
+	return true;
+}
+
+var globalType;
+
+var globalDetailsXml;
+
+var typeOptions = new selectOptionsObj();
+typeOptions.addOption ("",		"",					"");
+typeOptions.addOption ("1",		"עיר",				"");
+typeOptions.addOption ("2",		"עיירה",			"");
+typeOptions.addOption ("3",		"מועצה מקומית",		"");
+typeOptions.addOption ("4",		"מושבה",			"");
+typeOptions.addOption ("5",		"קיבוץ",			"");
+typeOptions.addOption ("6",		"מושב",				"");
+typeOptions.addOption ("7",		"מושב שיתופי",		"");
+typeOptions.addOption ("8",		"יישוב קהילתי",		"");
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	globalType = type;
+
+	if (type == "update")
+	{
+		if (pageObj.areRowsSelected(tableId))
+		{
+			commonMsgBox ("info", "יש לבחור יישוב אחד בלבד");
+			return false;
+		}
+
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור יישוב");
+			return false;
+		}
+	}
+
+	if (type == "update")
+	{
+		globalDetailsXml = undefined;
+
+        serverObj.cleanRequest ();
+		serverObj.addTag       (idCol.xmlTag, pageObj.getSelectedValueOf (tableId,idCol.xmlTag));
+		serverObj.sendRequest  ("cities.getCityDetails", undefined, "after_loadDetails");
+	}
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function openForm_continue ()
+{
+	var type = globalType;
+
+	if (type == "update" && globalDetailsXml == undefined) return;
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(150,300),
+					ENG : new Array(150,300)}
+
+	fieldWidth	= 290;
+
+	var frameId = pageObj.addFormFrame (formId, "הגדרות יישוב", ""); 
+
+	field1 = {type      : "text",                   textHEB      : nameCol.textHEB,
+              spanData  : 1,                        textENG      : nameCol.textENG,
+              dataFld   : nameCol.xmlTag,  		  	mandatory    : true,
+              minLength : "2",                      width        : fieldWidth,
+			  maxLength : "100",					lang		 : langArray}
+
+	field2 = {type		: "select",					textHEB		 : typeCol.textHEB,
+			  spanData  : 1,						textENG		 : typeCol.textENG,
+			  dataFld   : typeCol.xmlTag,			mandatory	 : false,
+			  options	: typeOptions.getOptions(),	width     	 : fieldWidth}
+
+	field3 = {type		: "select",					textHEB		 : countryCol.textHEB,
+			  spanData  : 1,						textENG		 : countryCol.textENG,
+			  dataFld   : countryCol.xmlTag,		mandatory	 : false,
+			  options	: globalCountries,			width     	 : fieldWidth,
+			  action	: "onSelectCountry(" + formId + ")"}
+
+	field4 = {type		: "select",					textHEB		 : areaCol.textHEB,
+			  spanData  : 1,						textENG		 : areaCol.textENG,
+			  dataFld   : areaCol.xmlTag,			mandatory	 : false,
+			  options	: globalAreas,				width        : fieldWidth}
+
+	field5 = {type		: "yesNoSelect",			textHEB		 : displayCol.textHEB,
+			  spanData  : 1,						textENG		 : displayCol.textENG,
+			  dataFld   : displayCol.xmlTag,		width     	 : fieldWidth,
+												    defaultValue : "1"}
+	  
+	field6 = {type		: "yesNoSelect",			textHEB		 : fictiveCol.textHEB,
+			  spanData  : 1,						textENG		 : fictiveCol.textENG,
+			  dataFld   : fictiveCol.xmlTag,		width     	 : fieldWidth,
+			  mandatory	: true,						defaultValue : "0"}
+
+	field7 = {type      : "textEng",                textHEB      : "נקודת אורך",
+              spanData  : 1,                        textENG      : "",
+			  dataFld   : "x",			  		  	width    	 : fieldWidth}
+
+	field8 = {type      : "textEng",      	        textHEB      : "נקודת רוחב",
+              spanData  : 1,                        textENG      : "",
+			  dataFld   : "y",			  		  	width    	 : fieldWidth}
+
+	fields = new Array(field1, field2, field3, field4, field5, field6, field7, field8);
+
+	if (type == "update")
+	{
+		field1 = {type	: "hidden", 				dataFld		: idCol.xmlTag}
+		fields.push (field1);
+
+		pageObj.setFormXml (formId, globalDetailsXml);
+	}
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId, false);
+
+	createEditFormButtons (type);
+
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + formId + ")"}
+
+	btn3	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.cleanRequest ();
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	serverObj.sendRequest("cities." + type + "City", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		global_selected = commonGetInnerData(responseXml, idCol.xmlTag);
+
+		handleDisplay	("report");
+		loadData		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteCity																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteCity() 
+{
+    if (!pageObj.isRowSelected(tableId) && !pageObj.areRowsSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור יישוב");
+		return false;
+	}
+	
+	ids = pageObj.getSelectedValuesOf(tableId,idCol.xmlTag);
+
+	if (ids.length == 1)
+		confirmMsg = "מחיקת היישוב";
+	else
+		confirmMsg = "מחיקת " + ids.length + " היישובים המסומנים";
+
+	confirm(confirmMsg, "delete city", "deleteCity_confirm");
+}
+
+function deleteCity_confirm ()
+{
+	ids = pageObj.getSelectedValuesOf(tableId,idCol.xmlTag);
+
+	serverObj.cleanRequest ();
+	serverObj.addTags	(idCol.xmlTag, ids);
+
+	serverObj.sendRequest("cities.deleteCity", undefined, "deleteCity_continue");
+}
+
+function deleteCity_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.resetPage ();
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData	      ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

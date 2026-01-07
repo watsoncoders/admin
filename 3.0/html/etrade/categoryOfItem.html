@@ -1,0 +1,220 @@
+<html>
+<head>
+
+<meta http-equiv = "Pragma"  content="no-cache">
+<meta http-equiv = "Expires" content="-1">
+<meta http-equiv = "content-type" content="text/html;charset=windows-1255">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var parentWindow 		= dialogArguments;
+
+var pageObj				= new dynamicPageObj();						// page object
+var serverObj			= new serverInterfaceObj();					// server object
+
+var pageTitleId			= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitle     ();		
+
+	openForm			(parentWindow.action);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitle																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitle ()
+{
+	if (parentWindow.action == "add")
+		pageTitleId	 = pageObj.addPageSubTitle ("הוספת קטגוריה",		"");
+	else
+		pageTitleId	 = pageObj.addPageSubTitle ("עדכון קטגוריה",		"");
+
+	pageObj.showComponent (pageTitleId);
+}
+	
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	createEditForm  	  (type);
+
+	createEditFormButtons (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditForm (type)
+{
+	// create add/update form (if needed)
+	// ------------------------------------------------------------------------------------ 
+	if (formId == -1)
+	{
+		// first creation
+		formId   = pageObj.addForm ();
+	}
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(50,200),
+					ENG : new Array(50,200)}
+
+	var fieldWidth   = 190;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "נתוני קטגוריה", ""); 
+
+	fields = new Array();
+	
+	if (type == "update")
+	{
+		pageObj.setFormXml (formId, pageObj.getSelectedRowAsXml(parentWindow.formTableId));
+
+		field1	= {type		: "span",					textHEB		 : "קטגוריה",
+				   spanData : 1,						textENG		 : "",
+				   dataFld	: "name",					width	 	 : fieldWidth}
+
+		removePos = pageObj.getSelectedValueOf (parentWindow.formTableId, "pos")*1+1;
+
+		serverObj.cleanRequest ()
+		serverObj.addTag	   ("id", 	pageObj.getSelectedValueOf(parentWindow.formTableId,"id"));
+		serverObj.addTag	   ("langs", parentWindow.langArray.join(","));
+
+		var categoriesXml  = serverObj.sendRequest("categories.getCategoryItems");
+
+		var posOptions = commonGetPosOptions (categoriesXml, removePos, "name");
+	
+		field2	= {type		: "select",					textHEB		 : "מיקום",
+				   spanData : 1,						textENG		 : "",
+				   dataFld	: "pos",					width	 	 : fieldWidth,
+				   options	: posOptions.getOptions(),	mandatory	 : true}
+	}
+	else
+	{
+		field1	= {type		: "select",					textHEB		 : "קטגוריה",
+				   spanData : 1,						textENG		 : "",
+				   dataFld	: "categoryId",				width	 	 : fieldWidth,
+				   options	: serverOptions_selectCategoryForItem(parentWindow.itemId, parentWindow.catType),
+				   mandatory: true,						action		 : "onSelectCategory()"}
+		   
+		field2	= {type		: "select",					textHEB		 : "מיקום",
+				   spanData : 1,						textENG		 : "",
+				   dataFld	: "pos",					width	 	 : fieldWidth,
+				   options	: "",						mandatory	 : true}
+	}
+    fields.push (field1,field2);
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId);
+
+	pageObj.showComponent (formId);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectCategory ()
+{
+	categoryId = pageObj.getFieldValue (formId, "categoryId");
+
+	if (categoryId != "")
+	{
+		// get category items
+		serverObj.cleanRequest ();
+		serverObj.addTag	   ("id", categoryId);
+		serverObj.addTag	   ("langs", parentWindow.langArray.join(","));
+
+		categoryItemsXml = serverObj.sendRequest("categories.getCategoryItems");
+
+		// change position select options
+		var posOptions = commonGetPosOptions (categoryItemsXml, 0, "name");
+
+		pageObj.setFieldOptions (formId, "pos", posOptions.getOptions());
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "close",
+			   action		: "window.close()"}
+
+	btn2	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+	pageObj.showComponent (formButtonsId);
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.cleanRequest ();
+	if (type == "add")
+		serverObj.addTag ("categoryId", pageObj.getFieldValue (formId, "categoryId"));
+	else
+		serverObj.addTag ("categoryId", pageObj.getSelectedValueOf(parentWindow.formTableId,"id"));
+
+	serverObj.addTag ("id", 		parentWindow.itemId);
+	serverObj.addTag ("type",   	parentWindow.catType);
+	serverObj.addTag ("pos",	   	pageObj.getFieldValue (formId, "pos"));
+
+	var responseXml = serverObj.sendRequest("categories." + type + "CategoryItem");
+
+	if (responseXml != null)
+	{
+		eval ("parentWindow.loadItemCategories()");
+		window.close ();
+	}
+	return true;
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

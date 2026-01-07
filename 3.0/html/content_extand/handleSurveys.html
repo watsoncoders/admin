@@ -1,0 +1,952 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/categories.js"></script>
+
+<script language="JavaScript">
+
+var langArray			= commonGetGlobalData ("langArray");
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var addTitleId			= -1;
+var updateTitleId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+var formTableObj			= -1;
+
+var configTitleId		= -1;
+var configFormId		= -1;
+var configButtonsId		= -1;
+
+var idCol				= {textHEB	: "קוד", 		textENG	: "",   xmlTag	: "surveyId"	}
+var questionCol			= {textHEB	: "שאלת הסקר",  textENG	: "",   xmlTag	: "question"	}
+var answer1Col			= {textHEB	: "תשובה 1",   	textENG	: "",   xmlTag	: "answer1"		}
+var answer2Col	    	= {textHEB	: "תשובה 2",   	textENG	: "",   xmlTag	: "answer2"		}
+var answer3Col	    	= {textHEB	: "תשובה 3",   	textENG	: "",   xmlTag	: "answer3"		}
+var answer4Col	    	= {textHEB	: "תשובה 4",   	textENG	: "",   xmlTag	: "answer4"		}
+var answer5Col	    	= {textHEB	: "תשובה 5",   	textENG	: "",   xmlTag	: "answer5"		}
+var answer6Col	    	= {textHEB	: "תשובה 6",   	textENG	: "",   xmlTag	: "answer6"		}
+var answer7Col	    	= {textHEB	: "תשובה 7",   	textENG	: "",   xmlTag	: "answer7"		}
+var answer8Col	    	= {textHEB	: "תשובה 8",   	textENG	: "",   xmlTag	: "answer8"		}
+var answer9Col	    	= {textHEB	: "תשובה 9",   	textENG	: "",   xmlTag	: "answer9"		}
+var answer10Col	    	= {textHEB	: "תשובה 10",  	textENG	: "",   xmlTag	: "answer10"	}
+var categoryCol			= {textHEB	: "קטגוריה",   	textENG	: "",   xmlTag	: "category"	}
+
+var globalAllPages	 = undefined;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();	
+	createDataTable     ();	
+	createTableButtons  ();	
+
+	serverOptions_getPagesNames		(undefined, "onLoad_continue");
+}
+
+// ----------------------------------------------------------------------------------------
+
+function onLoad_continue (options)
+{
+	globalAllPages = new Object(options);
+
+	loadData ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	 = pageObj.addPageTitle 	("ניהול סקרים", 	"");
+	addTitleId		 = pageObj.addPageSubTitle  ("הוספת סקר",		"");
+	updateTitleId	 = pageObj.addPageSubTitle  ("עדכון פרטי סקר",	"");
+
+	configTitleId	 = pageObj.addPageSubTitle  ("פרמטרים לסקרים",  "");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,			widthHEB 	: 60,
+				   textENG	: idCol.textENG,			widthENG 	: 60,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: questionCol.textHEB,		widthHEB 	: 180,
+				   textENG	: questionCol.textENG,		widthENG 	: 180,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : questionCol.xmlTag}
+		   
+	column3		= {textHEB	: "תש' 1",					widthHEB 	: 70,
+				   textENG	: answer1Col.textENG,		widthENG 	: 70,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : answer1Col.xmlTag+"Info", onmouseover	: "showTitle(1,this)",
+				   dir		: "ltr"}
+
+	column4		= {textHEB	: "תש' 2",					widthHEB 	: 70,
+				   textENG	: answer2Col.textENG,		widthENG 	: 70,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : answer2Col.xmlTag+"Info", onmouseover	: "showTitle(2,this)",
+				   dir		: "ltr"}
+		   
+	column5		= {textHEB	: "תש' 3",					widthHEB 	: 70,
+				   textENG	: answer3Col.textENG,		widthENG 	: 70,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : answer3Col.xmlTag+"Info", onmouseover	: "showTitle(3,this)",
+				   dir		: "ltr"}
+
+	column6		= {textHEB	: "תש' 4",					widthHEB 	: 70,
+				   textENG	: answer4Col.textENG,		widthENG 	: 70,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : answer4Col.xmlTag+"Info", onmouseover	: "showTitle(4,this)",
+				   dir		: "ltr"}
+		   
+	column7		= {textHEB	: "תש' 5",					widthHEB 	: 70,
+				   textENG	: answer5Col.textENG,		widthENG 	: 70,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : answer5Col.xmlTag+"Info", onmouseover	: "showTitle(5,this)",
+				   dir		: "ltr"}
+		   
+	column8		= {textHEB	: "תש' 6",					widthHEB 	: 70,
+				   textENG	: answer6Col.textENG,		widthENG 	: 70,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : answer6Col.xmlTag+"Info", onmouseover	: "showTitle(6,this)",
+				   dir		: "ltr"}
+		   
+	column9		= {textHEB	: "תש' 7",					widthHEB 	: 70,
+				   textENG	: answer7Col.textENG,		widthENG 	: 70,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : answer7Col.xmlTag+"Info", onmouseover	: "showTitle(7,this)",
+				   dir		: "ltr"}
+		   
+	column10	= {textHEB	: "תש' 8",					widthHEB 	: 70,
+				   textENG	: answer8Col.textENG,		widthENG 	: 70,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : answer8Col.xmlTag+"Info", onmouseover	: "showTitle(8,this)",
+				   dir		: "ltr"}
+		   
+	column11	= {textHEB	: "תש' 9",					widthHEB 	: 70,
+				   textENG	: answer9Col.textENG,		widthENG 	: 70,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : answer9Col.xmlTag+"Info", onmouseover	: "showTitle(9,this)",
+				   dir		: "ltr"}
+		   
+	column12	= {textHEB	: "תש' 10",					widthHEB 	: 75,
+				   textENG	: answer10Col.textENG,		widthENG 	: 75,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : answer10Col.xmlTag+"Info",onmouseover	: "showTitle(10,this)",
+				   dir		: "ltr"}
+		   
+	columns = new Array ();
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5, column6, column7, column8, column9, column10, column11, column12);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 400, 300);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showTitle																				*/
+/* ---------------------------------------------------------------------------------------- */
+function showTitle (answerNumber, col)
+{
+	rowOfCol 	= col.parentNode;
+	rowIndex	= rowOfCol.rowIndex;
+
+	answerText	= pageObj.getRowValueOf (tableId, rowIndex, "answer" + answerNumber);
+
+	if (col.title == "")
+		col.title = answerText;
+}
+
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteSurvey()"}
+
+	btn4	= {type			: "",
+			   textHEB		: "פרמטרים לסקרים",
+			   action		: "showConfigForm()"}
+
+	btn5	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4), new Array(btn5));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		pageObj.hideComponent (configTitleId);
+		pageObj.hideComponent (configFormId);
+		pageObj.hideComponent (configButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update" || type == "config")
+	{
+		// hide table
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		pageObj.showComponent (eval(type + "TitleId"));
+
+		if (type == "config")
+		{
+			pageObj.showComponent (configFormId);
+			pageObj.showComponent (configButtonsId);
+		}
+		else
+		{
+			pageObj.showComponent (formId);
+			pageObj.showComponent (formButtonsId);
+		}
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	serverObj.sendRequest("surveys.getSurveys", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay 		("report");
+			global_firstTime = false;
+		}
+	}
+}
+
+var globalDetailsXml = undefined;
+
+var globalType;
+var globalId;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type, id)
+{
+	globalType 	= type;
+	globalId	= id;
+
+	if (type == "update" && id == undefined)
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור סקר");
+			return false;
+		}
+
+		globalId = pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+	}
+
+	if (type == "update")
+	{
+		globalDetailsXml = undefined;
+
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (idCol.xmlTag, globalId);
+		serverObj.sendRequest  ("surveys.getSurveyDetails", undefined, "after_loadDetails");
+	}
+
+	openForm_continue  	  ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function openForm_continue (type)
+{
+	var type = globalType;
+	var id	 = globalId;
+
+	if (globalAllPages == undefined || (type == "update" && globalDetailsXml == undefined)) return;
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(120,180,180,160),
+					ENG : new Array(120,180,180,160)}
+
+	var fieldWidth   = 150;
+	var fieldWidth2  = 310;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "הגדרות הסקר", ""); 
+
+	fields = new Array();
+	
+	var id;
+	if (type == "update")
+	{
+		pageObj.setFormXml (formId, globalDetailsXml);
+
+		field1	= {type		: "hidden", dataFld	: idCol.xmlTag}
+
+		fields.push (field1);
+	}
+	
+	var typeOptions = new selectOptionsObj();
+	typeOptions.addOption ("choose",  	"סקר ברירה", 	 	"");
+	typeOptions.addOption ("selection", "סקר בחירה",		"");
+
+	field1 = {type			: "select",					textHEB		 : "סוג",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "type",					width	 	 : fieldWidth,
+			  options		: typeOptions.getOptions(),
+			  mandatory	 	: true,						defaultValue : "choose"}
+
+	var numOptions = new selectOptionsObj();
+	numOptions.addOption ("2", "2",   "2");
+	numOptions.addOption ("3", "3",   "3");
+	numOptions.addOption ("4", "4",   "4");
+	numOptions.addOption ("5", "5",   "5");
+	numOptions.addOption ("6", "6",   "6");
+	numOptions.addOption ("7", "7",   "7");
+	numOptions.addOption ("8", "8",   "8");
+	numOptions.addOption ("9", "9",   "9");
+	numOptions.addOption ("10", "10", "10");
+
+	field2 = {type			: "select",					textHEB		 : "מס' תשובות אפשריות",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "numAnswers",				width	 	 : fieldWidth,
+			  options		: numOptions.getOptions(),  action		 : "onSetNumAnswers()",
+			  mandatory	 	: true,						defaultValue : "4"}
+
+  	field3 = {type			: "date",					textHEB		 : "תאריך פרסום",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "publishDate",			width	 	 : fieldWidth,
+			  defaultValue	: today(),					mandatory	 : false}
+
+  	field4 = {type			: "date",					textHEB		 : "תאריך סגירת הסקר",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "closeDate",				width	 	 : fieldWidth,
+			  defaultValue	: "",						mandatory	 : false}
+
+  	field5 = {type			: "yesNoSelect",			textHEB		 : "פעיל",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "active",					width		 : fieldWidth,
+			  mandatory		: true,						defaultValue : "1"}
+
+	field6 = {type			: "select",					textHEB		 : "קישור לדף מסויים",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "pageId",					width	 	 : fieldWidth,
+			  options		: globalAllPages,			mandatory	 : false}
+
+    fields.push (field1, field2, field3, field4, field5, field6);
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(150,490),
+					ENG : new Array(150,490)}
+
+	var fieldWidth   = 480;
+
+	var frameId = pageObj.addFormFrame (formId, "פרטי הסקר", ""); 
+
+  	field1 = {type			: "text",					textHEB		 : questionCol.textHEB,
+			  spanData		: 1,						textENG		 : questionCol.textENG,
+			  dataFld		: questionCol.xmlTag,		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : true,
+			  maxLength		: "200",					lang		 : langArray}
+
+  	field2 = {type			: "text",					textHEB		 : answer1Col.textHEB,
+			  spanData		: 1,						textENG		 : answer1Col.textENG,
+			  dataFld		: answer1Col.xmlTag,		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : true,
+			  maxLength		: "200",					lang		 : langArray}
+
+  	field3 = {type			: "text",					textHEB		 : answer2Col.textHEB,
+			  spanData		: 1,						textENG		 : answer2Col.textENG,
+			  dataFld		: answer2Col.xmlTag,		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : true,
+			  maxLength		: "200",					lang		 : langArray}
+
+  	field4 = {type			: "text",					textHEB		 : answer3Col.textHEB,
+			  spanData		: 1,						textENG		 : answer3Col.textENG,
+			  dataFld		: answer3Col.xmlTag,		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : true,
+			  maxLength		: "200",					lang		 : langArray}
+
+  	field5 = {type			: "text",					textHEB		 : answer4Col.textHEB,
+			  spanData		: 1,						textENG		 : answer4Col.textENG,
+			  dataFld		: answer4Col.xmlTag,		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : true,
+			  maxLength		: "200",					lang		 : langArray}
+
+  	field6 = {type			: "text",					textHEB		 : answer5Col.textHEB,
+			  spanData		: 1,						textENG		 : answer5Col.textENG,
+			  dataFld		: answer5Col.xmlTag,		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "200",					lang		 : langArray}
+
+  	field7 = {type			: "text",					textHEB		 : answer6Col.textHEB,
+			  spanData		: 1,						textENG		 : answer6Col.textENG,
+			  dataFld		: answer6Col.xmlTag,		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "200",					lang		 : langArray}
+
+  	field8 = {type			: "text",					textHEB		 : answer7Col.textHEB,
+			  spanData		: 1,						textENG		 : answer7Col.textENG,
+			  dataFld		: answer7Col.xmlTag,		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "200",					lang		 : langArray}
+
+  	field9 = {type			: "text",					textHEB		 : answer8Col.textHEB,
+			  spanData		: 1,						textENG		 : answer8Col.textENG,
+			  dataFld		: answer8Col.xmlTag,		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "200",					lang		 : langArray}
+
+  	field10= {type			: "text",					textHEB		 : answer9Col.textHEB,
+			  spanData		: 1,						textENG		 : answer9Col.textENG,
+			  dataFld		: answer9Col.xmlTag,		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "200",					lang		 : langArray}
+
+  	field11= {type			: "text",					textHEB		 : answer10Col.textHEB,
+			  spanData		: 1,						textENG		 : answer10Col.textENG,
+			  dataFld		: answer10Col.xmlTag,		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "200",					lang		 : langArray}
+
+	fields = new Array();
+
+    fields.push (field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11);
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	categories_addFormFrame (formId, type, "קטגוריות הסקר", "Categories", fieldsWidths, id, "survey", "after_createCategoriesFrame");
+}
+
+function after_createCategoriesFrame ()
+{
+	var type = globalType;
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId);
+
+	formTableObj = new Object(pageObj.getFormTableId (formId, 3));	// 3 is the frame index
+
+	commonSetGlobalData ("formTableObj", 	 formTableObj);	// save it for categoryOfItem iframe
+
+	if (type == "update")
+		setTimeout ("onSetNumAnswers()", 200);
+
+	createEditFormButtons (type);
+
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSetNumAnswers																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onSetNumAnswers ()
+{
+	var numAnswers = pageObj.getFieldValue(formId, "numAnswers");
+
+	pageObj.setFieldState   (formId, answer2Col.xmlTag,  "unlock");
+	pageObj.setFieldState   (formId, answer3Col.xmlTag,  "unlock");
+	pageObj.setFieldState   (formId, answer4Col.xmlTag,  "unlock");
+	pageObj.setFieldState   (formId, answer5Col.xmlTag,  "unlock");
+	pageObj.setFieldState   (formId, answer6Col.xmlTag,  "unlock");
+	pageObj.setFieldState   (formId, answer7Col.xmlTag,  "unlock");
+	pageObj.setFieldState   (formId, answer8Col.xmlTag,  "unlock");
+	pageObj.setFieldState   (formId, answer9Col.xmlTag,  "unlock");
+	pageObj.setFieldState   (formId, answer10Col.xmlTag, "unlock");
+
+	pageObj.changeMandatory (formId, answer2Col.xmlTag,  true);
+	pageObj.changeMandatory (formId, answer3Col.xmlTag,  true);
+	pageObj.changeMandatory (formId, answer4Col.xmlTag,  true);
+	pageObj.changeMandatory (formId, answer5Col.xmlTag,  true);
+	pageObj.changeMandatory (formId, answer6Col.xmlTag,  true);
+	pageObj.changeMandatory (formId, answer7Col.xmlTag,  true);
+	pageObj.changeMandatory (formId, answer8Col.xmlTag,  true);
+	pageObj.changeMandatory (formId, answer9Col.xmlTag,  true);
+	pageObj.changeMandatory (formId, answer10Col.xmlTag, true);
+
+	switch (numAnswers)
+	{
+		case "2"	: 	pageObj.setFieldValue   (formId, answer3Col.xmlTag, "");
+						pageObj.setFieldState   (formId, answer3Col.xmlTag, "lock");
+						pageObj.changeMandatory (formId, answer3Col.xmlTag, false);
+		
+						// no break !
+
+		case "3"	: 	pageObj.setFieldValue   (formId, answer4Col.xmlTag, "");
+						pageObj.setFieldState   (formId, answer4Col.xmlTag, "lock");
+						pageObj.changeMandatory (formId, answer4Col.xmlTag, false);
+
+						// no break !
+
+		case "4"	: 	pageObj.setFieldValue   (formId, answer5Col.xmlTag, "");
+						pageObj.setFieldState   (formId, answer5Col.xmlTag, "lock");
+						pageObj.changeMandatory (formId, answer5Col.xmlTag, false);
+
+						// no break !
+
+		case "5"	: 	pageObj.setFieldValue   (formId, answer6Col.xmlTag, "");
+						pageObj.setFieldState   (formId, answer6Col.xmlTag, "lock");
+						pageObj.changeMandatory (formId, answer6Col.xmlTag, false);
+
+						// no break !
+
+		case "6"	: 	pageObj.setFieldValue   (formId, answer7Col.xmlTag, "");
+						pageObj.setFieldState   (formId, answer7Col.xmlTag, "lock");
+						pageObj.changeMandatory (formId, answer7Col.xmlTag, false);
+
+						// no break !
+
+		case "7"	: 	pageObj.setFieldValue   (formId, answer8Col.xmlTag, "");
+						pageObj.setFieldState   (formId, answer8Col.xmlTag, "lock");
+						pageObj.changeMandatory (formId, answer8Col.xmlTag, false);
+						// no break !
+
+		case "8"	: 	pageObj.setFieldValue   (formId, answer9Col.xmlTag, "");
+						pageObj.setFieldState   (formId, answer9Col.xmlTag, "lock");
+						pageObj.changeMandatory (formId, answer9Col.xmlTag, false);
+						// no break !
+
+		case "9"	: 	pageObj.setFieldValue   (formId, answer10Col.xmlTag, "");
+						pageObj.setFieldState   (formId, answer10Col.xmlTag, "lock");
+						pageObj.changeMandatory (formId, answer10Col.xmlTag, false);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + formId + ")"}
+
+	btn3	= {type			: "save",
+			   action		: "submitForm('" + type + "Save')"}
+
+	btn4	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3,btn4));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+var global_submitType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	global_submitType = type;
+
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	command = type + "Survey";
+	
+	if (type == "addSave")
+		command = "addSurvey";
+
+	if (type == "updateSave")
+		command = "updateSurvey";
+
+	serverObj.sendRequest("surveys." + command, undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var type = global_submitType;
+
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		if (type != "addSave" && type != "updateSave")
+		{
+			handleDisplay	("report");
+			doRefresh 		();
+		}
+		else
+		{
+			commonMsgBox ("info", "נתוני הסקר נשמרו בהצלחה");
+			doRefresh 		();
+		}
+
+		if (type == "addSave")
+		{
+			pageObj.hideComponent (formId);
+			pageObj.hideComponent (formButtonsId);
+			
+			pageObj.setSelectedRow (tableId, idCol.xmlTag, commonGetInnerData (responseXml,idCol.xmlTag));
+
+			pageObj.hideComponent (addTitleId);
+			pageObj.showComponent (updateTitleId);
+			
+			openForm ("update", pageObj.getFieldValue(formId,idCol.xmlTag));
+		}
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* addCategory																				*/
+/* ---------------------------------------------------------------------------------------- */
+function addCategory (type)
+{
+	if (type == "add")
+	{
+		commonMsgBox ("info", "יש לבצע שמירה של הסקר לפני קישור לקטגוריות");
+		return false;
+	}
+	
+	commonSetGlobalData ("action", "add");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (formId, idCol.xmlTag));
+	commonSetGlobalData ("catType", "survey");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* updateCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function updateCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור שורה")
+		return false;
+	}
+
+	commonSetGlobalData ("action", "update");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (formId, idCol.xmlTag));
+	commonSetGlobalData ("catType", "survey");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function deleteCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור שורה")
+		return false;
+	}
+
+	var itemId 		= pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+	var categoryId 	= pageObj.getSelectedValueOf (formTableObj, "id");
+	
+	categories_deleteCategory (formId, formTableObj, itemId, categoryId, "survey");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadItemCategories																		*/
+/* ---------------------------------------------------------------------------------------- */
+function loadItemCategories ()
+{
+	var itemId 		= pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+
+	categories_loadItemCategories (formId, formTableObj, itemId, "survey");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteSurvey																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteSurvey() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור סקר");
+		return false;
+	}
+
+	confirm("מחיקת הסקר", "delete survey", "deleteSurvey_confirm");
+}
+
+function deleteSurvey_confirm ()
+{
+	var surveyId = pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, surveyId);
+	
+	serverObj.sendRequest("surveys.deleteSurvey", undefined, "deleteSurvey_continue");
+}
+
+function deleteSurvey_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showConfigForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function showConfigForm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.sendRequest("surveys.getSurveyConfig", undefined, "showConfigForm_continue");
+}
+
+function showConfigForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (configFormId == -1)
+		configFormId   = pageObj.addForm ();
+	
+	pageObj.resetForm (configFormId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(200,180,200,100),
+					ENG : new Array(200,180,200,100)}
+
+	var fieldWidth2  = 470;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (configFormId, "פרמטרים", ""); 
+
+	fields = new Array();
+	
+	pageObj.setFormXml (configFormId, responseXml);
+	
+	var colorOptions = new selectOptionsObj();
+	colorOptions.addOption ("colorForAnswer",  	"צבע לכל תשובה", 		"");
+	colorOptions.addOption ("winLoseColors", 	"צבע מנצח וצבע מפסיד",	"");
+
+	field1 = {type			: "select",					textHEB		 : "אופן הצגת צבעים",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "colorsMethod",			width	 	 : 170,
+			  options		: colorOptions.getOptions(),
+			  mandatory	 	: true,						defaultValue : "winLoseColors"}
+
+  	field2 = {type			: "yesNoSelect",			textHEB		 : "האם להציג את מס' ההצבעות",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "showNumVotes",			width		 : 90,
+			  mandatory		: true,						defaultValue : "1"}
+
+	field3 = {type			: "select",					textHEB		 : "דף תוצאות סקר",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "resultsPageId",			width	 	 : 170,
+			  options		: globalAllPages,			mandatory	 : false}
+
+  	field4 = {type			: "yesNoSelect",			textHEB		 : "האם לחסום הצבעות כפולות",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "blockDuplicateVotes",	width		 : 90,
+			  mandatory		: true,						defaultValue : "1"}
+
+  	field5 = {type			: "text",					textHEB		 : "הודעת תודה על הצבעתך",
+			  spanData		: 3,						textENG		 : "",
+			  dataFld		: "thanksMsg",				width	 	 : fieldWidth2,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "300",					lang		 : langArray}
+
+  	field6 = {type			: "text",					textHEB		 : "הודעה על הצבעה כפולה",
+			  spanData		: 3,						textENG		 : "",
+			  dataFld		: "duplicateMsg",			width	 	 : fieldWidth2,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "300",					lang		 : langArray}
+
+  	field7 = {type			: "textarea",				textHEB		 : "תקנון ותנאים",
+			  spanData		: 3,						textENG		 : "",
+			  dataFld		: "rulesMsg",				width	 	 : fieldWidth2,
+			  rows			: "5",						lang		 : langArray}
+
+    fields.push (field1, field2, field3, field4, field5, field6, field7);
+
+    pageObj.addFormFields (configFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (configFormId, true);
+
+	createConfigFormButtons ();
+
+	handleDisplay 		    ("config");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createConfigFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createConfigFormButtons ()
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + configFormId + ")"}
+
+	btn3	= {type			: "update",
+			   action		: "submitConfigForm()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3));
+
+	if (configButtonsId == -1)
+		configButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (configButtonsId, btnsGroups, pageObj.getFormWidth(configFormId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitConfigForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function submitConfigForm ()
+{
+	if (!pageObj.validateForm(configFormId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(configFormId));
+
+	serverObj.sendRequest("surveys.updateSurveyConfig", undefined, "submitConfigForm_continue");
+}
+
+function submitConfigForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		commonMsgBox ("info", "הנתונים נשמרו בהצלחה","Data was saved successfully");
+	}
+
+	return true;
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>
+

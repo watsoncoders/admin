@@ -1,0 +1,715 @@
+<html>
+<head>
+
+<meta http-equiv = "Pragma"  content="no-cache">
+<meta http-equiv = "Expires" content="-1">
+<meta http-equiv = "content-type" content="text/html;charset=windows-1255">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= top.globalFrame.langArray;
+
+var pageObj				= new dynamicPageObj();						// page object
+var serverObj			= new serverInterfaceObj();					// server object
+
+var pageTitleId			= -1;
+var enumFormId			= -1;
+var enumButtonsId		= -1;
+var valuesTableId		= -1;
+var valueButtonsId		= -1;
+
+var addEnumTitleId		= -1;
+var updateEnumTitleId	= -1;
+var editEnumFormId		= -1
+var editEnumButtonsId	= -1;
+
+var addValueTitleId		= -1;
+var updateValueTitleId	= -1;
+var valueFormId			= -1;
+var valueFormButtonsId	= -1;
+
+var	enumIdCol		= {textHEB	: "מזהה רשימה",	textENG	: "",	xmlTag	: "enumId"		}
+var enumNameCol		= {textHEB	: "שם רשימה",	textENG	: "",  xmlTag	: "name"		}
+
+var	valueIdCol		= {textHEB	: "מזהה",		textENG	: "",   xmlTag	: "valueId"		}
+var	valueTextCol	= {textHEB	: "תיאור הערך",	textENG	: "",	xmlTag	: "text"		}
+var	valueCol		= {textHEB	: "ערך",		textENG	: "",	xmlTag	: "value"		}
+var	valuePosCol		= {textHEB	: "מיקום",		textENG	: "",	xmlTag	: "pos"			}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    	();
+	addEnumForm    			();		
+	createDataTable     	();	
+	createTableButtons  	();	
+	createEnumForm 			();
+	loadEnumValues			();
+	handleDisplay 			("report");		
+	pageObj.collapseSection (enumFormId, false);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	 	= pageObj.addPageTitle ("רשימות ערכים",  		"");
+	addEnumTitleId		= pageObj.addPageTitle ("הוספת רשימת ערכים",	"");
+	updateEnumTitleId	= pageObj.addPageTitle ("עדכון רשימת ערכים",	"");
+	addValueTitleId	 	= pageObj.addPageTitle ("הוספת ערך לרשימה",		"");
+	updateValueTitleId 	= pageObj.addPageTitle ("עדכון ערך של רשימה",	"");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addEnumForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function addEnumForm ()
+{
+	// create forum form (if needed)
+	// ------------------------------------------------------------------------------------ 
+	if (enumFormId == -1)
+	{
+		// first creation
+		enumFormId   = pageObj.addForm ();
+	}
+	
+	if (enumButtonsId == -1)
+		enumButtonsId = pageObj.addRowOfButtons ();
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createEnumForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createEnumForm ()
+{
+	// ------------------------------------------------------------------------------------ 
+	
+	if (top.xmlsFrame.enumsQueryXml != undefined)
+	{
+		pageObj.setFormXml (enumFormId, top.xmlsFrame.enumsQueryXml);
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (enumFormId, "בחירת רשימת ערכים", "");
+
+	fields = new Array();
+
+	enums = serverOptions_getEnums("empty");
+
+	defaultEnum = "";
+	if (enums.length > 0)
+		defaultEnum = enums[0].value;
+
+	field1 = {type      : "select",					textHEB		 : enumIdCol.textHEB,
+			  spanData  : 1,						textENG		 : enumIdCol.textENG,
+			  dataFld   : enumIdCol.xmlTag,			width   	 : 150,
+			  mandatory : false,					options		 : enums,
+			  action	: "onChangeQuery()",		defaultValue : defaultEnum}
+
+	fields.push (field1);
+	
+	width = "*" + pageObj.getTableWidth(valuesTableId);	// reset but max
+	fieldsWidths = {HEB	: new Array(100, width),
+					ENG : new Array(100, width)}
+
+	pageObj.addFormFields (enumFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (enumButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (valuesTableId);
+	
+	pageObj.addCollapse	  (enumFormId, collapseIds, expandIds);// parms : 1) form with collapse 
+																 //			2) all other collapse items
+																 //			3) all expand tables
+
+	pageObj.generateForm  (enumFormId);
+	
+	// ------------------------------------------------------------------------------------ 
+
+	btn1	= {type			: "",
+			   textHEB		: "הוספת רשימה",
+			   textENG		: "",
+			   action		: "openForm('addEnum')"}
+
+	btn2	= {type			: "",
+			   textHEB		: "הגדרות רשימה",
+			   textENG		: "",
+			   action		: "openForm('updateEnum')"}
+
+	btn3	= {type			: "",
+			   textHEB		: "מחיקת רשימה",
+			   textENG		: "",
+			   action		: "deleteEnum()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1,btn2, btn3));
+
+	pageObj.generateRowOfButtons (enumButtonsId, btnsGroups, pageObj.getTableWidth(valuesTableId));
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onChangeQuery																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onChangeQuery ()
+{
+	setTimeout ("doRefresh();", 100);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	valuesTableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (valuesTableId, "loadEnumValues");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: valueIdCol.textHEB,			widthHEB 	: 50,
+				   textENG	: valueIdCol.textENG,			widthENG 	: 50,
+				   xmlTag   : valueIdCol.xmlTag}
+		   
+   	column2		= {textHEB	: valueTextCol.textHEB,			widthHEB 	: 250,
+				   textENG	: valueTextCol.textENG,			widthENG 	: 250,
+				   xmlTag   : valueTextCol.xmlTag}
+		   
+   	column3		= {textHEB	: valueCol.textHEB,				widthHEB 	: 250,
+				   textENG	: valueCol.textENG,				widthENG 	: 250,
+				   xmlTag   : valueCol.xmlTag}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3);
+
+	pageObj.setTableColumns (valuesTableId, columns);
+	pageObj.setTableHeight	(valuesTableId, 290, 290);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "",
+			   textHEB		: "הוספת ערך",
+			   textENG		: "",
+			   action		: "openForm('addValue')",
+			   inPopup		: false}
+
+	btn2	= {type			: "",
+			   textHEB		: "עדכון ערך",
+			   textENG		: "",
+			   action		: "openForm('updateValue')"}
+
+	btn3	= {type			: "",
+			   textHEB		: "מחיקת ערך",
+			   textENG		: "",
+			   action		: "deleteValue()"}
+
+	btn4	= {type			: "print",
+			   action		: "pageObj.printTable (" + valuesTableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2,btn3), new Array(btn4));
+
+	if (valueButtonsId == -1)
+		valueButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (valueButtonsId, btnsGroups, pageObj.getTableWidth(valuesTableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide value form
+		pageObj.hideComponent (addEnumTitleId);
+		pageObj.hideComponent (updateEnumTitleId);
+		pageObj.hideComponent (editEnumFormId);
+		pageObj.hideComponent (editEnumButtonsId);
+		pageObj.hideComponent (addValueTitleId);
+		pageObj.hideComponent (updateValueTitleId);
+		pageObj.hideComponent (valueFormId);
+		pageObj.hideComponent (valueFormButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (enumFormId);
+		pageObj.showComponent (enumButtonsId);
+		pageObj.showComponent (valuesTableId);
+		pageObj.showComponent (valueButtonsId);
+
+		if (pageObj.isCollapse (enumFormId))
+		{
+//			pageObj.collapseSection (enumFormId, false);
+		}
+		pageObj.showComponent (enumButtonsId);
+	}
+
+	if (type == "addValue" || type == "updateValue")
+	{
+		// hide table
+		pageObj.hideComponent (pageTitleId);
+		pageObj.hideComponent (enumFormId);
+		pageObj.hideComponent (enumButtonsId);
+		pageObj.hideComponent (valuesTableId);
+		pageObj.hideComponent (valueButtonsId);
+
+		// show value form
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (valueFormId);
+		pageObj.showComponent (valueFormButtonsId);
+	}
+
+	if (type == "addEnum" || type == "updateEnum")
+	{
+		// hide table
+		pageObj.hideComponent (pageTitleId);
+		pageObj.hideComponent (enumFormId);
+		pageObj.hideComponent (enumButtonsId);
+		pageObj.hideComponent (valuesTableId);
+		pageObj.hideComponent (valueButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (editEnumFormId);
+		pageObj.showComponent (editEnumButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteEnum																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteEnum () 
+{
+    if (pageObj.getFieldValue (enumFormId, enumIdCol.xmlTag) == "") 
+	{
+		commonMsgBox ("info", "יש לבחור רשימה");
+		return false;
+	}
+
+	serverObj.cleanRequest ();
+	serverObj.setXml	   (pageObj.getFormXml(enumFormId));
+	
+	if (confirm("מחיקת הרשימה וערכיה"))
+	{
+		responseXml = serverObj.sendRequest("enums.deleteEnum");
+
+		if (responseXml != null)
+		{
+			enums = serverOptions_getEnums("empty");
+			pageObj.setFieldOptions (enumFormId, enumIdCol.xmlTag, enums, ""); 
+			handleDisplay	("report");
+			doRefresh	    ();
+		}
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadEnumValues																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadEnumValues () 
+{
+	if (!pageObj.validateForm (enumFormId)) return false;
+
+	top.xmlsFrame.enumsQueryXml = pageObj.getFormXml(enumFormId);
+
+	serverObj.setXml (top.xmlsFrame.enumsQueryXml);
+
+	var responseXml = serverObj.sendRequest("enums.getValues", pageObj.getTablePaging(valuesTableId)); 
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (valuesTableId, responseXml);
+		pageObj.setTablePaging (valuesTableId, responseXml);
+
+		pageObj.generateTable (valuesTableId);
+		
+		return true;
+	}
+
+	return false;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	if (type == "updateValue")
+	{
+		if (!pageObj.isRowSelected(valuesTableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור ערך");
+			return false;
+		}
+	}
+
+	if (type == "addValue" || type == "updateValue")
+	{
+		createValueForm  	   (type);
+		createValueFormButtons (type);	
+	}
+	
+
+	if (type == "addEnum" || type == "updateEnum")
+	{
+		if (type == "updateEnum" && pageObj.getFieldValue(enumFormId, enumIdCol.xmlTag) == "")
+		{
+			commonMsgBox ("info", "יש לבחור רשימת ערכים");
+			return false;
+		}
+		createEditEnumForm    (type);
+		createEditEnumButtons (type);
+	}
+
+	handleDisplay 		  (type);			// show form
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createValueForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createValueForm (type)
+{
+	// create add/update form (if needed)
+	// ------------------------------------------------------------------------------------ 
+	if (valueFormId == -1)
+	{
+		// first creation
+		valueFormId   = pageObj.addForm ();
+	}
+	
+	pageObj.resetForm (valueFormId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var removePos = 0;
+
+	if (type == "updateValue")
+	{
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (valueIdCol.xmlTag, pageObj.getSelectedValueOf (valuesTableId, valueIdCol.xmlTag));
+		var responseXml = serverObj.sendRequest("enums.getValueDetails");
+			
+		if (responseXml != null)
+		{
+			pageObj.setFormXml (valueFormId, responseXml.xml);
+			removePos = commonGetInnerData(responseXml, valuePosCol.xmlTag)*1 + 1;
+		}
+	}
+	
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(120,200),
+					ENG : new Array(120,200)}
+
+	var fieldWidth  = 190;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (valueFormId, "הגדרת הערך", ""); 
+
+	enumId     = pageObj.getFieldValue (enumFormId, enumIdCol.xmlTag);
+
+	hidden	   = {type			: "hidden",		
+		  		  dataFld		: enumIdCol.xmlTag,
+				  defaultValue	: enumId};
+			
+	var fields = new Array(hidden);
+
+	if (type == "updateValue")
+	{
+		field1 = {type			: "span",					textHEB		 : valueIdCol.textHEB,
+				  spanData		: 1,						textENG		 : valueIdCol.textENG,
+				  dataFld		: valueIdCol.xmlTag,		width	 	 : fieldWidth}
+		
+		fields.push (field1);
+	}
+
+  	field1     = {type			: "text",					textHEB		 : valueTextCol.textHEB,
+			  	  spanData		: 1,						textENG		 : valueTextCol.textENG,
+				  dataFld		: valueTextCol.xmlTag,		width	 	 : fieldWidth,
+			  	  minLength		: "1",						mandatory	 : true,
+			  	  maxLength		: "100",					lang		 : langArray}
+
+  	field2     = {type			: "text",					textHEB		 : valueCol.textHEB,
+			  	  spanData		: 1,						textENG		 : valueCol.textENG,
+				  dataFld		: valueCol.xmlTag,			width	 	 : fieldWidth,
+			  	  minLength		: "1",						mandatory	 : false,
+				  maxLength		: "100"}
+
+	fields.push (field1, field2);
+	
+	// build pos options
+	serverObj.addTag (enumIdCol.xmlTag,  enumId);
+	var valuesXml = serverObj.sendRequest("enums.getValues"); 
+
+	var posOptions = commonGetPosOptions (valuesXml, removePos, valueTextCol.xmlTag);
+
+	field1     = {type			: "select",					textHEB		 : valuePosCol.textHEB,
+			 	  spanData		: 1,						textENG		 : valuePosCol.textENG,
+			 	  dataFld		: valuePosCol.xmlTag,		width	 	 : fieldWidth,
+			 	  options		: posOptions.getOptions(),	mandatory	 : true,
+	  		 	  defaultValue	: "lastOption"}
+
+	fields.push (field1);
+
+	pageObj.addFormFields (valueFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (valueFormId, true);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createValueFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createValueFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + valueFormId + ")"}
+
+	if (type == "addValue") 
+	   	btnType = "add";
+	else 
+		btnType = "update";
+	
+	btn3	= {type			: btnType,
+			   action		: "submitValueForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3));
+
+	if (valueFormButtonsId == -1)
+		valueFormButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (valueFormButtonsId, btnsGroups, pageObj.getFormWidth(valueFormId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitValueForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function submitValueForm (type)
+{
+	if (!pageObj.validateForm(valueFormId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(valueFormId));
+
+	var responseXml = serverObj.sendRequest("enums." + type);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+		doRefresh 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteValue																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteValue() 
+{
+    if (!pageObj.isRowSelected(valuesTableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור ערך");
+		return false;
+	}
+
+	serverObj.cleanRequest ();
+	serverObj.addTag	   (enumIdCol.xmlTag,  pageObj.getSelectedValueOf (valuesTableId, enumIdCol.xmlTag));
+	serverObj.addTag	   (valueIdCol.xmlTag, pageObj.getSelectedValueOf (valuesTableId, valueIdCol.xmlTag));
+	
+	if (confirm("מחיקת ערך"))
+	{
+		responseXml = serverObj.sendRequest("enums.deleteValue");
+
+		if (responseXml != null)
+		{
+			doRefresh ();
+		}
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadEnumValues();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditEnumForm																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditEnumForm (type)
+{
+	// create add/update form (if needed)
+	// ------------------------------------------------------------------------------------ 
+	if (editEnumFormId == -1)
+	{
+		// first creation
+		editEnumFormId   = pageObj.addForm ();
+	}
+	
+	pageObj.resetForm (editEnumFormId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var enumId = "";
+	if (type == "updateEnum")
+	{
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (enumIdCol.xmlTag, pageObj.getFieldValue (enumFormId, enumIdCol.xmlTag));
+		var responseXml = serverObj.sendRequest("enums.getEnumDetails");
+			
+		if (responseXml != null)
+		{
+			pageObj.setFormXml (editEnumFormId, responseXml.xml);
+			enumId = commonGetInnerData (responseXml, "enumId");	
+		}
+	}
+	else
+	{
+		enumId = getEnumId();
+	}
+	
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(100,210),
+					ENG : new Array(100,210)}
+
+	var fieldWidth  = 200;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (editEnumFormId, "פרטים", ""); 
+
+	hidden	   = {type			: "hidden",		
+				  dataFld		: enumIdCol.xmlTag,
+				  defaultValue	: enumId}
+			
+	field1 	   = {type			: "text",					textHEB		 : enumNameCol.textHEB,
+				  spanData		: 1,						textENG		 : enumNameCol.textENG,
+				  dataFld		: enumNameCol.xmlTag,		width	 	 : fieldWidth,
+				  maxLength		: "50",					    mandatory	 : true}
+		
+	fields = new Array(hidden, field1);
+	
+	pageObj.addFormFields (editEnumFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (editEnumFormId, true);
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* getEnumId																				*/
+/* ---------------------------------------------------------------------------------------- */
+function getEnumId ()
+{
+	var responseXml = serverObj.sendRequest("enums.getEnumNextId");
+
+	if (responseXml != null)
+	{
+		return commonGetInnerData (responseXml, "enumId");
+	}
+	return "";
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditEnumButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditEnumButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+   if (type == "addEnum") 
+	   	btnType = "add";
+	else 
+		btnType = "update";
+	
+	btn2	= {type			: btnType,
+			  action		: "submitEditEnumForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (editEnumButtonsId == -1)
+		editEnumButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (editEnumButtonsId, btnsGroups, pageObj.getFormWidth(editEnumFormId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitEditEnumForm																		*/
+/* ---------------------------------------------------------------------------------------- */
+function submitEditEnumForm (type)
+{
+	if (!pageObj.validateForm(editEnumFormId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(editEnumFormId));
+
+	var responseXml = serverObj.sendRequest("enums." + type);
+
+	if (responseXml != null)
+	{
+		if (type == "addEnum")
+		{
+			enums = serverOptions_getEnums("empty");
+			pageObj.setFieldOptions (enumFormId, enumIdCol.xmlTag, enums, pageObj.getFieldValue (enumFormId, enumIdCol.xmlTag)); 
+		}
+
+		handleDisplay	("report");
+		doRefresh	    ();
+	}
+	return true;
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

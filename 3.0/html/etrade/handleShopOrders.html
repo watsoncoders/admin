@@ -1,0 +1,783 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js?v=2"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var updateTitleId		= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+
+var	numCol			= {textHEB	: "מספר", 			textENG	: "", 	xmlTag	: "orderNumber"		}
+var	checkCol		= {textHEB	: "קוד בירורים", 	textENG	: "", 	xmlTag	: "checkOrderCode"	}
+var	statusCol		= {textHEB	: "סטטוס הזמנה", 	textENG	: "", 	xmlTag	: "status"			}
+
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();	
+	addSearchSection    ();	
+	createDataTable     ();	
+	createTableButtons  ();	
+	createSearchSection ();
+	loadData			();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	 = pageObj.addPageTitle    ("ניהול הזמנות",  "");
+	updateTitleId	 = pageObj.addPageSubTitle ("עדכון הזמנה",	"");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	// ------------------------------------------------------------------------------------ 
+	
+	var queryXml = commonGetGlobalData ("shopOrdersQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (searchFormId, queryXml);
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	var options = new selectOptionsObj();
+
+	field1 = {type      : "select",					textHEB		 : statusCol.textHEB,
+			  spanData  : 1,						textENG		 : statusCol.textENG,
+			  dataFld   : statusCol.xmlTag,			width		 : 120,
+			  mandatory : false,					options		 : options.getOptionsOf("orderStatus",true, "all")}
+
+	field2 = {type      : "number",					textHEB		 : numCol.textHEB,
+			  spanData  : 1,						textENG		 : numCol.textENG,
+			  dataFld   : numCol.xmlTag,			width   	 : 120,
+			  mandatory : false}
+
+	field3 = {type      : "text",					textHEB		 : "פרטים",
+			  spanData  : 1,						textENG		 : "",
+			  dataFld   : "details",				width   	 : 120,
+			  mandatory : false}
+
+  	fields.push (field1, field2, field3);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(80,140,40,140,50,width),
+					ENG : new Array(80,140,40,140,50,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "report",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: numCol.textHEB,			widthHEB 	: 70,
+				   textENG	: numCol.textENG,			widthENG 	: 70,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : numCol.xmlTag}
+		   
+	column2		= {textHEB	: checkCol.textHEB,			widthHEB 	: 200,
+				   textENG	: checkCol.textENG,			widthENG 	: 200,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : checkCol.xmlTag}
+		   
+	column3		= {textHEB	: statusCol.textHEB,		widthHEB 	: 150,
+				   textENG	: statusCol.textENG,		widthENG 	: 150,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : statusCol.xmlTag+"Text"}
+		   
+	column4		= {textHEB	: "תאריך הזמנה",			widthHEB 	: 150,
+				   textENG	: "",						widthENG 	: 150,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : "orderDatetime"}
+		   
+	column5		= {textHEB	: "שם המזמין",				widthHEB 	: 150,
+				   textENG	: "",						widthENG 	: 150,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : "fullname"}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 330, 230);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn2	= {type			: "delete",
+			   action		: "deleteOrder()"}
+
+	btn3	= {type			: "",
+			   textHEB		: "מוצרי הזמנה",
+			   textENG		: "",
+			   action		: "showOrderItems()"}
+
+	btn4	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2), new Array(btn3), new Array(btn4));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	if (!pageObj.validateForm (searchFormId)) return false;
+
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("shopOrdersQueryXml", queryXml);
+
+	serverObj.cleanRequest ();
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("shop.getOrders", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay ("report");
+	
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+var globalShipments;
+var globalDetailsXml;
+
+var globalType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	globalType = type;
+
+	if (type == "update")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור הזמנה");
+			return false;
+		}
+
+		globalDetailsXml = undefined;
+
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (numCol.xmlTag, pageObj.getSelectedValueOf (tableId, numCol.xmlTag));
+		serverObj.sendRequest  ("shop.getOrderDetails", undefined, "after_getDetails");
+	}
+
+	if (globalShipments == undefined)
+		serverOptions_getShipments ("choose", "after_getShipments");
+
+	openForm_continue ();
+
+}
+
+// ---------------------------------------------------------------------------------------- //
+
+function after_getShipments (options)
+{
+	globalShipments = options;
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- //
+
+function after_getDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- //
+function openForm_continue ()
+{
+	var type = globalType;
+
+	if (globalShipments == undefined || (type == "update" && globalDetailsXml == undefined)) return;
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+			
+	var orderStatus = "";
+	
+	if (type == "update")
+	{
+		pageObj.setFormXml (formId, globalDetailsXml);
+
+		orderStatus = commonGetInnerData (globalDetailsXml, statusCol.xmlTag);
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(110,160,110,160),
+					ENG : new Array(110,160,110,160)}
+
+	var fieldWidth   = 146;
+	var fieldWidth2  = 421;
+	var fieldWidth3  = 425;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "פרטי הזמנה", ""); 
+
+	var options = new selectOptionsObj();
+
+	field1 = {type			: "span",					textHEB		 : numCol.textHEB,
+			  spanData		: 1,						textENG		 : numCol.textENG,
+			  dataFld		: numCol.xmlTag,			width	 	 : fieldWidth}
+
+	field2 = {type      	: "select",					textHEB		 : statusCol.textHEB,
+			  spanData  	: 1,						textENG		 : statusCol.textENG,
+			  dataFld   	: statusCol.xmlTag,			width		 : fieldWidth,
+			  mandatory 	: true,						options		 : options.getOptionsOf("orderStatus",false, orderStatus)}
+
+	fields = new Array(field1, field2);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+		
+	var frameId = pageObj.addFormFrame (formId, "פרטי מזמין", ""); 
+
+  	field1 = {type			: "text",					textHEB		 : "שם פרטי",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "orderFirstName",			width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "50"}
+
+  	field2 = {type			: "text",					textHEB		 : "שם משפחה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "orderLastName",			width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "50"}
+
+  	field3 = {type			: "text",					textHEB		 : "טלפון",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "phone1",					width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "15"}
+
+  	field4 = {type			: "text",					textHEB		 : "טלפון נוסף",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "phone2",					width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "15"}
+
+  	field5 = {type			: "text",					textHEB		 : "כתובת",
+			  spanData		: 3,						textENG		 : "",
+			  dataFld		: "orderAddress",			width	 	 : fieldWidth2,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "200"}
+
+  	field6 = {type			: "email",					textHEB		 : "E-Mail",
+			  spanData		: 3,						textENG		 : "",
+			  dataFld		: "email",					width	 	 : fieldWidth2,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "50"}
+
+	fields = new Array(field1, field2, field3, field4, field5, field6);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+		
+	var frameId = pageObj.addFormFrame (formId, "פרטים למשלוח", ""); 
+
+	state 	  = "unlock";
+	mandatory = true;
+	if (commonGetInnerData (globalDetailsXml, "sendIsOrder") == "1")
+	{
+		state 	   = "lock";
+		manadatory = false;
+	}
+
+	field1 = {type			: "yesNoSelect",			textHEB		 : "לפי פרטי מזמין",
+			  spanData		: 3,						textENG		 : "",
+			  dataFld		: "sendIsOrder",			width		 : fieldWidth,
+			  mandatory		: true,						defaultValue : 1,
+			  action		: "onChangeField(\"sendIsOrder\")"}
+
+  	field2 = {type			: "text",					textHEB		 : "שם פרטי",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "sendFirstName",			width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "50",						state		 : state}
+
+  	field3 = {type			: "text",					textHEB		 : "שם משפחה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "sendLastName",			width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "50",						state		 : state}
+
+  	field4 = {type			: "text",					textHEB		 : "כתובת",
+			  spanData		: 3,						textENG		 : "",
+			  dataFld		: "sendAddress",			width	 	 : fieldWidth2,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "200",					state		 : state}
+
+	field5 = {type			: "yesNoSelect",			textHEB		 : "אריזת מתנה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "asPresent",				width		 : fieldWidth,
+			  mandatory		: false,					defaultValue : "0"}
+
+    field6 = {type			: "select",					textHEB		 : "סוג משלוח",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "shipmentId",				width		 : fieldWidth,
+			  mandatory		: false,					options		 : globalShipments}
+
+	field7 = {type			: "textarea",				textHEB		 : "הקדשה",
+			  spanData		: 3,						textENG		 : "",
+			  dataFld		: "dedication",				width	 	 : fieldWidth3,
+			  rows			: 2,						mandatory	 : false}
+	  
+	field8 = {type			: "textarea",				textHEB		 : "הערות",
+			  spanData		: 3,						textENG		 : "",
+			  dataFld		: "remarks",				width	 	 : fieldWidth3,
+			  rows			: 2,						mandatory	 : false}
+
+	field9 = {type			: "text",					textHEB		 : "מספר משלוח",
+			  spanData      : 1,						textENG		 : "",
+			  dataFld		: "shipmentNumber",			width		 : fieldWidth,
+			  maxLength	    : 20}
+
+	var shipmentAgents = new selectOptionsObj();
+	shipmentAgents.addOption ("",			"",					"");
+	shipmentAgents.addOption ("postil",		"דואר ישראל",		"");
+	shipmentAgents.addOption ("avivShigur",	"אביב שיגור",		"");
+	
+    field10= {type			: "select",					textHEB		 : "גורם שולח",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "shipmentAgent",			width		 : fieldWidth,
+			  mandatory		: false,					options		 : shipmentAgents.getOptions()}
+
+    fields = new Array(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "פרטי תשלום", ""); 
+	
+	state     = "lock";
+	mandatory = false;
+	if (commonGetInnerData (globalDetailsXml, "payMethod") == "online")
+	{
+		state     = "unlock";
+		mandatory = false; 
+	}
+
+	var options = new selectOptionsObj();
+	options.addOption ("online", "בכרטיס אשראי", 		"");
+	options.addOption ("phone",	 "בכרטיס אשראי בטלפון",	"");
+	options.addOption ("check",  "בהמחאה בדואר",		"");
+
+	field1 = {type			: "select",					textHEB		 : "אופן תשלום",
+			  spanData		: 3,						textENG		 : "",
+			  dataFld		: "payMethod",				width	 	 : fieldWidth,
+			  options		: options.getOptions(),		mandatory	 : true,
+	  		  action		: "onChangeField(\"payMethod\")"}
+
+  	field2 = {type			: "text",					textHEB		 : "שם בעל הכרטיס",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "ccHolderName",			width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : mandatory,
+			  maxLength		: "25",						state		 : state}
+
+  	field3 = {type			: "text",					textHEB		 : "ת\"ז בעל הכרטיס",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "ccHolderTZ",				width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : mandatory,
+			  maxLength		: "9",						state		 : state}
+
+	options.clean 	  ();
+	options.addOption ("", 				"", 		    	"");
+	options.addOption ("isracard", 		"ישראכרט", 			"");
+	options.addOption ("mastercard",	"מסטרכארד",			"");
+	options.addOption ("visa",			"ויזה",				"");
+	options.addOption ("american",  	"אמריקן אקספרס",	"");
+	options.addOption ("diners",  		"דיינרס",			"");
+
+	field4 = {type			: "select",					textHEB		 : "סוג כרטיס",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "ccType",					width	 	 : fieldWidth,
+			  options		: options.getOptions(),		state		 : state,
+	  		  mandatory		: mandatory}
+
+  	field5 = {type			: "textEng",				textHEB		 : "מספר כרטיס",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "ccNumber",				width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : mandatory,
+			  maxLength		: "25",						state		 : state}
+
+  	field6 = {type			: "mmyy",					textHEB		 : "תוקף כרטיס",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "ccExpireDate",			width	 	 : fieldWidth,
+	  		  state			: state,					mandatory	 : mandatory}
+			  
+  	field7 = {type			: "number",					textHEB		 : "CVV",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "ccCvv",					width	 	 : fieldWidth,
+			  minLength		: "3",						state		 : state,
+			  maxLength		: "3"}
+
+  	field8 = {type			: "span",					textHEB		 : "פרטי קופון",
+			  spanData		: 3,						textENG		 : "",
+			  dataFld		: "coupon",					width	 	 : fieldWidth3}
+
+	fields = new Array(field1, field2, field3, field4, field5, field6, field7, field8);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId);
+
+	onChangeField		  ("sendIsOrder");
+
+	createEditFormButtons (type);
+
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onChangeField																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onChangeField (fieldName)
+{
+	var fieldValue = pageObj.getFieldValue (formId, fieldName);
+
+	switch (fieldName)
+	{
+		case "sendIsOrder"	:	if (fieldValue == 1)
+								{
+									state 	  = "lock";
+									mandatory = false;
+
+									pageObj.setFieldValue 	(formId, "sendFirstName", "");
+									pageObj.setFieldValue 	(formId, "sendLastName",  "");
+									pageObj.setFieldValue 	(formId, "sendAddress",   "");
+
+								}
+								else
+								{
+									state	  = "unlock";
+									mandatory = true;
+								}
+								pageObj.setFieldState 		(formId, "sendFirstName", state);
+								pageObj.setFieldState 		(formId, "sendLastName",  state);
+								pageObj.setFieldState 		(formId, "sendAddress",   state);
+
+								pageObj.changeMandatory		(formId, "sendFirstName", mandatory);
+								pageObj.changeMandatory		(formId, "sendLastName",  mandatory);
+								pageObj.changeMandatory		(formId, "sendAddress",   mandatory);
+
+								break;
+
+		case "payMethod"	:	if (fieldValue == "online")
+								{
+									state     = "unlock";
+									mandatory = false; //true;
+								}
+								else
+								{
+									pageObj.setFieldValue 	(formId, "ccHolderName", "");
+									pageObj.setFieldValue 	(formId, "ccHolderTZ", 	 "");
+									pageObj.setFieldValue 	(formId, "ccType", 		 "");
+									pageObj.setFieldValue 	(formId, "ccNumber", 	 "");
+									pageObj.setFieldValue 	(formId, "ccExpireDate", "");
+									pageObj.setFieldValue 	(formId, "ccCvv", 		 "");
+									
+									state	  = "lock";
+									mandatory = false;
+								}
+								pageObj.setFieldState 		(formId, "ccHolderName", state);
+								pageObj.setFieldState 		(formId, "ccHolderTZ", 	 state);
+								pageObj.setFieldState 		(formId, "ccType", 		 state);
+								pageObj.setFieldState 		(formId, "ccNumber", 	 state);
+								pageObj.setFieldState 		(formId, "ccExpireDate", state);
+								pageObj.setFieldState 		(formId, "ccCvv", 		 state);
+
+								pageObj.changeMandatory		(formId, "ccHolderName", mandatory);
+								pageObj.changeMandatory		(formId, "ccHolderTZ",   mandatory);
+								pageObj.changeMandatory		(formId, "ccType", 	 	 mandatory);
+								pageObj.changeMandatory		(formId, "ccNumber", 	 mandatory);
+								pageObj.changeMandatory		(formId, "ccExpireDate", mandatory);
+								pageObj.changeMandatory		(formId, "ccCvv", 		 mandatory);
+								break;
+
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	serverObj.sendRequest("shop." + type + "Order", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+		doRefresh 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteOrder																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteOrder() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור הזמנה");
+		return false;
+	}
+
+	confirm("מחיקת ההזמנה", "delete order", "deleteOrder_confirm");
+}
+
+function deleteOrder_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	(numCol.xmlTag,  pageObj.getSelectedValueOf(tableId,numCol.xmlTag));
+	
+	serverObj.sendRequest("shop.deleteOrder", undefined, "deleteOrder_continue");
+}
+
+function deleteOrder_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showOrderItems																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function showOrderItems () 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור הזמנה");
+		return false;
+	}
+
+	var id 	= pageObj.getSelectedValueOf(tableId,numCol.xmlTag);
+	
+	commonSetGlobalData ("globalOrderId", id);
+	window.location.replace ("handleOrderItems.html");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

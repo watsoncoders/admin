@@ -1,0 +1,654 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<style>
+	span#table1_spn
+	{
+		display: block;
+		margin-top: 15px;
+	}
+</style>
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/shopCommon.js"></script>
+
+<script language="JavaScript">
+
+var orderNumber			= commonGetGlobalData("globalOrderId");
+		
+var langArray			= commonGetGlobalData ("langArray");
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var orderFormId			= -1;
+
+var tableId				= -1;
+var rowButtonsId		= -1;
+
+var addTitleId			= -1;
+var updateTitleId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+
+var showTitleId			= -1;
+var showFormId			= -1;
+var showButtonsId		= -1;
+
+var	productIdCol	= {textHEB	: "קוד מוצר", 	textENG	: "", xmlTag	: "productId"	}
+var	productNameCol	= {textHEB	: "שם מוצר", 	textENG	: "", xmlTag	: "name"		}
+var	priceCol		= {textHEB	: "מחיר", 		textENG	: "", xmlTag	: "price"		}
+var	quantityCol		= {textHEB	: "כמות", 		textENG	: "", xmlTag	: "quantity"	}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	shopCommon_init  ();
+}
+
+function onLoad_continue ()
+{
+	createPageTitles    ();			
+	addOrderForm    	();				
+	createDataTable     ();	
+	createTableButtons  ();
+	createOrderForm 	();
+	loadOrderForm		();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	 = pageObj.addPageTitle    ("מוצרי הזמנה",  		"");
+	addTitleId		 = pageObj.addPageSubTitle ("הוספת מוצר להזמנה",	"");
+	updateTitleId	 = pageObj.addPageSubTitle ("עדכון מוצר בהזמנה",	"");
+	showTitleId	 	 = pageObj.addPageSubTitle ("פרטי מוצר",			"");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addOrderForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function addOrderForm ()
+{
+	if (orderFormId == -1)
+		orderFormId   = pageObj.addForm ();
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createOrderForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createOrderForm ()
+{
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(130,180,130,width),
+					ENG : new Array(130,180,130,width)}
+
+	fieldWidth = 170;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (orderFormId, "פרטי הזמנה", "")
+
+	fields = new Array();
+
+	field1 = {type			: "span",					textHEB		 : "מספר הזמנה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "orderNumber",			width	 	 : fieldWidth,
+	  		  className		: "styleSpanText"}
+
+	field2 = {type			: "span",					textHEB		 : "סטטוס הזמנה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "statusText",				width	 	 : fieldWidth,
+	  		  className		: "styleSpanText"}
+
+	field3 = {type			: "span",					textHEB		 : "תאריך הזמנה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "orderDatetime",			width	 	 : fieldWidth,
+	  		  className		: "styleSpanText"}
+
+	field4 = {type			: "span",					textHEB		 : "תאריך אספקה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "suppliedDatetime",		width	 	 : fieldWidth,
+	  		  className		: "styleSpanText"}
+
+  	fields.push (field1, field2, field3, field4);
+	
+	pageObj.addFormFields (orderFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (orderFormId, "סיכום הזמנה", "")
+
+	fields = new Array();
+
+	field1 = {type			: "span",					textHEB		 : "סוג משלוח",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "shipmentText",			width	 	 : fieldWidth,
+	  		  className		: "styleSpanText"}
+
+	field2 = {type			: "span",					textHEB		 : "מחיר משלוח",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "shipmentPrice",			width	 	 : fieldWidth,
+	  		  className		: "styleSpanText"}
+
+	field3 = {type			: "span",					textHEB		 : "סה\"כ מוצרים",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "countProducts",			width	 	 : fieldWidth,
+	  		  className		: "styleSpanText"}
+
+	field4 = {type			: "span",					textHEB		 : "מטבע הזמנה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "currency",				width	 	 : fieldWidth,
+	  		  className		: "styleSpanText"}
+
+	field5 = {type			: "span",					textHEB		 : "סה\"כ מחיר",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "totalPrice",				width	 	 : fieldWidth,
+	  		  className		: "styleSpanText"}
+
+	field6 = {type			: "span",					textHEB		 : "אחוז הנחה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "discountPercent",		width	 	 : fieldWidth,
+	  		  className		: "styleSpanText"}
+
+	field7 = {type			: "span",					textHEB		 : "סכום לאחר הנחה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "totalWithDiscount",		width	 	 : fieldWidth,
+	  		  className		: "styleSpanText"}
+
+	field8 = {type			: "span",					textHEB		 : "סכום כולל משלוח",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "totalPriceInclude",		width	 	 : fieldWidth,
+	  		  className		: "styleSpanTotal"}
+
+	hidden = {type			: "hidden",
+			  dataFld		: "priceId"}
+	
+	fields.push (field1, field2, field3, field4, field5, field6, field7, field8, hidden);
+	
+	pageObj.addFormFields (orderFormId, frameId, fieldsWidths, fields);
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadOrderForm																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadOrderForm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	   ("orderNumber", orderNumber);
+	serverObj.sendRequest  ("shop.getOrderTotals", undefined, "loadOrderForm_continue");
+}
+
+function loadOrderForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+			
+	if (responseXml != null)
+	{
+		pageObj.setFormXml (orderFormId, responseXml);
+
+		pageObj.generateForm  (orderFormId);
+
+		loadData	  ();
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: productIdCol.textHEB,		widthHEB 	: 93,
+				   textENG	: productIdCol.textENG,		widthENG 	: 93,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : productIdCol.xmlTag}
+		   
+	column2		= {textHEB	: productNameCol.textHEB,	widthHEB 	: 240,
+				   textENG	: productNameCol.textENG,	widthENG 	: 240,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : productNameCol.xmlTag}
+		   
+	column3		= {textHEB	: priceCol.textHEB,			widthHEB 	: 80,
+				   textENG	: priceCol.textENG,			widthENG 	: 80,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : priceCol.xmlTag}
+		   
+	column4		= {textHEB	: quantityCol.textHEB,		widthHEB 	: 80,
+				   textENG	: quantityCol.textENG,		widthENG 	: 80,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : quantityCol.xmlTag}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 230, 230);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openProductForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openProductForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteOrderProduct()"}
+
+	btn4	= {type			: "",
+			   textHEB		: "פרטי מוצר",
+			   textENG		: "",
+			   action		: "showOrderProduct()"}
+
+    btn5	= {type			: "back",
+			   action		: "top.mainFrame.location.replace('handleShopOrders.html')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4), new Array(btn5));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		pageObj.hideComponent (showTitleId);
+		pageObj.hideComponent (showFormId);
+		pageObj.hideComponent (showButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (orderFormId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update" || type == "show")
+	{
+		// hide table
+		pageObj.hideComponent (orderFormId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+
+		if (type == "show")
+		{
+			pageObj.showComponent (showFormId);
+			pageObj.showComponent (showButtonsId);
+		}
+		else
+		{
+			pageObj.showComponent (formId);
+			pageObj.showComponent (formButtonsId);
+		}
+	}
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	   ("orderNumber", orderNumber);
+	serverObj.sendRequest  ("shop.getOrderProducts", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		handleDisplay ("report");
+	}
+
+	return true;
+}
+
+var globalProducts;
+
+var globalType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openProductForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function openProductForm (type)
+{
+	globalType = type;
+
+	if (type == "update")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור מוצר");
+			return false;
+		}
+	}
+
+	if (globalProducts == undefined)
+		serverOptions_getShopProducts ("choose", "after_getShopProducts");
+	
+	openProductForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getShopProducts (options)
+{
+	globalProducts = options;
+
+	openProductForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function openProductForm_continue ()
+{
+	var type = globalType;
+
+	if (globalProducts == undefined) return;
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(130,250),
+					ENG : new Array(130,250)}
+
+	var fieldWidth  = 240;
+
+	var frameId = pageObj.addFormFrame (formId, "פרטי המוצר", ""); 
+
+	
+	var currency = pageObj.getFieldValue (orderFormId, "currency");
+
+	var fields = new Array();
+
+	quantity={type			: "number",					textHEB		 : quantityCol.textHEB,
+			  spanData		: 1,						textENG		 : quantityCol.textENG,
+			  dataFld		: quantityCol.xmlTag,		width	 	 : fieldWidth,
+			  mandatory	    : true,						defaultValue : 1,
+			  minLength		: "1",						maxLength	 : "3"}
+	  
+	if (type == "update")
+	{
+		field1 = {type		: "span",					textHEB		 : productIdCol.textHEB,
+				  spanData	: 1,						textENG		 : productIdCol.textENG,
+				  dataFld	: productIdCol.xmlTag,		width	 	 : fieldWidth}
+
+	  	field2 = {type		: "span",					textHEB		 : productNameCol.textHEB,
+				  spanData	: 1,						textENG		 : productNameCol.textENG,
+				  dataFld	: productNameCol.xmlTag,	width	 	 : fieldWidth}
+		  
+		field3 = {type		: "amount",					textHEB		 : priceCol.textHEB + " (ב" + currency + ")",
+				  spanData	: 1,						textENG		 : priceCol.textENG,
+				  dataFld	: priceCol.xmlTag,			width	 	 : fieldWidth,
+				  mandatory : true}
+
+		id	   = {type		: "hidden",
+				  dataFld	: "id"}
+
+	    fields.push(field1, field2, field3, quantity, id);
+	
+	}
+	else
+	{
+		field1 = {type		: "select",					textHEB		 : productIdCol.textHEB,
+			  	  spanData	: 1,						textENG		 : productIdCol.textENG,
+			  	  dataFld	: productIdCol.xmlTag,		width	 	 : fieldWidth,
+				  mandatory	: true,						options		 : globalProducts,	
+				  action	: "onSelectProduct()"}
+		  
+		field2 = {type		: "span",					textHEB		 : "מטבע הזמנה",
+			  	  spanData	: 1,						textENG		 : "",
+				  dataFld	: "currency",				width	 	 : fieldWidth,
+						  							    defaultValue : currency}
+
+	    field3 = {type		: "span",					textHEB		 : "מחיר קנייה",
+				  spanData	: 1,						textENG		 : "",
+				  dataFld	: "cost",					width		 : fieldWidth}
+
+	  	field4 = {type		: "span",					textHEB		 : "מחיר קטלוגי",
+				  spanData	: 1,						textENG		 : "",
+				  dataFld	: "catalogPrice",			width		 : fieldWidth}
+
+		field5 = {type		: "amount",					textHEB		 : priceCol.textHEB,
+				  spanData	: 1,						textENG		 : priceCol.textENG,
+				  dataFld	: priceCol.xmlTag,			width	 	 : fieldWidth,
+				  mandatory : true}
+
+		order   = {type		: "hidden",
+				   dataFld	: "orderNumber",			defaultValue : orderNumber}
+	
+	    fields.push(order, field1, field2, field3, field4, field5, quantity);
+	}
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	if (type == "update")
+	{
+		pageObj.setFormXml (formId, pageObj.getSelectedRowAsXml(tableId));
+	}
+	
+	pageObj.generateForm  (formId, false);
+
+	createEditFormButtons (type);
+
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectProduct																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectProduct ()
+{
+	var productId = pageObj.getFieldValue (formId, productIdCol.xmlTag);
+	var priceId   = pageObj.getFieldValue (orderFormId, "priceId");
+
+	serverObj.cleanRequest ();
+	serverObj.addTag	   (productIdCol.xmlTag, productId);
+	serverObj.addTag	   ("priceId", 			 priceId);
+
+	serverObj.sendRequest("shop.getProductPrice", undefined, "after_getProductPrice");
+}
+
+function after_getProductPrice (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+			
+	if (responseXml != null)
+	{
+		pageObj.setFieldValue (formId, "cost",		 	commonGetInnerData(responseXml, "cost"));
+		pageObj.setFieldValue (formId, "catalogPrice", 	commonGetInnerData(responseXml, "catalogPrice"));
+		pageObj.setFieldValue (formId, priceCol.xmlTag, commonGetInnerData(responseXml, priceCol.xmlTag));
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	serverObj.sendRequest("shop." + type + "OrderProduct", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh 		();
+		handleDisplay	("report");
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteOrderProduct																		*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteOrderProduct () 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור מוצר");
+		return false;
+	}
+
+	confirm("מחיקת המוצר מההזמנה", "", "deleteOrderProduct_confirm");
+}
+
+function deleteOrderProduct_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	   ("id", pageObj.getSelectedValueOf(tableId,"id"));
+	
+	serverObj.sendRequest("shop.deleteOrderProduct", undefined, "deleteOrderProduct_continue");
+}
+
+function deleteOrderProduct_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showOrderProduct																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function showOrderProduct () 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור מוצר");
+		return false;
+	}
+
+	var productId = pageObj.getSelectedValueOf(tableId,productIdCol.xmlTag);
+	
+	if (showFormId == -1)
+		showFormId = pageObj.addForm ();
+
+	shopCommon_createProductEditForm (showFormId, "show", productId);
+}
+
+function openForm_continue (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report');"}
+
+	btnsGroups = new Array (new Array(btn1));
+
+	if (showButtonsId == -1)
+		showButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (showButtonsId, btnsGroups, pageObj.getFormWidth(showFormId));
+
+	handleDisplay ("show");
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+
+	loadOrderForm	  ();
+	loadData		  ();	
+	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

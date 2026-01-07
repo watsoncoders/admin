@@ -1,0 +1,630 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/multiUpload.js"></script>
+
+<script language="JavaScript">
+
+var langArray			= commonGetGlobalData ("langArray");
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var addTitleId			= -1;
+var updateTitleId		= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+
+var	idCol				= {textHEB	: "קוד", 		textENG	: "Id", 		xmlTag	: "id"			} 
+var	nameCol				= {textHEB	: "שם", 		textENG	: "Name", 		xmlTag	: "name"		} 
+var	continentCol		= {textHEB	: "יבשה", 		textENG	: "Continent", 	xmlTag	: "continent"	} 
+var phonePrefixCol		= {textHEB	: "קידומת",		textENG	: "Prefix",		xmlTag  : "phonePrefix"	}
+var	parentCol			= {textHEB	: "מדינת אב", 	textENG	: "Parent", 	xmlTag	: "parentId"	} 
+
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	createPageTitles    ();
+	addSearchSection    ();
+	createDataTable     ();
+	createTableButtons  ();
+	createSearchSection ();
+	loadData			();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	 = pageObj.addPageTitle 	("ניהול מדינות", 	"Countries management");
+	addTitleId		 = pageObj.addPageSubTitle 	("הוספת מדינה",		"Add a counrty");
+	updateTitleId	 = pageObj.addPageSubTitle 	("עדכון מדינה",		"Update a country");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+
+var continentOptions = new selectOptionsObj();
+continentOptions.addOption ("",  			"", 		 	"");
+continentOptions.addOption ("europe", 		"אירופה",		"Europe");
+continentOptions.addOption ("asia", 		"אסיה",			"Asia");
+continentOptions.addOption ("africa", 		"אפריקה",		"Africa");
+continentOptions.addOption ("northAmerice", "צפון אמריקה",	"North America");
+continentOptions.addOption ("southAmerica", "דרום אמריקה",	"South America");
+continentOptions.addOption ("australia", 	"אוסטרליה",		"Australia");
+continentOptions.addOption ("antarctica", 	"אנטארקטיקה",	"Antartica");
+
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	var queryXml = commonGetGlobalData ("countriesQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (searchFormId, queryXml);
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	field1 = {type      : "select",					textHEB		 : continentCol.textHEB,
+			  spanData  : 1,						textENG		 : continentCol.textENG,
+			  dataFld   : continentCol.xmlTag,		width		 : 120,
+			  mandatory : false,					options		 : continentOptions.getOptions()}
+
+	field2 = {type      : "text",					textHEB		 : nameCol.textHEB,
+			  spanData  : 1,						textENG		 : nameCol.textENG,
+			  dataFld   : nameCol.xmlTag,			width   	 : 120,
+			  mandatory : false}
+
+  	fields.push (field1, field2);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(40,150,30,width),
+					ENG : new Array(40,150,30,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	if (langArray[0] != "HEB" && langArray[0] != "HB2")
+		dir = "ltr";
+	else
+		dir = "rtl";
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,			widthHEB 	: 70,
+				   textENG	: idCol.textENG,			widthENG 	: 70,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: continentCol.textHEB,		widthHEB 	: 120,
+				   textENG	: continentCol.textENG,		widthENG 	: 120,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : continentCol.xmlTag}
+
+	column3		= {textHEB	: nameCol.textHEB,			widthHEB 	: 150,
+				   textENG	: nameCol.textENG,			widthENG 	: 150,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : nameCol.xmlTag,			dir			: dir}
+		   
+	column4		= {textHEB	: parentCol.textHEB,		widthHEB 	: 150,
+				   textENG	: parentCol.textENG,		widthENG 	: 150,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : parentCol.xmlTag,			dir			: dir}
+		   
+	column5		= {textHEB	: phonePrefixCol.textHEB,	widthHEB 	: 100,
+				   textENG	: phonePrefixCol.textENG,	widthENG 	: 100,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : phonePrefixCol.xmlTag,	dir			: dir}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 330, 330);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteCountry()"}
+
+	btn4	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("countriesQueryXml", queryXml);
+
+	serverObj.cleanRequest ();
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("countries.getCountries", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay 		("report");	
+	
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+var globalDimensions;
+var globalParents;
+
+var globalType;
+var globalDetailsXml;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	globalType = type;
+
+	var id = 0;
+
+	if (type == "update")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור מדינה", "Choose a country");
+			return false;
+		}
+
+		var id = pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+	}
+
+	if (globalDimensions == undefined)
+		serverOptions_getDimensions (true, "after_loadDimensions");
+
+	globalParents = undefined;
+	serverOptions_getCountries("parent", id, "after_loadParents");
+
+	if (type == "update")
+	{
+		globalDetailsXml = undefined;
+
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (idCol.xmlTag, id);
+		serverObj.sendRequest("countries.getCountryDetails", undefined, "after_loadDetails");
+	}
+
+	openForm_continue();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadDimensions (options)
+{
+	globalDimensions = new Object(options);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadParents (options)
+{
+	globalParents = new Object(options);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function openForm_continue (type)
+{
+	var type = globalType;
+
+	if (globalDimensions == undefined || (type == "update" && globalDetailsXml == undefined)) return;
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(120,220,100,220),
+					ENG : new Array(120,220,100,220)}
+
+	var fieldWidth   = 210;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "פרטי המדינה", "Country details"); 
+
+	fields = new Array();
+	
+	if (type == "update")
+	{
+		pageObj.setFormXml (formId, globalDetailsXml);
+
+		field1	= {type		: "hidden", 				dataFld		 : idCol.xmlTag}
+
+		fields.push (field1);
+	}
+	
+  	field1 = {type			: "text",					textHEB		 : nameCol.textHEB,
+			  spanData		: 1,						textENG		 : nameCol.textENG,
+			  dataFld		: nameCol.xmlTag,			width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : true,
+			  maxLength		: "100",					lang		 : langArray}
+
+	field2 = {type			: "select",					textHEB		 : parentCol.textHEB,
+			  spanData		: 1,						textENG		 : parentCol.textENG,
+			  dataFld		: parentCol.xmlTag,			width	 	 : fieldWidth,
+			  options		: globalParents, 			mandatory 	 : false}
+
+	field3 = {type			: "select",					textHEB		 : continentCol.textHEB,
+			  spanData		: 1,						textENG		 : continentCol.textENG,
+			  dataFld		: continentCol.xmlTag,		width	 	 : fieldWidth,
+			  options		: continentOptions.getOptions(),
+			  mandatory	 	: false}
+
+  	field4 = {type			: "textEng",				textHEB		 : phonePrefixCol.textHEB,
+			  spanData		: 1,						textENG		 : phonePrefixCol.textENG,
+			  dataFld		: phonePrefixCol.xmlTag,	width	 	 : fieldWidth}
+
+    fields.push (field1, field2, field3, field4);
+
+	hidden  = {type			: "hidden",					
+		 	  dataFld   	: "sourceFile"}
+
+	hidden2 = {type			: "hidden",					
+		 	  dataFld   	: "fullFileName"}
+
+	hidden3 = {type			: "hidden",					
+		 	  dataFld   	: "fileDeleted",			defaultValue : "0"}
+
+    langs   = {type			: "hidden",					dataFld		 : "usedLangs",
+			   defaultValue  : langArray.join(",")}
+
+	field1  = {type			: "onlineUpload",			textHEB		 : "קובץ תמונה", 
+			   spanData		: 1,						textENG		 : "Image file",
+			   dataFld		: "picFile",				width		 : fieldWidth}
+	
+   	field2 = {type      	: "select",					textHEB		 : "גודל תמונה",
+			  spanData 		: 1,						textENG		 : "Size",
+			  dataFld   	: "dimensionId",			width		 : fieldWidth,
+			  mandatory 	: false,					options		 : globalDimensions}
+
+	fields.push (hidden, hidden2, hidden3, langs, field1, field2);
+
+	if (type == "update")
+	{
+		field1 = {type		: "span",					textHEB		 : "קובץ מקור",
+				  spanData  : 3,						textENG		 : "Source file",
+				  dataFld	: "formSourceFile",			width   	 : fieldWidth}
+
+	
+		field2 = {type			: "span",				textHEB		 : "הצגת קובץ",
+				  spanData		: 1,					textENG		 : "Show file",
+				  dataFld   	: "show",				width		 : fieldWidth,
+				  className 	: "styleLink", 			action       : "showFile()"}
+
+		field3 = {type			: "span",				textHEB		 : "מחיקת קובץ",
+				  spanData		: 1,					textENG		 : "Delete file",
+				  dataFld   	: "delete",				width		 : fieldWidth,
+				  className 	: "styleLink", 			action       : "deleteFile()"}
+
+		fields.push (field1, field2, field3);
+	}
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(0,660),
+					ENG : new Array(0,660)}
+
+	var frameId = pageObj.addFormFrame (formId, "תיאור המדינה", "Description"); 
+
+	field1 = {type			: "xstandard",				textHEB		 : "",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "description",			width	 	 : 640,
+			  height  		: 280,						mandatory	 : false,
+			  lang		 	: langArray}
+
+  	fields = new Array(field1);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId, true);
+
+	if (multiUploadStart(undefined, formId))
+	{
+		createEditFormButtons (type);
+		handleDisplay 		  (type);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showFile																					*/
+/* ---------------------------------------------------------------------------------------- */
+function showFile ()
+{
+	window.open (pageObj.getFieldValue(formId, "fullFileName"), "_blank");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteFile																				*/
+/* ---------------------------------------------------------------------------------------- */
+function deleteFile ()
+{
+	pageObj.setFieldValue(formId, "formSourceFile", "");
+	pageObj.setFieldValue(formId, "sourceFile", 	"");
+	pageObj.setFieldValue(formId, "fileDeleted", 	"1");
+}
+
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + formId + ")"}
+
+	btn3	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	if (!pageObj.validateForm(formId)) return false;
+
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	var picFile = uploadGetFileName();
+	if (picFile != ERROR_WAIT_LOADING)
+	{
+		serverObj.addTag ("sourceFile",  picFile);
+		serverObj.addTag ("fileDeleted", pageObj.getFieldValue(formId, "fileDeleted"));
+	}
+
+	serverObj.sendRequest("countries." + type + "Country", undefined, "submitForm_continue");
+
+	return true;
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+		doRefresh 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteCountry																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteCountry() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור מדינה", "Choose a country");
+		return false;
+	}
+
+	
+	confirm("מחיקת המדינה", "delete country", "deleteCountry_confirm");
+}
+
+function deleteCountry_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	   (idCol.xmlTag, pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+	
+	serverObj.sendRequest  ("countries.deleteCountry", undefined, "deleteCountry_continue");
+}
+
+function deleteCountry_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

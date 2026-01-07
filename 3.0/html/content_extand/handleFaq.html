@@ -1,0 +1,688 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/categories.js"></script>
+
+<script language="JavaScript">
+
+var langArray			= commonGetGlobalData ("langArray");
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var addTitleId			= -1;
+var updateTitleId		= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+var formTableObj		= -1;
+
+var	idCol			= {textHEB	: "קוד", 		textENG	: "", 	xmlTag	: "faqId"		}
+var	questionCol		= {textHEB	: "שאלה", 		textENG	: "", 	xmlTag	: "question"	}
+var	statusCol		= {textHEB	: "סטטוס", 		textENG	: "", 	xmlTag	: "status"		}
+var	shortAnswerCol	= {textHEB	: "תשובה קצרה", textENG	: "", 	xmlTag	: "shortAnswer"	}
+var	answerCol		= {textHEB	: "תשובה", 		textENG	: "", 	xmlTag	: "answer"		}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();	
+	addSearchSection    ();
+	createDataTable     ();	
+	createTableButtons  ();
+	createSearchSection ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	 = pageObj.addPageTitle 	("ניהול שו\"ת - שאלות ותשובות", 	"");
+	addTitleId		 = pageObj.addPageSubTitle 	("הוספת שו\"ת",		"");
+	updateTitleId	 = pageObj.addPageSubTitle 	("עדכון שו\"ת",		"");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+var categories;
+
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	var queryXml = commonGetGlobalData ("faqQueryXml");
+
+	if (queryXml != undefined)
+		pageObj.setFormXml (searchFormId, queryXml);
+
+	serverOptions_getCategories("choose", "faq", undefined, undefined, "after_loadCats");
+}
+
+var statusOptions = new selectOptionsObj();
+statusOptions.addOption ("" , 	  	  "", 	   	 	"");
+statusOptions.addOption ("new", 	  "חדש",  		"New");
+statusOptions.addOption ("approved",  "מאושר", 		"Approved");
+statusOptions.addOption ("rejected",  "לא מאושר", 	"Denied");
+
+/* ---------------------------------------------------------------------------------------- */
+/* after_loadCats																			*/
+/* ---------------------------------------------------------------------------------------- */
+function after_loadCats (options)
+{
+	categories = new Object(options);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	field1 = {type      : "select",					 textHEB		: statusCol.textHEB,
+			  spanData  : 1,						 textENG		: statusCol.textENG,
+			  dataFld   : statusCol.xmlTag,			 width   		: 200,
+			  mandatory : false,				 	 defaultValue	: "new",
+			  options	: statusOptions.getOptions()}
+
+	field2 = {type		: "select",					 textHEB		: "קטגוריה",
+			  spanData	: 1,						 textENG		: "Category",
+			  dataFld	: "categoryId",				 width	 	 	: 200,
+			  options	: categories}
+
+  	fields.push (field1, field2);
+	
+	width = "*" + pageObj.getTableWidth(tableId);	// reset but max
+	fieldsWidths = {HEB	: new Array(60, 230, 60, width),
+					ENG : new Array(60, 230, 60, width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+
+	loadData			();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");	// for paging when load function is not loadReport
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,			widthHEB 	: 70,
+				   textENG	: idCol.textENG,			widthENG 	: 70,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: statusCol.textHEB,		widthHEB 	: 100,
+				   textENG	: statusCol.textENG,		widthENG 	: 100,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : statusCol.xmlTag}
+		   
+	column3		= {textHEB	: "תאריך הוספה",			widthHEB 	: 150,
+				   textENG	: "Insert time",			widthENG 	: 150,
+				   sortType : "date",					sortDir  	: "ascending",
+				   xmlTag   : "insertTime"}
+		   
+	column4		= {textHEB	: questionCol.textHEB,		widthHEB 	: 550,
+				   textENG	: questionCol.textENG,		widthENG 	: 550,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : questionCol.xmlTag}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 330, 330);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteFaq()"}
+
+	btn4	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("faqQueryXml", queryXml);
+
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("faq.getFaq", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay ("report");
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+var globalAllPages	 = undefined;
+var globalDetailsXml = undefined;
+
+var globalType;
+var globalId;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type, id)
+{
+	globalType  = type;
+	globalId 	= id;
+
+	if (type == "update" && id == undefined)
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור שו\"ת");
+			return false;
+		}
+
+		globalId = pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+	}
+
+	if (globalAllPages == undefined)
+		serverOptions_getPagesNames		("multi", "after_loadAllPages");
+
+	if (type == "update")
+	{
+		globalDetailsXml = undefined;
+
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (idCol.xmlTag, globalId);
+		serverObj.sendRequest ("faq.getFaqDetails", undefined, "after_loadDetails");
+	}
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadAllPages (options)
+{
+	globalAllPages = new Object(options);
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function openForm_continue ()
+{
+	var id 	 = globalId;
+	var type = globalType;
+
+	if (globalAllPages == undefined || (type == "update" && globalDetailsXml == undefined)) return;
+
+	// ------------------------------------------------------------------------------------ 
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(150, 510),
+					ENG : new Array(150, 510)}
+
+	var fieldWidth  = 500;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "שאלה/תשובה", "Question"); 
+
+	fields = new Array();
+	
+	if (type == "update")
+	{
+		pageObj.setFormXml (formId, globalDetailsXml);
+
+		field1	= {type		: "hidden",
+				   dataFld	: idCol.xmlTag}
+
+		fields.push (field1);
+	}
+	
+  	field1 = {type			: "textarea",				textHEB		 : questionCol.textHEB,
+			  spanData		: 1,						textENG		 : questionCol.textENG,
+			  dataFld		: questionCol.xmlTag,		width	 	 : fieldWidth,
+			  rows			: "5",						mandatory	 : true,
+			  lang			: langArray}
+
+  	field2 = {type			: "textarea",				textHEB		 : shortAnswerCol.textHEB,
+			  spanData		: 1,						textENG		 : shortAnswerCol.textENG,
+			  dataFld		: shortAnswerCol.xmlTag,	width	 	 : fieldWidth,
+			  rows			: "5",						mandatory	 : false,
+			  lang			: langArray}
+
+    fields.push (field1, field2);
+
+	field1 = {type      : "select",					 textHEB		: statusCol.textHEB,
+			  spanData  : 1,						 textENG		: statusCol.textENG,
+			  dataFld   : statusCol.xmlTag,			 width   		: 140,
+			  mandatory : false,				 	 defaultValue	: "approved",
+			  options	: statusOptions.getOptions()}
+
+    fields.push (field1);
+
+	if (type == "add")
+	{
+		field1 = {type			: "select",				textHEB		 : "בחירת קטגוריה",
+				  spanData		: 1,					textENG		 : "Choose category",
+				  dataFld		: "categoryId",			width	 	 : 140,
+				  options		: categories}
+
+		fields.push(field1);
+	}
+
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(0,660),
+					ENG : new Array(0,660)}
+
+	var frameId = pageObj.addFormFrame (formId, "תשובה", "Answer"); 
+
+	field1 = {type			: "xstandard",				textHEB		 : "",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "answer",					width	 	 : 640,
+			  height  		: 280,						mandatory	 : false,
+			  lang		 	: langArray}
+
+  	fields = new Array(field1);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths2 = {HEB : new Array(100,560),
+					 ENG : new Array(100,560)}
+
+	var frameId = pageObj.addFormFrame (formId, "בחירת דפים", "Pages choosing"); 
+
+	fields = new Array();
+
+	field1 = {type      	: "multiSelect",			textHEB		 : "הצג רק בדפים",
+			  spanData  	: 1,						textENG		 : "Only in page",
+			  dataFld   	: "onlyInPages",			width   	 : 550,
+			  options		: globalAllPages,			height		 : 200}
+
+  	fields.push(field1);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths2, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	categories_addFormFrame (formId, type, "קישור לקטגוריות", "Categories", fieldsWidths, id, "faq", "after_createCategoriesFrame")
+}
+
+function after_createCategoriesFrame ()
+{
+	var type = globalType;
+
+	pageObj.generateForm  (formId, true);
+
+	formTableObj = new Object(pageObj.getFormTableId (formId, 4));	// 4 is the frame index
+
+	commonSetGlobalData ("formTableObj", 	 formTableObj);	// save it for categoryOfItem iframe
+
+	createEditFormButtons (type);
+
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + formId + ")"}
+
+	btn3	= {type			: "save",
+			   action		: "submitForm('" + type + "Save')"}
+
+	btn4	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3,btn4));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+var global_submitType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	global_submitType = type;
+
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	command = type + "Faq";
+	
+	if (type == "addSave")
+		command = "addFaq";
+
+	if (type == "updateSave")
+		command = "updateFaq";
+
+	serverObj.sendRequest("faq." + command, undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	type = global_submitType;
+
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		if (type != "addSave" && type != "updateSave")
+		{
+			handleDisplay	("report");
+			doRefresh 		();
+		}
+		else
+		{
+			doRefresh 		();
+			commonMsgBox ("info", "נתוני השו\"ת נשמרו בהצלחה");
+		}
+
+		if (type == "addSave")
+		{
+			pageObj.hideComponent (formId);
+			pageObj.hideComponent (formButtonsId);
+			
+			var id = commonGetInnerData (responseXml,idCol.xmlTag);
+
+			pageObj.setSelectedRow (tableId, idCol.xmlTag, id);
+
+			pageObj.hideComponent (addTitleId);
+			pageObj.showComponent (updateTitleId);
+			
+			openForm ("update", id);
+		}
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* addCategory																				*/
+/* ---------------------------------------------------------------------------------------- */
+function addCategory (type)
+{
+	if (type == "add")
+	{
+		commonMsgBox ("info", "יש לבצע שמירה של השו\"ת לפני קישור לקטגוריות");
+		return false;
+	}
+	
+	commonSetGlobalData ("action", "add");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (formId, idCol.xmlTag));
+	commonSetGlobalData ("catType", "faq");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* updateCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function updateCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור שורה")
+		return false;
+	}
+
+	commonSetGlobalData ("action", "update");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (formId, idCol.xmlTag));
+	commonSetGlobalData ("catType", "faq");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function deleteCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור שורה")
+		return false;
+	}
+
+	var itemId 		= pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+	var categoryId 	= pageObj.getSelectedValueOf (formTableObj, "id");
+	
+	categories_deleteCategory (formId, formTableObj, itemId, categoryId, "faq");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadItemCategories																		*/
+/* ---------------------------------------------------------------------------------------- */
+function loadItemCategories ()
+{
+	var itemId 		= pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+
+	categories_loadItemCategories (formId, formTableObj, itemId, "faq");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteFaq																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteFaq () 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור שו\"ת");
+		return false;
+	}
+	
+	confirm("מחיקת השו\"ת", "delete faq", "deleteFaq_confirm");
+}
+
+function deleteFaq_confirm ()
+{
+	var faqId = pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, faqId);
+
+	serverObj.sendRequest("faq.deleteFaq", undefined, "deleteFaq_continue");
+}
+
+function deleteFaq_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

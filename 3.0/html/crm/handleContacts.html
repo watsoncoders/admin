@@ -1,0 +1,656 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var pageTitleId		= -1;
+var updateTitleId	= -1;
+var searchFormId	= -1;
+var searchButtonsId	= -1;
+var tableId			= -1;
+var rowButtonsId	= -1;
+var formId			= -1;
+var formButtonsId	= -1;
+
+var idCol			= {textHEB	: "קוד",			textENG	: "ID",  			xmlTag	: "id"			}
+var insertTimeCol	= {textHEB  : "תאריך ושעה",		textENG : "Time",  			xmlTag 	: "insertTime"	}
+var fullnameCol		= {textHEB	: "שם",		 	  	textENG	: "Name",  			xmlTag	: "fullname"	}
+var emailCol		= {textHEB	: "אימייל",			textENG	: "E-Mail",  		xmlTag	: "email"		}
+var phoneCol		= {textHEB	: "טלפון",			textENG	: "Phone",  		xmlTag	: "phone"		}
+var cellphoneCol	= {textHEB	: "סלולרי",			textENG	: "Cellphone",  	xmlTag	: "cellphone"	}
+var faxCol			= {textHEB	: "פקס",			textENG	: "Fax",  			xmlTag	: "fax"			}
+var addressCol		= {textHEB	: "כתובת",			textENG	: "Address",  		xmlTag	: "address"		}
+var countryCol		= {textHEB	: "מדינה",			textENG	: "Country",  		xmlTag	: "country"		}
+var zipcodeCol		= {textHEB	: "מיקוד",			textENG	: "Zipcode",  		xmlTag	: "zipcode"		}
+var titleCol		= {textHEB	: "כותרת",			textENG	: "Title",  		xmlTag	: "title"		}
+var msgCol			= {textHEB	: "הודעה",			textENG	: "Message",  		xmlTag	: "msg"			}
+var companyCol		= {textHEB	: "חברה",			textENG	: "company",  		xmlTag	: "company"		}
+var companyRoleCol	= {textHEB	: "תפקיד",			textENG	: "Role",  			xmlTag	: "companyRole"	}
+var ageCol			= {textHEB	: "גיל",			textENG : "Age",  			xmlTag	: "age"			}
+var moreDetailsCol	= {textHEB	: "נתונים נוספים",  textENG	: "More details",  	xmlTag	: "moreDetails"	}
+var followupCol		= {textHEB	: "מעקב", 			textENG	: "Followup",  		xmlTag	: "followup"	}
+var fromPageCol		= {textHEB	: "התקבל מדף", 		textENG	: "From page",  	xmlTag	: "fromPage"	}
+var attachFileCol	= {textHEB	: "קובץ נילווה",	textEng : "File",  			xmlTag	: "attachfile"	}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();	
+	addSearchSection    ();
+	createDataTable     ();
+	createTableButtons  ();
+	createSearchSection ();
+	loadData			();			
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	= pageObj.addPageTitle 	  ("ניהול התקשרויות",  	"Contacts management");
+	updateTitleId	= pageObj.addPageSubTitle ("מעקב התקשרות",		"Followup log", "");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	// ------------------------------------------------------------------------------------ 
+	
+	var queryXml = commonGetGlobalData ("contactsQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (searchFormId, queryXml);
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(40,150,60,150,70,width),
+					ENG : new Array(40,150,60,150,70,width)}
+
+	fieldWidth = 110;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	field1 = {type      : "text",					textHEB		 : fullnameCol.textHEB,
+			  spanData  : 1,						textENG		 : fullnameCol.textENG,
+			  dataFld   : fullnameCol.xmlTag,		width		 : fieldWidth}
+
+	field2	= {type		: "date",					textHEB		 : "מתאריך",
+			   spanData	: 1,						textENG		 : "From",
+			   dataFld	: "fromDate",				width		 : fieldWidth}
+
+	field3	= {type		: "date",					textHEB		 : "עד תאריך",
+			   spanData	: 1,						textENG		 : "To",
+			   dataFld	: "toDate",					width		 : fieldWidth}
+
+  	fields.push (field1, field2, field3);
+	
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	pageObj.tableIsMultiSelection (tableId);
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1	= {textHEB	: idCol.textHEB,			widthHEB : 70,
+			   textENG	: idCol.textENG,			widthENG : 70,
+			   sortType	: "number",					sortDir  : "ascending",
+			   xmlTag   : idCol.xmlTag}
+		   
+	column2	= {textHEB	: insertTimeCol.textHEB,	widthHEB : 150,
+			   textENG	: insertTimeCol.textENG,	widthENG : 150,
+			   sortType	: "text",					sortDir  : "ascending",
+			   xmlTag   : insertTimeCol.xmlTag}
+		   
+	column3	= {textHEB	: fromPageCol.textHEB,		widthHEB : 200,
+			   textENG	: fromPageCol.textENG,		widthENG : 200,
+			   sortType	: "text",					sortDir  : "ascending",
+			   xmlTag   : fromPageCol.xmlTag}
+		   
+	column4	= {textHEB	: fullnameCol.textHEB,		widthHEB : 150,
+			   textENG	: fullnameCol.textENG,		widthENG : 150,
+			   sortType	: "text",					sortDir  : "ascending",
+			   xmlTag   : fullnameCol.xmlTag}
+		   
+	column5	= {textHEB	: emailCol.textHEB,			widthHEB : 150,
+			   textENG	: emailCol.textENG,			widthENG : 150,
+			   sortType	: "text",					sortDir  : "ascending",
+			   xmlTag   : emailCol.xmlTag,			className: "styleLink",
+	   		   onclick	: "sendEmail(this)",		dir: "ltr"}
+		   
+	column6	= {textHEB	: titleCol.textHEB,			widthHEB : 200,
+			   textENG	: titleCol.textENG,			widthENG : 200,
+			   sortType : "text",					sortDir  : "ascending",
+			   xmlTag   : titleCol.xmlTag}
+
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5, column6);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 350, 270);
+
+	// ------------------------------------------------------------------------------------
+
+	data1   	= {textHEB  : "מקור הפנייה",      xmlTag   : "referer",
+				   textENG  : "Referer",		  spanData : 1,
+				   action	: "openReferer()"}
+
+	moreDataCols = new Array(data1);
+
+   	moreDataWidths = {HEB : new Array (120,"*"),
+    				  ENG : new Array (120,"*")};
+	
+	pageObj.addTableExtension (tableId, moreDataWidths, moreDataCols);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* sendEmail																			    */
+/* ---------------------------------------------------------------------------------------- */
+function sendEmail(col)
+{
+	rowIndex = col.parentNode.rowIndex;
+
+	window.open ("mailto:" + pageObj.getRowValueOf(tableId,rowIndex, emailCol.xmlTag),"_new");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openReferer																			    */
+/* ---------------------------------------------------------------------------------------- */
+function openReferer()
+{
+	window.open (pageObj.getSelectedValueOf(tableId, "referer"),"_new");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "",
+			   textHEB		: "הצגה ומעקב",
+			   textENG		: "Show details",
+			   action		: "openForm()"}
+
+	btn2	= {type			: "delete",
+			   action		: "deleteContact()"}
+
+	btn3	= {type			: "",
+			   textHEB		: "ייצוא לאקסל",
+			   textENG		: "Excel export",
+			   action		: "excelExport()",
+			   inPopup		: false}
+
+	btn4	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2), new Array(btn3,btn4));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+
+		if (!pageObj.isCollapse (searchFormId))
+		{
+			pageObj.showComponent (searchButtonsId);
+		}
+	}
+
+	if (type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (updateTitleId);
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("contactsQueryXml", queryXml);
+
+	serverObj.cleanRequest ();
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("contacts.getContacts", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay 		("report");
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm ()
+{
+		if (pageObj.areRowsSelected(tableId))
+		{
+			commonMsgBox ("info", "יש לבחור שורה אחת בלבד");
+			return false;
+		}
+
+	if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור שורה", "Choose a row");
+		return false;
+	}
+
+	serverObj.cleanRequest ();
+	serverObj.addTag("id", pageObj.getSelectedValueOf (tableId, idCol.xmlTag));
+	serverObj.sendRequest("contacts.getContactDetails", undefined, "openForm_continue");
+}
+
+function openForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+
+	pageObj.resetForm (formId);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	fieldsWidths = {HEB : new Array(150,180,150,180),
+					ENG : new Array(150,180,150,180)}
+
+	var fieldWidth  = 160;
+	var fieldWidth2 = 500;
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	var frameId = pageObj.addFormFrame (formId, "פרטי הפונה", "Surfer details"); 
+
+	field1 	= {type		: "span",					textHEB		 : idCol.textHEB,
+			   spanData	: 1,						textENG		 : idCol.textENG,
+			   dataFld	: idCol.xmlTag,				width	 	 : fieldWidth}
+
+	field2 	= {type		: "span",					textHEB		 : insertTimeCol.textHEB,
+			   spanData	: 1,						textENG		 : insertTimeCol.textENG,
+			   dataFld	: insertTimeCol.xmlTag,		width	 	 : fieldWidth}
+
+	field3 	= {type		: "span",					textHEB		 : fullnameCol.textHEB,
+			   spanData	: 1,						textENG		 : fullnameCol.textENG,
+			   dataFld	: fullnameCol.xmlTag,		width	 	 : fieldWidth}
+
+	field4 	= {type		: "span",					textHEB		 : emailCol.textHEB,
+			   spanData	: 1,						textENG		 : emailCol.textENG,
+			   dataFld	: emailCol.xmlTag,			width	 	 : fieldWidth}
+
+	field5 	= {type		: "span",					textHEB		 : phoneCol.textHEB,
+			   spanData	: 1,						textENG		 : phoneCol.textENG,
+			   dataFld	: phoneCol.xmlTag,			width	 	 : fieldWidth}
+
+	field6 	= {type		: "span",					textHEB		 : cellphoneCol.textHEB,
+			   spanData	: 1,						textENG		 : cellphoneCol.textENG,
+			   dataFld	: cellphoneCol.xmlTag,		width	 	 : fieldWidth}
+
+	field7 	= {type		: "span",					textHEB		 : faxCol.textHEB,
+			   spanData	: 1,						textENG		 : faxCol.textENG,
+			   dataFld	: faxCol.xmlTag,			width	 	 : fieldWidth}
+
+	field8 	= {type		: "span",					textHEB		 : addressCol.textHEB,
+			   spanData	: 1,						textENG		 : addressCol.textENG,
+			   dataFld	: addressCol.xmlTag,		width	 	 : fieldWidth}
+
+	field9 	= {type		: "span",					textHEB		 : countryCol.textHEB,
+			   spanData	: 1,						textENG		 : countryCol.textENG,
+			   dataFld	: countryCol.xmlTag,		width	 	 : fieldWidth}
+
+	field10	= {type		: "span",					textHEB		 : zipcodeCol.textHEB,
+			   spanData	: 1,						textENG		 : zipcodeCol.textENG,
+			   dataFld	: zipcodeCol.xmlTag,		width	 	 : fieldWidth}
+
+	field11 = {type		: "span",					textHEB		 : companyCol.textHEB,
+			   spanData	: 1,						textENG		 : companyCol.textENG,
+			   dataFld	: companyCol.xmlTag,		width	 	 : fieldWidth}
+
+	field12	= {type		: "span",					textHEB		 : companyRoleCol.textHEB,
+			   spanData	: 1,						textENG		 : companyRoleCol.textENG,
+			   dataFld	: companyRoleCol.xmlTag,	width	 	 : fieldWidth}
+
+	field13	= {type		: "span",					textHEB		 : ageCol.textHEB,
+			   spanData	: 1,						textENG		 : ageCol.textENG,
+			   dataFld	: ageCol.xmlTag,			width	 	 : fieldWidth}
+
+
+   	fields = new Array(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	var frameId = pageObj.addFormFrame (formId, "פרטי הפנייה", "Contact details"); 
+
+	field1  = {type		: "span",					textHEB		 : fromPageCol.textHEB,
+			   spanData	: 3,						textENG		 : fromPageCol.textENG,
+			   dataFld	: fromPageCol.xmlTag,		width	 	 : fieldWidth2}
+
+	field2	= {type		: "span",					textHEB		 : "מקור הפנייה",
+			   spanData	: 3,						textENG		 : "Referer",
+			   dataFld	: "referer",				width	 	 : fieldWidth2}
+
+	field3	= {type		: "span",					textHEB		 : "דף הגעה ראשוני",
+			   spanData	: 3,						textENG		 : "First arrived at",
+			   dataFld	: "firstArrivedAtPage",		width	 	 : fieldWidth2}
+
+	field4	= {type		: "span",					textHEB		 : moreDetailsCol.textHEB,
+			   spanData	: 3,						textENG		 : moreDetailsCol.textENG,
+			   dataFld	: moreDetailsCol.xmlTag,	width	 	 : fieldWidth2}
+
+	field5	= {type		: "span",					textHEB		 : titleCol.textHEB,
+			   spanData	: 3,						textENG		 : titleCol.textENG,
+			   dataFld	: titleCol.xmlTag,			width	 	 : fieldWidth2}
+
+	field6 = {type		: "span",					textHEB		 : msgCol.textHEB,
+			   spanData	: 3,						textENG		 : msgCol.textENG,
+			   dataFld	: msgCol.xmlTag,			width	 	 : fieldWidth2}
+
+   	field7 = {type		: "span",					textHEB		 : attachFileCol.textHEB,
+			   spanData	: 3,						textENG		 : attachFileCol.textENG,
+			   dataFld	: attachFileCol.xmlTag,		width	 	 : fieldWidth,
+		   	   className: "styleLink",     			action       	 : "showFileLink()"}
+
+   	fields = new Array(field1, field2, field3, field4, field5, field6, field7);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	var frameId = pageObj.addFormFrame (formId, "מעקב", "Followup log"); 
+	
+	fields = new Array();
+	
+	field1  = {type		: "textarea",				textHEB		 : followupCol.textHEB,
+			   spanData	: 3,						textENG		 : followupCol.textENG,
+			   dataFld	: followupCol.xmlTag,		width	 	 : fieldWidth2,
+			   rows		: 8}
+
+	fields.push (field1);
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+	
+	pageObj.setFormXml (formId, responseXml);
+	
+	pageObj.generateForm  (formId);
+
+	createEditFormButtons ();
+	handleDisplay 		  ("update");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons ()
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: "update",
+			   action		: "submitForm()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm ()
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	serverObj.sendRequest("contacts.updateContact", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+		doRefresh 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteContact																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteContact() 
+{
+    if (!pageObj.isRowSelected(tableId) && !pageObj.areRowsSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור יצירת קשר", "Choose a contact");
+		return false;
+	}
+
+	var ids = pageObj.getSelectedValuesOf(tableId,idCol.xmlTag);
+	
+	if (ids.length == 1)
+	{
+		var confirmHeb = "מחיקת יצירת הקשר";
+		var confirmEng = "delete contact";
+	}
+	else
+	{
+		var confirmHeb = "מחיקת השורות הבחורות";
+		var confirmEng = "delete selected contacts";
+	}
+
+	confirm(confirmHeb, confirmEng, "deleteContact_confirm");
+}
+
+function deleteContact_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTags	("ids", pageObj.getSelectedValuesOf(tableId,idCol.xmlTag));
+	
+	serverObj.sendRequest("contacts.deleteContact", undefined, "deleteContact_continue");
+}
+
+function deleteContact_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showFileLink								                    							*/
+/* ---------------------------------------------------------------------------------------- */
+function showFileLink ()
+{
+	window.open (pageObj.getFieldValue(formId, "attachfile"), "_blank");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* excelExport																				*/
+/*  ---------------------------------------------------------------------------------------- */
+function excelExport ()
+{
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("contactsQueryXml", queryXml);
+
+	serverObj.cleanRequest ();
+	serverObj.setXml (queryXml);
+	
+	serverObj.sendRequest("contacts.excelExport", undefined, "excelExport_continue");
+}
+
+function excelExport_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		window.open ("http://www.i-bos.co.il/3.0/tempExcels/" + commonGetInnerData (responseXml, "excelFileName"),"_new");
+	}
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>
+

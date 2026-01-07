@@ -1,0 +1,1590 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/multiUpload.js"></script>
+
+<script language="JavaScript">
+
+var langArray				= commonGetGlobalData ("langArray");
+
+var guiLang					= commonGetGlobalData ("guiLang");
+var pageObj					= new dynamicPageObj(guiLang);	
+var serverObj				= new serverInterfaceObj(guiLang);
+
+var titleId_page			= -1;
+var titleId_addQuest		= -1;
+var titleId_updateQuest		= -1;
+var titleId_addQuestion		= -1;
+var titleId_updateQuestion	= -1;
+var titleId_answers			= -1;
+var titleId_addAnswer		= -1;
+var titleId_updateAnswer	= -1;
+
+var subTitleId_page			= -1;
+
+var formId_chooseQuest		= -1;
+var formBtnsId_chooseQuest	= -1;
+
+var formId_quest			= -1;
+var formBtnsId_quest		= -1;
+
+var tableId_questions		= -1;
+var rowBtnsId_question		= -1;
+
+var formId_question			= -1;
+var formBtnsId_question		= -1;
+
+var tableId_answers			= -1;
+var rowBtnsId_answer		= -1;
+
+var formId_answer			= -1;
+var formBtnsId_answer		= -1;
+
+var questIdCol				= {textHEB	: "קוד", 			textENG	: "Id",   			xmlTag	: "questionnaireId"	}
+var questTitleCol			= {textHEB	: "כותרת", 			textENG	: "Title",   		xmlTag	: "title"			}
+var idCol					= {textHEB	: "קוד", 			textENG	: "Id",   			xmlTag	: "id"				}
+var posCol					= {textHEB	: "מיקום", 			textENG	: "Pos",   			xmlTag	: "pos"				}
+var questionCol				= {textHEB	: "שאלה",	  		textENG	: "Question",   	xmlTag	: "question"		}	
+var questionTypeCol			= {textHEB	: "סוג שאלה",  		textENG	: "Type",   		xmlTag	: "type"			}	
+var mandatoryCol			= {textHEB	: "האם חובה?", 		textENG	: "Mandatory?",		xmlTag	: "isMandatory"		}	
+var answerTypeCol			= {textHEB	: "סוג",	  		textENG	: "Type",   		xmlTag	: "type"			}	
+var answerCol				= {textHEB	: "תשובה",	  		textENG	: "Answer",   		xmlTag	: "answer"			}	
+var beforeTextCol			= {textHEB	: "לפני פירוט",		textENG	: "Text before",	xmlTag	: "beforeTextAnswer"}	
+var hideOnSelectCol			= {textHEB  : "הסתרת שאלות",	textENG	: "Hide questions", xmlTag	: "hideOnSelect"	}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    	();	
+	addChooseQuestForm		();
+	createPageSubtitles		();
+	createQuestionsTable   	();
+
+	getQuestionnaires		();
+}
+
+var globalQuestionnaires;
+
+/* ---------------------------------------------------------------------------------------- */
+/* getQuestionnaires																		*/
+/* ---------------------------------------------------------------------------------------- */
+function getQuestionnaires ()
+{
+    serverObj.sendRequest("questionnaires.getQuestionnaires", undefined, "after_getQuestionnaires");
+}
+
+function after_getQuestionnaires (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	var selectOptions 	= new selectOptionsObj();
+
+	if (responseXml != null)
+	{
+		itemsNode = responseXml.getElementsByTagName("items").item(0);
+
+		if (itemsNode == null)
+		{
+			selectOptions.addOption ("", "אין שאלונים מוגדרים", "No Questionnaires");
+		} 
+		else
+		{
+			selectOptions.addOption ("", "<בחירת שאלון>" ,"");
+
+			for (i=0; i < itemsNode.childNodes.length; i++)
+			{
+				var currNode    = itemsNode.childNodes[i];
+
+				var id  	= commonGetInnerData (currNode, "questionnaireId");
+				var title 	= commonGetInnerData (currNode, "title");
+
+				var optionText = id + " - " + title;
+
+				selectOptions.addOption (id, optionText, optionText);
+			}
+		}
+	}
+
+	globalQuestionnaires = selectOptions.getOptions ();
+
+	createChooseQuestForm ();
+
+	loadQuestions		  ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	titleId_page   	 		= pageObj.addPageTitle 	  ("ניהול שאלונים", 		"");
+	titleId_addQuest		= pageObj.addPageSubTitle ("הוספת שאלון",			"");
+	titleId_updateQuest		= pageObj.addPageSubTitle ("עדכון פרטי שאלון",		"");
+	titleId_addQuestion		= pageObj.addPageSubTitle ("הוספת שאלה לשאלון",		"");
+	titleId_updateQuestion	= pageObj.addPageSubTitle ("עדכון שאלת שאלון",		"");
+	titleId_answers			= pageObj.addPageSubTitle ("תשובות לשאלת ברירה",	"");
+	titleId_addAnswer		= pageObj.addPageSubTitle ("הוספת תשובה",			"");
+	titleId_updateAnswer	= pageObj.addPageSubTitle ("עדכון תשובה",			"");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createPageSubtitles																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageSubtitles ()
+{
+	subTitleId_page = pageObj.addPageSubTitle ("שאלות השאלון", "Questions", 600);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* addChooseQuestForm																	 	*/
+/* ---------------------------------------------------------------------------------------- */
+function addChooseQuestForm ()
+{
+	if (formId_chooseQuest == -1)
+		formId_chooseQuest   = pageObj.addForm ();
+	
+	if (formBtnsId_chooseQuest == -1)
+		formBtnsId_chooseQuest = pageObj.addRowOfButtons ();
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createChooseQuestForm																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createChooseQuestForm ()
+{
+	var queryXml = commonGetGlobalData ("chooseQuestQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (formId_chooseQuest, queryXml);
+	}
+
+	var frameId = pageObj.addFormFrame (formId_chooseQuest, "בחירת שאלון", "");
+
+	fields = new Array();
+
+	defaultQuest = "";
+	if (globalQuestionnaires.length > 1)
+		defaultQuest = globalQuestionnaires[1].value;
+
+	field1 = {type      : "select",					textHEB		 : "שאלון",
+			  spanData  : 1,						textENG		 : "",
+			  dataFld   : questIdCol.xmlTag,		width   	 : 300,
+			  mandatory : false,					options		 : globalQuestionnaires,
+			  action	: "onChangeQuery()",		defaultValue : defaultQuest}
+
+	fields.push (field1);
+	
+	width = "*" + pageObj.getTableWidth(tableId_questions);
+	fieldsWidths = {HEB	: new Array(60, width),
+					ENG : new Array(60, width)}
+
+	pageObj.addFormFields (formId_chooseQuest, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (formBtnsId_chooseQuest);
+
+	expandIds = new Array();
+	expandIds.push (tableId_questions);
+	
+	pageObj.addCollapse	  (formId_chooseQuest, collapseIds, expandIds);
+
+	pageObj.generateForm  (formId_chooseQuest);
+	
+	// ------------------------------------------------------------------------------------ 
+
+	btn1	= {type			: "",
+			   textHEB		: "הוספת שאלון",
+			   textENG		: "",
+			   action		: "openQuestionnaireForm('add')"}
+
+	btn2	= {type			: "",
+			   textHEB		: "עדכון שאלון",
+			   textENG		: "",
+			   action		: "openQuestionnaireForm('update')"}
+
+	btn3	= {type			: "",
+			   textHEB		: "מחיקת שאלון",
+			   textENG		: "",
+			   action		: "deleteQuestionnaire()"}
+
+	btn4	= {type			: "",
+			   textHEB		: "דוח תוצאות",
+			   textENG		: "",
+			   action		: "excelReport()"}
+
+	btn5	= {type			: "",
+			   textHEB		: "איפוס תוצאות",
+			   textENG		: "",
+			   action		: "resetQuestionnaireResults()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1,btn2,btn3),  new Array(btn4, btn5));
+
+	pageObj.generateRowOfButtons (formBtnsId_chooseQuest, btnsGroups, pageObj.getTableWidth(tableId_questions));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onChangeQuery																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onChangeQuery ()
+{
+	setTimeout ("doRefresh();", 100);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createQuestionsTable																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createQuestionsTable ()
+{
+	tableId_questions  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId_questions, "loadQuestions");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: posCol.textHEB,			widthHEB 	: 70,
+				   textENG	: posCol.textENG,			widthENG 	: 70,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : posCol.xmlTag}
+		   
+	column2		= {textHEB	: questionCol.textHEB,		widthHEB 	: 400,
+				   textENG	: questionCol.textENG,		widthENG 	: 400,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : questionCol.xmlTag}
+		   
+	column3		= {textHEB	: questionTypeCol.textHEB,	widthHEB 	: 150,
+				   textENG	: questionTypeCol.textENG,	widthENG 	: 150,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : questionTypeCol.xmlTag+"Text"}
+		   
+	column4		= {textHEB	: idCol.textHEB,			widthHEB 	: 60,
+				   textENG	: idCol.textENG,			widthENG 	: 60,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column5		= {textHEB	: "# תשובות",				widthHEB 	: 120,
+				   textENG	: "",						widthENG 	: 120,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : "countAnswers"}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5);
+
+	pageObj.setTableColumns (tableId_questions, columns);
+	pageObj.setTableHeight	(tableId_questions, 330, 250);
+
+	// ------------------------------------------------------------------------------------
+
+	btn1	= {type			: "add",
+			   action		: "openQuestionForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openQuestionForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteQuestion()"}
+
+	btn4	= {type			: "",
+			   textHEB		: "תשובות לשאלות ברירה/בחירה",
+			   action		: "showQuestionAnswers()"}
+
+	btn5	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId_questions + "," + titleId_page + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4), new Array(btn5));
+
+	if (rowBtnsId_question == -1)
+		rowBtnsId_question = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowBtnsId_question, btnsGroups, pageObj.getTableWidth(tableId_questions));
+}
+
+var globalDisplay = "report";
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	globalDisplay = type;
+
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (titleId_addQuest);
+		pageObj.hideComponent (titleId_updateQuest);
+		pageObj.hideComponent (titleId_addQuestion);
+		pageObj.hideComponent (titleId_updateQuestion);
+		pageObj.hideComponent (titleId_answers);
+		pageObj.hideComponent (titleId_addAnswer);
+		pageObj.hideComponent (titleId_updateAnswer);
+		pageObj.hideComponent (formId_quest);
+		pageObj.hideComponent (formBtnsId_quest);
+		pageObj.hideComponent (formId_question);
+		pageObj.hideComponent (formBtnsId_question);
+		pageObj.hideComponent (tableId_answers);
+		pageObj.hideComponent (rowBtnsId_answer);
+		pageObj.hideComponent (formId_answer);
+		pageObj.hideComponent (formBtnsId_answer);
+
+		pageObj.showComponent (titleId_page);
+		pageObj.showComponent (subTitleId_page);
+		pageObj.showComponent (formId_chooseQuest);
+		pageObj.showComponent (formBtnsId_chooseQuest);
+		pageObj.showComponent (tableId_questions);
+		pageObj.showComponent (rowBtnsId_question);
+
+		pageObj.collapseSection (formId_chooseQuest, false);
+
+		if (!pageObj.isCollapse (formId_chooseQuest))
+		{
+			pageObj.showComponent (formBtnsId_chooseQuest);
+		}
+	}
+	else
+	{
+		pageObj.hideComponent (subTitleId_page);
+		pageObj.hideComponent (formId_chooseQuest);
+		pageObj.hideComponent (formBtnsId_chooseQuest);
+		pageObj.hideComponent (tableId_questions);
+		pageObj.hideComponent (rowBtnsId_question);
+	}
+
+	if (type == "addQuest" || type == "updateQuest")
+	{
+		pageObj.showComponent (eval("titleId_" + type));
+
+		pageObj.showComponent (formId_quest);
+		pageObj.showComponent (formBtnsId_quest);
+	}
+
+	if (type == "addQuestion" || type == "updateQuestion")
+	{
+		pageObj.showComponent (eval("titleId_" + type));
+
+		pageObj.showComponent (formId_question);
+		pageObj.showComponent (formBtnsId_question);
+	}
+
+	if (type == "answers")
+	{
+		pageObj.hideComponent (titleId_addAnswer);
+		pageObj.hideComponent (titleId_updateAnswer);
+		pageObj.hideComponent (formId_answer);
+		pageObj.hideComponent (formBtnsId_answer);
+
+		pageObj.showComponent (titleId_answers);
+		pageObj.showComponent (tableId_answers);
+		pageObj.showComponent (rowBtnsId_answer);
+
+	}
+
+	if (type == "addAnswer" || type == "updateAnswer")
+	{
+		pageObj.hideComponent (titleId_answers);
+		pageObj.hideComponent (tableId_answers);
+		pageObj.hideComponent (rowBtnsId_answer);
+
+		pageObj.showComponent (eval("titleId_" + type));
+
+		pageObj.showComponent (formId_answer);
+		pageObj.showComponent (formBtnsId_answer);
+	}
+}
+
+var globalQuestionsXml;
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadQuestions																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadQuestions () 
+{
+	var queryXml = pageObj.getFormXml(formId_chooseQuest);
+
+	commonSetGlobalData ("chooseQuestQueryXml", queryXml);
+
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("questionnaires.getQuestionnaireQuestions", pageObj.getTablePaging(tableId_questions), "loadQuestions_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadQuestions_continue (i)
+{
+	globalQuestionsXml = asyncResponseXml.getResponseXml (i);
+
+	if (globalQuestionsXml != null)
+	{
+		pageObj.setTableXmls   (tableId_questions, globalQuestionsXml);
+		pageObj.setTablePaging (tableId_questions, globalQuestionsXml);
+
+		pageObj.generateTable (tableId_questions);
+
+		if (global_firstTime)
+		{
+			handleDisplay 	    	("report");
+
+			pageObj.collapseSection (formId_chooseQuest, false);
+
+			global_firstTime = false;
+		}
+	}
+}
+
+var globalLayouts	 = undefined;
+var globalAllPages	 = undefined;
+var globalDetailsXml = undefined;
+
+var globalType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openQuestionnaireForm																	*/
+/* ---------------------------------------------------------------------------------------- */
+function openQuestionnaireForm (type)
+{
+	globalType = type;
+
+	if (type == "update")
+	{
+		if (pageObj.getFieldValue(formId_chooseQuest, questIdCol.xmlTag) == "") 
+		{
+			commonMsgBox ("info", "יש לבחור שאלון");
+			return false;
+		}
+	}
+
+	if (globalLayouts == undefined)
+		serverOptions_getLayouts		("after_loadLayouts");
+
+	if (globalAllPages == undefined)
+		serverOptions_getPagesNames		(undefined, "after_loadAllPages");
+
+	if (type == "update")
+	{
+		globalDetailsXml = undefined;
+
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (questIdCol.xmlTag, pageObj.getFieldValue (formId_chooseQuest, questIdCol.xmlTag));
+		serverObj.sendRequest  ("questionnaires.getQuestionnaireDetails", undefined, "after_getDetails");
+	}
+
+	openQuestionnaireForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadLayouts (options)
+{
+	globalLayouts = new Object(options);
+
+	openQuestionnaireForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadAllPages (options)
+{
+	globalAllPages = new Object(options);
+
+	openQuestionnaireForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openQuestionnaireForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function openQuestionnaireForm_continue ()
+{
+	var type = globalType;
+
+	if (globalLayouts == undefined || globalAllPages == undefined || (type == "update" && globalDetailsXml == undefined))  return;
+
+	if (formId_quest == -1)
+		formId_quest = pageObj.addForm ();
+
+	pageObj.resetForm (formId_quest);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var questId = "";
+
+	if (type == "update")
+	{
+		questId = pageObj.getFieldValue (formId_chooseQuest, questIdCol.xmlTag);
+
+		pageObj.setFormXml (formId_quest, globalDetailsXml);
+
+		var url		 = commonGetInnerData(globalDetailsXml, "siteUrl") + "?id=" + questId;
+
+		showPage = "<div style='float:left'><a href='" + url + "' target='_blank' style='text-decoration:none;color:#7F9621'>הצגת השאלון</a></div>";
+
+		pageObj.updatePageTitle (titleId_updateQuest, showPage + "עדכון שאלון " + questId);
+
+		titleAction = "generalSetWinTitle(\"title\", \"update\", formId_quest, false)";
+	}
+	else
+	{
+		titleAction = "generalSetWinTitle(\"title\", \"add\", formId_quest, false)";
+	}
+	
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(150,200,150,200),
+					ENG : new Array(150,200,150,200)}
+
+	var fieldWidth  = 190;
+	var fieldWidth3 = 540;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId_quest, "הגדרות", ""); 
+
+	hidden	   = {type			: "hidden",					dataFld		 : questIdCol.xmlTag,
+				  defaultValue	: questId}
+			
+
+	field1 	   = {type			: "text",					textHEB		 : questTitleCol.textHEB,
+			 	  spanData		: 3,						textENG		 : questTitleCol.textENG,
+				  dataFld		: questTitleCol.xmlTag,		width	 	 : fieldWidth3,
+				  maxLength		: "100", 					action		 : titleAction}
+
+	field2 	   = {type			: "yesNoSelect",			textHEB		 : "מוכן להצגה",
+				  spanData		: 1,						textENG		 : "",
+				  dataFld		: "isReady",				width	 	 : fieldWidth,
+				  mandatory     : true,						defaultValue : "1"}
+		
+	field3 	   = {type			: "select",					textHEB		 : layoutCol.textHEB,
+				  spanData		: 1,						textENG		 : layoutCol.textENG,
+				  dataFld		: layoutCol.xmlTag,			width	 	 : fieldWidth,
+				  options		: globalLayouts,			mandatory    : true}
+		
+  	field4 	   = {type			: "date",					textHEB		 : "תאריך פרסום",
+			  	  spanData		: 1,						textENG		 : "",
+				  dataFld		: "publishDate",			width	 	 : fieldWidth,
+				  defaultValue	: today(),					mandatory	 : false}
+
+  	field5 	   = {type			: "date",					textHEB		 : "תאריך סגירה",
+				  spanData		: 1,						textENG		 : "",
+				  dataFld		: "closeDate",				width	 	 : fieldWidth,
+				  defaultValue	: "",						mandatory	 : false}
+
+  	field6 	   = {type			: "yesNoSelect",			textHEB		 : "חסימת הצבעות כפולות",
+				  spanData		: 1,						textENG		 : "",
+				  dataFld		: "blockDuplicateVotes",	width		 : fieldWidth,
+				  mandatory		: true,						defaultValue : "0"}
+
+	field7 	   = {type			: "select",					textHEB		 : "דף הצבעה כפולה",
+				  spanData		: 1,						textENG		 : "",
+				  dataFld		: "blockDuplicatePageId",	width	 	 : fieldWidth,
+				  options		: globalAllPages,			mandatory    : false}
+		
+	field9 	   = {type			: "select",					textHEB		 : "דף לאחר שליחה",
+				  spanData		: 1,						textENG		 : "",
+				  dataFld		: "pageIdAfterSubmit",		width	 	 : fieldWidth,
+				  options		: globalAllPages, 			mandatory    : false}
+		
+  	field8 	   = {type			: "yesNoSelect",			textHEB		 : "הצגת שאלה-שאלה",
+				  spanData		: 1,						textENG		 : "",
+				  dataFld		: "isOneByOne",				width		 : fieldWidth,
+				  mandatory		: true,						defaultValue : "0"}
+
+	fields = new Array(field1, field2, field3, field4, field5, field6, field7, field8, field9, hidden);
+	
+	pageObj.addFormFields (formId_quest, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths2 = {HEB : new Array(10,690),
+					 ENG : new Array(10,690)}
+
+	var frameId = pageObj.addFormFrame (formId_quest, "טקסט מקדים לשאלון", ""); 
+
+	field1 = {type			: "xstandard",				textHEB		 : "",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "startText",				width	 	 : 680,
+			  height  		: 280,						mandatory	 : false}
+
+  	fields = new Array(field1);
+	
+	pageObj.addFormFields (formId_quest, frameId, fieldsWidths2, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId_quest, "טקסט מסיים לשאלון", ""); 
+
+	field1 = {type			: "xstandard",				textHEB		 : "",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "endText",				width	 	 : 680,
+			  height  		: 280,						mandatory	 : false}
+
+  	fields = new Array(field1);
+	
+	pageObj.addFormFields (formId_quest, frameId, fieldsWidths2, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId_quest, "חלוקה לקבוצות", ""); 
+
+	fields = new Array();
+
+	for (var i = 1; i <= 5; i++)
+	{
+		field1 	   = {type			: "text",					textHEB		 : "כותרת קבוצה " + i,
+				 	  spanData		: 1,						textENG		 : "",
+					  dataFld		: "section"+i+"Title",		width	 	 : fieldWidth,
+					  maxLength		: "200"}
+
+		field2 	   = {type			: "number",					textHEB		 : "מתחיל משאלה",
+					  spanData		: 1,						textENG		 : "",
+					  dataFld		: "section"+i+"StartFrom",	width	 	 : fieldWidth}
+		
+		field3 	   = {type			: "textarea",				textHEB		 : "טקסט מקדים לקבוצה " + i,
+			 		  spanData		: 3,						textENG		 : "",
+					  dataFld		: "section"+i+"Text",		width	 	 : fieldWidth3,
+			  		  rows			: "2"}
+
+		fields.push (field1, field2, field3);
+	}
+	
+	pageObj.addFormFields (formId_quest, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	commonAddSeoFrame (formId_quest);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId_quest, true);
+
+	// ------------------------------------------------------------------------------------ 
+
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: type,
+			  action		: "submitEditQuestForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formBtnsId_quest == -1)
+		formBtnsId_quest = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formBtnsId_quest, btnsGroups, pageObj.getFormWidth(formId_quest));
+
+	handleDisplay (type + "Quest");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitEditQuestForm																		*/
+/* ---------------------------------------------------------------------------------------- */
+function submitEditQuestForm (type)
+{
+	if (!pageObj.validateForm(formId_quest)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId_quest));
+
+	serverObj.sendRequest("questionnaires." + type + "Questionnaire", undefined, "submitEditQuestForm_continue");
+}
+
+function submitEditQuestForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		global_firstTime = true;
+
+		pageObj.resetForm 		(formId_chooseQuest);
+
+		getQuestionnaires 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteQuestionnaire																		*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteQuestionnaire() 
+{
+	var id = pageObj.getFieldValue(formId_chooseQuest, questIdCol.xmlTag);
+
+	if (id == "") 
+	{
+		commonMsgBox ("info", "יש לבחור שאלון");
+		return false;
+	}
+
+	confirm("מחיקת השאלון", "delete questionnaire", "deleteQuestionnaire_confirm");
+}
+
+function deleteQuestionnaire_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	(questIdCol.xmlTag, pageObj.getFieldValue(formId_chooseQuest, questIdCol.xmlTag));
+	
+	serverObj.sendRequest("questionnaires.deleteQuestionnaire", undefined, "deleteQuestionnaire_continue");
+}
+
+function deleteQuestionnaire_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		global_firstTime = true;
+
+		pageObj.resetForm 		(formId_chooseQuest);
+
+		getQuestionnaires 		();
+	}
+}
+
+var questionTypes = new selectOptionsObj();
+questionTypes.addOption ("radio", 		 "שאלת ברירה", "");
+questionTypes.addOption ("checkbox", 	 "שאלת בחירה מרובה", "");
+questionTypes.addOption ("openShort", 	 "שאלה פתוחה קצרה", "");
+questionTypes.addOption ("openDetailed", "שאלה פתוחה מפורטת", "");
+
+var optionsDisplayTypes = new selectOptionsObj();
+optionsDisplayTypes.addOption ("", 			"", "");
+optionsDisplayTypes.addOption ("eachInRow", "כל תשובה בשורה", "");
+optionsDisplayTypes.addOption ("oneRow",    "כל התשובות בשורה אחת", "");
+
+var globalDimensions = undefined;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openQuestionForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function openQuestionForm (type)
+{
+	globalType = type;
+
+	if (type == "update")
+	{
+		if (!pageObj.isRowSelected(tableId_questions)) 
+		{
+			commonMsgBox ("info", "יש לבחור שאלה");
+			return false;
+		}
+	}
+
+	if (globalDimensions == undefined)
+		serverOptions_getDimensions			(true, "after_loadDimensions");
+
+	globalDetailsXml = undefined;
+
+	if (type == "update")
+	{
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (idCol.xmlTag, pageObj.getSelectedValueOf (tableId_questions, idCol.xmlTag));
+
+		serverObj.sendRequest("questionnaires.getQuestionDetails", undefined, "after_getQuestionDetails");
+	}
+
+	openQuestionForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadDimensions (options)
+{
+	globalDimensions = new Object(options);
+
+	if (globalDisplay == "report")
+		openQuestionForm_continue ();
+	else if (globalDisplay == "answers")
+		openAnswerForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getQuestionDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openQuestionForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function openQuestionForm_continue ()
+{
+	var type = globalType;
+
+	if (globalDimensions == undefined || (type == "update" && globalDetailsXml == undefined)) return;
+
+	if (formId_question == -1)
+		formId_question   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId_question);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(120,240,80,240),
+					ENG : new Array(120,240,80,240)}
+
+	var fieldWidth   = 230;
+	var fieldWidth2  = 550;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId_question, "פרטים", ""); 
+
+	fields = new Array();
+	
+	var id;
+
+	var	displayState	 = "unlock";
+	var	displayMandatory = true;
+	var displayValue	 = "eachInRow";
+
+	if (type == "update")
+	{
+		id = pageObj.getSelectedValueOf (tableId_questions, idCol.xmlTag);
+
+		pageObj.setFormXml (formId_question, globalDetailsXml);
+
+		var theQuestionType = commonGetInnerData (globalDetailsXml, questionTypeCol.xmlTag);
+
+		if (theQuestionType != "radio" && theQuestionType != "checkbox")
+		{
+			displayState	 = "lock";
+			displayMandatory = false;
+			displayValue	 = "";
+		}
+	}
+	
+	field1 = {type			: "select",					textHEB		 : questionTypeCol.textHEB,
+			  spanData		: 1,						textENG		 : questionTypeCol.textENG,
+			  dataFld		: questionTypeCol.xmlTag,	width	 	 : fieldWidth,
+			  options		: questionTypes.getOptions(),
+			  mandatory	 	: true,						defaultValue : "radio",
+			  action		: "onSelectQuestionType()"}
+
+	// build pos options
+	var removePos = 0;
+	if (type == "update")
+	{
+		removePos = pageObj.getSelectedValueOf (tableId_questions, posCol.xmlTag)*1 + 1;
+	}	
+	
+	var questId = pageObj.getFieldValue(formId_chooseQuest, questIdCol.xmlTag);
+
+	var posOptions = commonGetPosOptions (globalQuestionsXml, removePos, questionCol.xmlTag);
+
+	if (posOptions.getOptions().length == 0)
+		defaultPos = 0;
+	else
+		defaultPos = posOptions.getOptions().length;
+
+	field2 = {type			: "select",					textHEB		 : "תצוגה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "optionsDisplay",			width	 	 : fieldWidth,
+			  options		: optionsDisplayTypes.getOptions(),
+			  mandatory	 	: displayMandatory,			defaultValue : displayValue,
+			  state			: displayState}
+
+    field3 = {type			: "yesNoSelect",			textHEB		 : mandatoryCol.textHEB,
+			  spanData		: 1,						textENG		 : mandatoryCol.textENG,
+			  dataFld		: mandatoryCol.xmlTag,		width	 	 : fieldWidth,
+			  mandatory	 	: true,						defaultValue : "0"}
+
+	field4 = {type			: "select",					textHEB		 : posCol.textHEB,
+			  spanData		: 1,						textENG		 : posCol.textENG,
+			  dataFld		: posCol.xmlTag,			width	 	 : fieldWidth,
+			  options		: posOptions.getOptions(),	mandatory	 : true,
+	  		  defaultValue	: defaultPos}
+
+  	hidden = {type			: "hidden",				    dataFld		 : questIdCol.xmlTag,
+	  		  defaultValue : questId}
+
+    hidden2= {type			: "hidden",				    dataFld		 : idCol.xmlTag}
+
+	fields = new Array();
+
+    fields.push (field1, field2, field3, field4, hidden, hidden2);
+
+	hidden = {type		: "hidden",						dataFld   	 : "picSource"}
+  	fields.push (hidden);
+
+	hidden = {type		: "hidden",						dataFld   	 : "picDeleted",
+			  											defaultValue : "0"}
+  	fields.push (hidden);
+
+	hidden = {type		: "hidden",						dataFld   	 : "fullPicName"}
+  	fields.push (hidden);
+
+	field1 = {type		: "onlineUpload",				textHEB	 	 : "תמונה",
+			  spanData	: 1,							textENG		 : "Picture",
+			  dataFld	: "picFile",					width		 : fieldWidth}
+
+	dim1   = {type     	: "select",						textHEB 	 : "גודל",
+			  spanData 	: 1,							textENG      : "Size",
+			  dataFld  	: "dimensionId",				width     	 : fieldWidth,
+			  options	: globalDimensions,				mandatory	 : false}
+
+	show   = {type		: "span",						textHEB		 : "הצגת קובץ",
+			  spanData	: 1,							textENG		 : "Show picture",
+			  dataFld   : "showPic",					width		 : fieldWidth,
+			  className : "styleLink", 					action       : "showPic(" + formId_question + ")"}
+
+	del    = {type		: "span",						textHEB		 : "מחיקה",
+			  spanData	: 1,							textENG		 : "Delete picture",
+			  dataFld  	: "deletePic",					width		 : fieldWidth,
+			  className : "styleLink", 					action       : "deletePic(" + formId_question + ")"}
+
+  	fields.push (field1, dim1);
+			  
+	if (type == "update")
+		fields.push (show, del);
+
+    pageObj.addFormFields (formId_question, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths2 = {HEB : new Array(0,680),
+					 ENG : new Array(0,680)}
+
+	var frameId = pageObj.addFormFrame (formId_question, "השאלה", ""); 
+
+	field1 = {type			: "xstandard",				textHEB		 : "",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: questionCol.xmlTag,		width	 	 : 670,
+			  height  		: 280,						mandatory	 : false}
+
+  	fields = new Array(field1);
+	
+	pageObj.addFormFields (formId_question, frameId, fieldsWidths2, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId_question, true);
+
+	multiUploadStart (undefined, formId_question);
+
+	// ------------------------------------------------------------------------------------
+
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: type,
+			   action		: "submitQuestionForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formBtnsId_question == -1)
+		formBtnsId_question = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formBtnsId_question, btnsGroups, pageObj.getFormWidth(formId_question));
+
+	handleDisplay (type + "Question");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectQuestionType																		*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectQuestionType ()
+{
+	var currType = pageObj.getFieldValue (formId_question, questionTypeCol.xmlTag);
+
+	if (currType == "radio" || currType == "checkbox")
+	{
+		pageObj.setFieldValue 	(formId_question, "optionsDisplay", "eachInRow");
+		pageObj.setFieldState 	(formId_question, "optionsDisplay", "unlock");
+		pageObj.changeMandatory (formId_question, "optionsDisplay", true);
+
+	}
+	else
+	{
+		pageObj.setFieldValue 	(formId_question, "optionsDisplay", "");
+		pageObj.setFieldState 	(formId_question, "optionsDisplay", "lock");
+		pageObj.changeMandatory (formId_question, "optionsDisplay", false);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showPic																					*/
+/* ---------------------------------------------------------------------------------------- */
+function showPic (formId)
+{
+	window.open (pageObj.getFieldValue(formId, "fullPicName"), "_blank");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deletePic																				*/
+/* ---------------------------------------------------------------------------------------- */
+function deletePic (formId)
+{
+	pageObj.setFieldValue(formId, "formSourcePic", "");
+	pageObj.setFieldValue(formId, "picDeleted", 	"1");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitQuestionForm																		*/
+/* ---------------------------------------------------------------------------------------- */
+function submitQuestionForm (type)
+{
+	if (!pageObj.validateForm(formId_question)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId_question));
+
+	var file = uploadGetFileName(0);
+	if (file == ERROR_WAIT_LOADING)
+		return false;
+
+	serverObj.addTag ("picSource",  file);
+	serverObj.addTag ("picDeleted", pageObj.getFieldValue(formId_question, "picDeleted"));
+
+	serverObj.sendRequest("questionnaires." + type + "Question", undefined, "submitQuestionForm_continue");
+}
+
+function submitQuestionForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay   ("report");
+		doRefresh 		();
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteQuestion																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteQuestion() 
+{
+    if (!pageObj.isRowSelected(tableId_questions)) 
+	{
+		commonMsgBox ("info", "יש לבחור שאלה");
+		return false;
+	}
+
+	confirm("מחיקת השאלה", "delete question", "deleteQuestion_confirm");
+}
+
+function deleteQuestion_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	   (idCol.xmlTag, pageObj.getSelectedValueOf (tableId_questions, idCol.xmlTag));
+	
+	serverObj.sendRequest("questionnaires.deleteQuestion", undefined, "deleteQuestion_continue");
+}
+
+function deleteQuestion_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showQuestionAnswers																		*/
+/* ---------------------------------------------------------------------------------------- */
+function showQuestionAnswers ()
+{
+	toLoadQuestions = false;
+
+    if (!pageObj.isRowSelected(tableId_questions)) 
+	{
+		commonMsgBox ("info", "יש לבחור שאלה");
+		return false;
+	}
+
+	var qType = pageObj.getSelectedValueOf(tableId_questions, questionTypeCol.xmlTag);
+	if (qType != "radio" && qType != "checkbox")
+	{
+		commonMsgBox ("info", "ניתן להוסיף תשובות רק לשאלה מסוג ברירה או בחירה");
+		return false;
+	}
+
+	if (qType == "radio")
+		qTypeText = "ברירה";
+	else
+		qTypeText = "בחירה";
+
+	pageObj.updatePageTitle (titleId_answers, "תשובות לשאלת " + qTypeText + ": <span style=\"color:#425252\">" + 
+											   pageObj.getSelectedValueOf(tableId_questions, questionCol.xmlTag) + "</span>");
+
+	if (tableId_answers == -1)
+		tableId_answers  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId_answers, "loadAnswers");
+
+	column1		= {textHEB	: posCol.textHEB,			widthHEB 	: 70,
+				   textENG	: posCol.textENG,			widthENG 	: 70,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : posCol.xmlTag}
+		   
+	column2		= {textHEB	: answerTypeCol.textHEB,	widthHEB 	: 120,
+				   textENG	: answerTypeCol.textENG,	widthENG 	: 120,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : answerTypeCol.xmlTag+"Text"}
+		   
+	column3		= {textHEB	: answerCol.textHEB,		widthHEB 	: 250,
+				   textENG	: answerCol.textENG,		widthENG 	: 250,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : answerCol.xmlTag}
+		   
+	column4		= {textHEB	: beforeTextCol.textHEB,	widthHEB 	: 120,
+				   textENG	: beforeTextCol.textENG,	widthENG 	: 120,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : beforeTextCol.xmlTag}
+		   
+	column5		= {textHEB	: hideOnSelectCol.textHEB,	widthHEB 	: 120,
+				   textENG	: hideOnSelectCol.textENG,	widthENG 	: 120,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : hideOnSelectCol.xmlTag}
+		   
+	column6		= {textHEB	: idCol.textHEB,			widthHEB 	: 70,
+				   textENG	: idCol.textENG,			widthENG 	: 70,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5, column6);
+
+	pageObj.setTableColumns (tableId_answers, columns);
+	pageObj.setTableHeight	(tableId_answers, 300, 250);
+
+	// ------------------------------------------------------------------------------------
+
+	btn1	= {type			: "add",
+			   action		: "openAnswerForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openAnswerForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteAnswer()"}
+
+	btn4	= {type			: "back",
+			   action		: "goBackToQuestions()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4));
+
+	if (rowBtnsId_answer == -1)
+		rowBtnsId_answer = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowBtnsId_answer, btnsGroups, pageObj.getTableWidth(tableId_answers));
+
+	loadAnswers ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* goBackToQuestions																		*/
+/* ---------------------------------------------------------------------------------------- */
+function goBackToQuestions ()
+{
+	handleDisplay("report");
+
+	if (toLoadQuestions)
+		loadQuestions ();
+}
+
+var answersXml;
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadAnswers																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadAnswers () 
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag (idCol.xmlTag, pageObj.getSelectedValueOf(tableId_questions, idCol.xmlTag));
+
+	serverObj.sendRequest("questionnaires.getQuestionAnswers", undefined, "loadAnswers_continue"); 
+}
+
+function loadAnswers_continue (i)
+{
+	answersXml = asyncResponseXml.getResponseXml (i);
+
+	if (answersXml != null)
+	{
+		pageObj.setTableXmls   (tableId_answers, answersXml);
+
+		pageObj.generateTable (tableId_answers);
+
+		handleDisplay ("answers");
+	}
+
+	return true;
+}
+
+var answerTypes = new selectOptionsObj();
+answerTypes.addOption ("choose", 		 "בחירה", "");
+answerTypes.addOption ("chooseWithText", "בחירה עם פירוט", "");
+
+/* ---------------------------------------------------------------------------------------- */
+/* openAnswerForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function openAnswerForm (type)
+{
+	globalType = type;
+
+	if (type == "update")
+	{
+		if (!pageObj.isRowSelected(tableId_answers)) 
+		{
+			commonMsgBox ("info", "יש לבחור תשובה");
+			return false;
+		}
+	}
+
+	if (globalDimensions == undefined)
+		serverOptions_getDimensions			(true, "after_loadDimensions");
+
+	if (type == "update")
+	{
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (idCol.xmlTag, pageObj.getSelectedValueOf (tableId_answers, idCol.xmlTag));
+
+		serverObj.sendRequest("questionnaires.getAnswerDetails", undefined, "after_getAnswerDetails");
+	}
+
+	openAnswerForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getAnswerDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openAnswerForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function openAnswerForm_continue ()
+{
+	var type = globalType;
+
+	if (globalDimensions == undefined || (type == "update" && globalDetailsXml == undefined)) return;
+
+	if (formId_answer == -1)
+		formId_answer   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId_answer);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(120,160,60,210),
+					ENG : new Array(120,160,60,210)}
+
+	var fieldWidth   = 150;
+	var fieldWidth2  = 200;
+	var fieldWidth3  = 420;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId_answer, "פרטים", ""); 
+
+	fields = new Array();
+	
+	if (type == "update")
+		pageObj.setFormXml (formId_answer, globalDetailsXml);
+	
+	field1 = {type			: "select",					textHEB		 : answerTypeCol.textHEB,
+			  spanData		: 1,						textENG		 : answerTypeCol.textENG,
+			  dataFld		: answerTypeCol.xmlTag,		width	 	 : fieldWidth,
+			  options		: answerTypes.getOptions(),
+			  mandatory	 	: true,						defaultValue : "choose"}
+
+	// build pos options
+	var removePos = 0;
+	if (type == "update")
+	{
+		removePos = pageObj.getSelectedValueOf (tableId_answers, posCol.xmlTag)*1 + 1;
+	}	
+	
+	var questionId = pageObj.getSelectedValueOf (tableId_questions, idCol.xmlTag);
+
+	var posOptions = commonGetPosOptions (answersXml, removePos, answerCol.xmlTag);
+
+	if (posOptions.getOptions().length == 0)
+		defaultPos = 0;
+	else
+		defaultPos = posOptions.getOptions().length;
+
+	field2 = {type			: "select",					textHEB		 : posCol.textHEB,
+			  spanData		: 1,						textENG		 : posCol.textENG,
+			  dataFld		: posCol.xmlTag,			width	 	 : fieldWidth2,
+			  options		: posOptions.getOptions(),	mandatory	 : true,
+	  		  defaultValue	: defaultPos}
+
+	field3 = {type			: "text",					textHEB		 : answerCol.textHEB,
+		 	  spanData		: 3,						textENG		 : answerCol.textENG,
+			  dataFld		: answerCol.xmlTag,			width	 	 : fieldWidth3,
+			  maxLength		: "200"}
+
+	field4 = {type			: "text",					textHEB		 : beforeTextCol.textHEB,
+		 	  spanData		: 3,						textENG		 : beforeTextCol.textENG,
+			  dataFld		: beforeTextCol.xmlTag,		width	 	 : fieldWidth3,
+			  maxLength		: "200"}
+
+	field5 = {type			: "textEng",				textHEB		 : hideOnSelectCol.textHEB,
+		 	  spanData		: 3,						textENG		 : hideOnSelectCol.textENG,
+			  dataFld		: hideOnSelectCol.xmlTag,	width	 	 : fieldWidth3,
+			  maxLength		: "200",					helpTextHEB	 : "ניתן לציין טווח שאלות (x-y) ו/או מספר שאלות מופרדים בפסיקים"}
+
+  	hidden	= {type			: "hidden",				    dataFld		 : "questionId",
+	  		   defaultValue : questionId}
+
+   	hidden2	= {type			: "hidden",				    dataFld		 : idCol.xmlTag}
+
+	fields = new Array();
+
+    fields.push (field1, field2, field3, field4, field5, hidden, hidden2);
+
+	hidden = {type		: "hidden",						dataFld   	 : "picSource"}
+  	fields.push (hidden);
+
+	hidden = {type		: "hidden",						dataFld   	 : "picDeleted",
+			  											defaultValue : "0"}
+  	fields.push (hidden);
+
+	hidden = {type		: "hidden",						dataFld   	 : "fullPicName"}
+  	fields.push (hidden);
+
+	field1 = {type		: "onlineUpload",				textHEB	 	 : "תמונה",
+			  spanData	: 1,							textENG		 : "Picture",
+			  dataFld	: "picFile",					width		 : fieldWidth,
+			  x			: 165,							y			 : 205}
+
+	dim1   = {type     	: "select",						textHEB 	 : "גודל",
+			  spanData 	: 1,							textENG      : "Size",
+			  dataFld  	: "dimensionId",				width     	 : fieldWidth,
+			  options	: globalDimensions,				mandatory	 : false}
+
+	show   = {type		: "span",						textHEB		 : "הצגת קובץ",
+			  spanData	: 1,							textENG		 : "Show picture",
+			  dataFld   : "showPic",					width		 : fieldWidth,
+			  className : "styleLink", 					action       : "showPic(" + formId_answer + ")"}
+
+	del    = {type		: "span",						textHEB		 : "מחיקה",
+			  spanData	: 1,							textENG		 : "Delete picture",
+			  dataFld  	: "deletePic",					width		 : fieldWidth,
+			  className : "styleLink", 					action       : "deletePic(" + formId_answer + ")"}
+
+  	fields.push (field1, dim1);
+			  
+	if (type == "update")
+		fields.push (show, del);
+
+    pageObj.addFormFields (formId_answer, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId_answer, true);
+
+	multiUploadStart (undefined, formId_answer);
+
+	// ------------------------------------------------------------------------------------
+
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('answers')"}
+
+	btn2	= {type			: type,
+			   action		: "submitAnswerForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formBtnsId_answer == -1)
+		formBtnsId_answer = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formBtnsId_answer, btnsGroups, pageObj.getFormWidth(formId_answer));
+
+	handleDisplay (type + "Answer");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitAnswerForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function submitAnswerForm (type)
+{
+	if (!pageObj.validateForm(formId_answer)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId_answer));
+
+	var file = uploadGetFileName(0);
+	if (file == ERROR_WAIT_LOADING)
+		return false;
+
+	serverObj.addTag ("picSource",  file);
+	serverObj.addTag ("picDeleted", pageObj.getFieldValue(formId_answer, "picDeleted"));
+
+	serverObj.sendRequest("questionnaires." + type + "Answer", undefined, "submitAnswerForm_continue");
+}
+
+function submitAnswerForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay   ("answers");
+		loadAnswers		();
+
+		toLoadQuestions = true;
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteAnswer																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteAnswer() 
+{
+    if (!pageObj.isRowSelected(tableId_answers)) 
+	{
+		commonMsgBox ("info", "יש לבחור תשובה");
+		return false;
+	}
+
+	confirm("מחיקת התשובה", "delete answer", "deleteAnswer_confirm");
+}
+
+function deleteAnswer_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	   (idCol.xmlTag, pageObj.getSelectedValueOf (tableId_answers, idCol.xmlTag));
+	
+	serverObj.sendRequest("questionnaires.deleteAnswer", undefined, "deleteAnswer_continue");
+}
+
+function deleteAnswer_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		loadAnswers ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadQuestions	  ();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* excelReport																				*/
+/* ---------------------------------------------------------------------------------------- */
+function excelReport ()
+{
+	var id = pageObj.getFieldValue(formId_chooseQuest, questIdCol.xmlTag);
+
+	if (id == "") 
+	{
+		commonMsgBox ("info", "יש לבחור שאלון");
+		return false;
+	}
+
+	serverObj.cleanRequest ();
+	serverObj.addTag	(questIdCol.xmlTag, id);
+
+	serverObj.sendRequest("questionnaires.excelReport", undefined, "excelReport_continue");
+}
+
+function excelReport_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		window.open ("http://www.i-bos.co.il/3.0/tempExcels/" + commonGetInnerData (responseXml, "excelFileName"),"_new");
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* resetQuestionnaireResults																*/ 
+/* ---------------------------------------------------------------------------------------- */
+function resetQuestionnaireResults() 
+{
+	var id = pageObj.getFieldValue(formId_chooseQuest, questIdCol.xmlTag);
+
+	if (id == "") 
+	{
+		commonMsgBox ("info", "יש לבחור שאלון");
+		return false;
+	}
+
+	confirm("איפוס תוצאות השאלון", "reset questionnaire results", "resetQuestionnaireResults_confirm");
+}
+
+function resetQuestionnaireResults_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	(questIdCol.xmlTag, pageObj.getFieldValue(formId_chooseQuest, questIdCol.xmlTag));
+	
+	serverObj.sendRequest("questionnaires.resetQuestionnaireResults", undefined, "resetQuestionnaireResults_continue");
+}
+
+function resetQuestionnaireResults_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		commonMsgBox ("info", "תוצאות הסקר אופסו", "");
+	}
+	return true;
+}
+
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

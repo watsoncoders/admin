@@ -1,0 +1,1385 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/categories.js"></script>
+<script language="JavaScript" src="../../javascript2/multiUpload.js"></script>
+
+<script language="JavaScript">
+
+var langArray				= commonGetGlobalData ("langArray");
+
+var guiLang					= commonGetGlobalData ("guiLang");
+var pageObj					= new dynamicPageObj(guiLang);	
+var serverObj				= new serverInterfaceObj(guiLang);
+
+var pageTitleId				= -1;
+
+var addGalleryTitleId		= -1;
+var updateGalleryTitleId	= -1;
+var duplicateGalleryTitleId	= -1;
+
+var searchFormId			= -1;
+var searchButtonsId			= -1;		
+
+var galleryFormId			= -1;
+var galleryFormButtonsId	= -1;
+
+var spanGalleryId			= -1;
+var showGalleryButtonsId	= -1;
+var formTableObj			= -1;
+
+var addTitleId				= -1;
+var updateTitleId			= -1;
+var searchFormId			= -1;
+var searchButtonsId			= -1;
+var showTitleId				= -1;
+var tableId					= -1;
+var rowButtonsId			= -1;
+var formId					= -1;
+var formButtonsId			= -1;
+var spanFileId				= -1;
+var showButtonsId			= -1;
+
+var galleryIdCol			= {textHEB	: "קוד גלריה",		textENG	: "Id", 			xmlTag	: "galleryId"	}
+var galleryTitleCol			= {textHEB	: "כותרת הגלריה", 	textENG	: "Title", 			xmlTag	: "title"		}
+var sizeCol					= {textHEB	: "מספר התמונות", 	textENG	: "Pictures #", 	xmlTag	: "countImages"	}
+var numRowsCol				= {textHEB	: "מספר השורות", 	textENG	: "Rows #", 		xmlTag	: "thumNumRows"	}
+var numColsCol				= {textHEB	: "מספר העמודות", 	textENG	: "Columns #", 		xmlTag	: "thumNumCols"	}
+var picWidthCol				= {textHEB	: "רוחב התמונה", 	textENG	: "Pic Width", 		xmlTag	: "picWidth"	}
+var picHeightCol			= {textHEB	: "גובה התמונה", 	textENG	: "Pic Height", 	xmlTag	: "picHeight"	}
+var autoStartCol			= {textHEB	: "החלפה אוטומטית", textENG	: "Auto swap", 		xmlTag	: "AutoStart"	}
+
+var	idCol					= {textHEB	: "קוד", 			textENG	: "Id", 			xmlTag	: "id"			}
+var	sourceFileCol			= {textHEB	: "שם קובץ מקור", 	textENG	: "Source file", 	xmlTag	: "sourceFile"	}
+var	nameCol					= {textHEB	: "שם הקובץ", 		textENG	: "File name", 		xmlTag	: "filename"	}
+var	titleCol				= {textHEB	: "כותרת", 			textENG	: "Title", 			xmlTag	: "title"		}
+var	posCol					= {textHEB	: "מיקום", 			textENG	: "Position", 		xmlTag	: "pos"			}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    	();	
+	createSpanFile			();
+	addSearchSection    	();
+	createDataTable     	();
+	createTableButtons  	();
+	createSearchSection 	();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   			= pageObj.addPageTitle 	  ("ניהול גלריות",  		"Galleries management");
+	addGalleryTitleId		= pageObj.addPageSubTitle ("הוספת גלריה",			"Add Gallery");
+	updateGalleryTitleId	= pageObj.addPageSubTitle ("עדכון גלריה",			"Update Gallery");
+	duplicateGalleryTitleId	= pageObj.addPageSubTitle ("שכפול גלריה",			"Duplicate Gallery");
+	addTitleId				= pageObj.addPageSubTitle ("הוספת תמונה לגלריה",	"Add Picture to gallery");
+	updateTitleId			= pageObj.addPageSubTitle ("עדכון תמונת גלריה",		"Update picture in gallery");
+	showTitleId		 		= pageObj.addPageSubTitle ("הצגת תמונה",       		"Show picture");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createSpanFile																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createSpanFile ()
+{
+	spanFileId = pageObj.addSpan	();
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+
+var globalGalleries;
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	if (globalGalleries == undefined)
+		serverOptions_getGalleries("choose", "after_getGalleries");
+
+	createSearchSection_continue ();
+}
+
+function after_getGalleries (options)
+{
+	globalGalleries = options;
+
+	createSearchSection_continue ();
+}
+
+function createSearchSection_continue ()
+{
+	if (globalGalleries == undefined) return;
+
+	var queryXml = commonGetGlobalData ("galleriesQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (searchFormId, queryXml);
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	defaultGallery = "";
+	if (globalGalleries.length > 1)
+		defaultGallery = globalGalleries[1].value;
+
+	field1 = {type      : "select",					textHEB		 : galleryIdCol.textHEB,
+			  spanData  : 1,						textENG		 : galleryIdCol.textENG,
+			  dataFld   : galleryIdCol.xmlTag,		width   	 : 300,
+			  mandatory : false,					defaultValue : defaultGallery,
+			  options	: globalGalleries,			action		 : "onChangeQuery()"}
+
+  	fields.push (field1);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(60,width),
+					ENG : new Array(60,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "",
+			   textHEB		: "הצגת תמונות",
+			   textENG		: "Show pictures",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "",
+			   textHEB		: "הוספת גלריה",
+			   textENG		: "Add gallery",
+			   action		: "openForm('addGallery')"}
+
+	btn3	= {type			: "",
+			   textHEB		: "הגדרות גלריה",
+			   textENG		: "Definitions",
+			   action		: "openForm('updateGallery')"}
+
+	btn4	= {type			: "",
+			   textHEB		: "שכפול גלריה",
+			   textENG		: "Duplicate",
+			   action		: "openForm('duplicateGallery')"}
+
+	btn5	= {type			: "",
+			   textHEB		: "מחיקת גלריה",
+			   textENG		: "Delete Gallery",
+			   action		: "deleteGallery()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2,btn3, btn4, btn5));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+
+	loadData ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onChangeQuery																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onChangeQuery ()
+{
+	setTimeout ("doRefresh();", 100);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,			widthHEB 	: 70,
+				   textENG	: idCol.textENG,			widthENG 	: 70,
+				   sortType : "number",					sortDir  	: "descending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: posCol.textHEB,			widthHEB 	: 70,
+				   textENG	: posCol.textENG,			widthENG 	: 70,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : posCol.xmlTag}
+
+	column3		= {textHEB	: sourceFileCol.textHEB,	widthHEB 	: 300,
+	   			   textENG	: sourceFileCol.textENG,	widthENG 	: 300,
+				   dir		: "ltr",
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : sourceFileCol.xmlTag}
+
+	column4		= {textHEB	: nameCol.textHEB,			widthHEB 	: 120,
+				   textENG	: nameCol.textENG,			widthENG 	: 120,
+				   dir		: "ltr",
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : nameCol.xmlTag}
+		   
+	column5		= {textHEB	: titleCol.textHEB,			widthHEB 	: 250,
+				   textENG	: titleCol.textENG,			widthENG 	: 250,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : titleCol.xmlTag}
+		   
+	column6		= {textHEB	: "הצגת תמונה",				widthHEB 	: 120,
+				   textENG	: "",						widthENG 	: 120,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : "showPic"}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5, column6);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 420, 270);
+}
+
+function hidePic ()
+{
+	$.fancybox.close ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "",
+			   textHEB		: "הוספת תמונות",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "",
+			   textHEB		: "עדכון תמונה",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "",
+			   textHEB		: "מחיקת תמונה",
+		       action		: "deleteGalleryImage()"}
+	
+	btn4	= {type			: "",
+			   textHEB		: "הצגת תמונה",
+			   action		: "showImage()"}
+	
+	btn5	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3, btn4), new Array(btn5));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	hidePic();
+
+	if (type == "report")
+	{
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+		pageObj.hideComponent (addGalleryTitleId);
+		pageObj.hideComponent (duplicateGalleryTitleId);
+		pageObj.hideComponent (updateGalleryTitleId);
+		pageObj.hideComponent (galleryFormId);
+		pageObj.hideComponent (galleryFormButtonsId);
+
+		pageObj.hideComponent (showTitleId);
+		pageObj.hideComponent (showButtonsId);
+		pageObj.hideComponent (spanFileId);
+		
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+
+		if (!pageObj.isCollapse (searchFormId))
+		{
+			pageObj.showComponent (searchButtonsId);
+		}
+	}
+
+	if (type == "add" || type == "update" || type == "show")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+	
+		if (type == "show")
+		{
+			pageObj.showComponent (showTitleId);
+			pageObj.showComponent (showButtonsId);
+		}
+		else
+		{
+			// show from
+			pageObj.showComponent (eval(type + "TitleId"));
+			pageObj.showComponent (formId);
+			pageObj.showComponent (formButtonsId);
+		}
+	}
+
+	if (type == "addGallery" || type == "updateGallery" || type == "duplicateGallery")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (galleryFormId);
+		pageObj.showComponent (galleryFormButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	hidePic();
+
+	var queryXml = pageObj.getFormXml(searchFormId);
+	commonSetGlobalData ("galleriesQueryXml", queryXml);
+
+	serverObj.cleanRequest ();
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("galleryImages.getGalleryImages", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay 			("report");
+
+			pageObj.collapseSection (searchFormId, false);
+		}
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	if (type == "update")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור תמונה", "Choose a picture");
+			return false;
+		}
+	}
+
+	selectedGallery = pageObj.getFieldValue(searchFormId, galleryIdCol.xmlTag);
+
+	if (type == "addGallery" || type == "updateGallery" || type == "duplicateGallery")
+	{
+		if ((type == "updateGallery" || type == "duplicateGallery") && selectedGallery == 0)
+		{
+			commonMsgBox ("info", "יש לבחור גלריה מהרשימה", "Choose a gallery from the list");
+			return false;
+		}
+
+		createGalleryForm  	  	 (type);
+	}
+	else
+	{
+		if (type == "add" &&  selectedGallery == "")
+		{
+			commonMsgBox ("info", "יש לבחור גלריה מהרשימה", "Choose a gallery from the list");
+			return false;
+		}
+
+		if (type == "add")
+		{
+			createEditForm  	  (type);
+		}
+		else
+		{
+			globalDetailsXml = undefined;
+
+			serverObj.cleanRequest ();
+			serverObj.addTag	   ("id", pageObj.getSelectedValueOf (tableId, idCol.xmlTag));
+			serverObj.sendRequest("galleryImages.getGalleryImageDetails", undefined, "after_getGalleryImageDetails");
+		}
+	}
+}
+
+function after_getGalleryImageDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	createEditForm ("update");
+}
+
+var navPosOptions = new selectOptionsObj();
+navPosOptions.addOption	("",		"",			"");
+navPosOptions.addOption	("top",		"למעלה",	"Top");
+navPosOptions.addOption	("bottom",	"למטה",		"Bottom");
+navPosOptions.addOption	("right",	"צד ימין",	"Right");
+navPosOptions.addOption	("left",	"צד שמאל",	"Left");
+
+var globalDimensions = undefined;
+var globalAllPages	 = undefined;
+var globalLayouts	 = undefined;
+
+var globalDetailsXml = undefined;
+
+var globalType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* createGalleryForm																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createGalleryForm (type)
+{
+	if (type == "updateGallery")
+		type = "update";
+	else if (type == "duplicateGallery")
+		type = "duplicate";
+	else
+		type = "add";
+
+	globalType 	= type;
+
+	if (globalDimensions == undefined)
+		serverOptions_getDimensions			(true, "after_loadDimensions");
+
+	if (globalAllPages == undefined)
+		serverOptions_getPagesNames		(undefined, "after_loadAllPages");
+
+	if (globalLayouts == undefined)
+		serverOptions_getLayoutsByType		("page", "after_loadLayouts");
+
+	globalDetailsXml = undefined;
+
+	if (type == "update" || type == "duplicate")
+	{
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (galleryIdCol.xmlTag, pageObj.getFieldValue(searchFormId, galleryIdCol.xmlTag));
+		serverObj.addTag	   ("action", type);
+
+		serverObj.sendRequest("galleries.getGalleryDetails", undefined, "after_getGalleryDetails");
+	}
+	else
+	{
+		serverObj.cleanRequest ();
+
+		serverObj.sendRequest("galleries.getGalleryNextId", undefined, "after_getGalleryDetails");
+	}
+
+	createGalleryForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadDimensions (options)
+{
+	globalDimensions = new Object(options);
+
+	createGalleryForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadAllPages (options)
+{
+	globalAllPages = new Object(options);
+
+	createGalleryForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadLayouts (options)
+{
+	globalLayouts = new Object(options);
+
+	createGalleryForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getGalleryDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	createGalleryForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function createGalleryForm_continue ()
+{
+	type = globalType;
+
+	if (globalDimensions == undefined || globalAllPages == undefined || globalLayouts == undefined || globalDetailsXml == undefined) return;
+
+	if (galleryFormId == -1)
+		galleryFormId   = pageObj.addForm ();
+	
+	pageObj.resetForm (galleryFormId);
+
+	if (formId != -1)
+		pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var id = commonGetInnerData (globalDetailsXml, galleryIdCol.xmlTag);
+
+	if (type == "update" || type == "duplicate")
+	{
+		pageObj.setFormXml (galleryFormId, globalDetailsXml);
+	}
+
+	if (type == "update")
+	{
+		var url		 = commonGetInnerData(globalDetailsXml, "siteUrl") + "?id=" + id;
+
+		showPage = "<div style='float:left'><a href='" + url + "' target='_blank' style='text-decoration:none;'>הצגת הגלריה</a></div>";
+		showPageEng = "<div style='float:right'><a href='" +url+ "' target='_blank' style='text-decoration:none;'>Show gallery</a></div>";
+
+		pageObj.updatePageTitle (updateGalleryTitleId, showPage + "עדכון גלריה " + id, showPageEng + "Update gallery " + id);
+	}
+	
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(180,180,160,160),
+					ENG : new Array(180,180,160,160)}
+
+	var fieldWidth  = 150;
+	var fieldWidth3	= 475;
+
+	var frameId = pageObj.addFormFrame (galleryFormId, "הגדרות הגלריה", "Definitions"); 
+
+	field1 = {type			: "span",					textHEB		 : galleryIdCol.textHEB,
+			  spanData		: 1,						textENG		 : galleryIdCol.textENG,
+			  dataFld		: galleryIdCol.xmlTag,		width	 	 : fieldWidth,
+	  	 	  defaultValue 	: id}
+
+  	field2 = {type			: "text",					textHEB		 : galleryTitleCol.textHEB,
+			  spanData		: 1,						textENG		 : galleryTitleCol.textENG,
+			  dataFld		: galleryTitleCol.xmlTag,	width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "200",					lang		 : langArray}
+
+	field3 = {type			: "select",					textHEB		 : layoutCol.textHEB,
+			  spanData		: 1,						textENG		 : layoutCol.textENG,
+			  dataFld		: layoutCol.xmlTag,			width	 	 : fieldWidth,
+			  options		: globalLayouts,
+			  mandatory	    : true}
+
+	field4 = {type			: "yesNoSelect",			textHEB		 : "לגולשים רשומים בלבד",
+			  spanData		: 1,						textENG		 : "Members only",
+			  dataFld		: "membersOnly",			width		 : fieldWidth,
+			  mandatory		: false,					defaultValue : "0"}
+
+	field5 = {type			: "yesNoSelect",			textHEB		 : "להציג תמונות ממוזערות?",
+			  spanData		: 1,						textENG		 : "Show thumbnails?",
+			  dataFld		: "showThumbs",				width		 : fieldWidth,
+			  mandatory		: true,						defaultValue : "1"}
+
+	field6 = {type			: "number",					textHEB		 : autoStartCol.textHEB,
+			  spanData		: 1,						textENG		 : autoStartCol.textENG,
+			  dataFld		: autoStartCol.xmlTag,		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "2"}
+		  
+	field7 = {type			: "number",					textHEB		 : numRowsCol.textHEB,
+			  spanData		: 1,						textENG		 : numRowsCol.textENG,
+			  dataFld		: numRowsCol.xmlTag,		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "2"}
+		  
+	field8 = {type			: "number",					textHEB		 : numColsCol.textHEB,
+			  spanData		: 1,						textENG		 : numColsCol.textENG,
+			  dataFld		: numColsCol.xmlTag,		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "2"}
+
+	field9 = {type			: "number",					textHEB		 : picWidthCol.textHEB,
+			  spanData		: 1,						textENG		 : picWidthCol.textENG,
+			  dataFld		: picWidthCol.xmlTag,		width	 	 : fieldWidth,
+			  mandatory	 	: true}
+		  
+    field10 = {type			: "number",					textHEB		 : picHeightCol.textHEB,
+			  spanData		: 1,						textENG		 : picHeightCol.textENG,
+			  dataFld		: picHeightCol.xmlTag,		width	 	 : fieldWidth,
+			  mandatory	 	: true}
+
+	field11 = {type			: "yesNoSelect",			textHEB		 : "הצגת הגלריה באתר",
+			  spanData		: 1,						textENG		 : "Page Ready",
+			  dataFld		: "isReady",				width		 : fieldWidth,
+			  mandatory		: true,						defaultValue : "1",
+	  		  											lang		 : langArray}
+
+	field12 = {type			: "select",					textHEB		 : "מיקום רכיב ניווט",
+			  spanData		: 1,						textENG		 : "Navigation Position",
+			  dataFld		: "navPos",					width	 	 : fieldWidth,
+			  options		: navPosOptions.getOptions()}
+
+
+	if (type == "update")
+	{
+		field2.action	= "generalSetWinTitle(\"title\", \"add\", galleryFormId)";
+	}
+	else
+	{
+		field2.action	= "generalSetWinTitle(\"title\", \"update\", galleryFormId)";
+	}
+
+	field13= {type			: "color",					textHEB		 : "צבע רכיבי ניווט",
+			  spanData		: 1,						textENG		 : "Navigation color",
+			  dataFld		: "navColor",				width		 : fieldWidth,
+			  mandatory		: false,					maxLength	 : "7",
+			  minLength		: "7",						defaultValue : "#FF00FF"}
+
+	field14= {type			: "color",					textHEB		 : "צבע רקע לתמונות",
+			  spanData		: 1,						textENG		 : "Background color",
+			  dataFld		: "picBgColor",				width		 : fieldWidth,
+			  mandatory		: false,					maxLength	 : "7",
+			  minLength		: "7",						defaultValue : "#FFFFFF"}
+
+
+    fields = new Array(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, 
+						 field11, field12, field13, field14);
+	
+	field1 = {type		: "span",						textHEB		 : "קובץ מקור",
+			  spanData 	: 3,							textENG		 : "Source file",
+			  dataFld	: "formSourceFile",				width   	 : fieldWidth3}
+
+  	if (type == "add" || type == "duplicate")
+		field1.type = "hidden";
+
+	fields.push (field1);
+	
+	hidden = {type		: "hidden",						dataFld   	 : "picSource"}
+  	fields.push (hidden);
+
+	hidden = {type		: "hidden",						dataFld   	 : "fileDeleted",
+			  											defaultValue : "0"}
+  	fields.push (hidden);
+
+	field1 = {type		: "onlineUpload",				textHEB	 	 : "תמונה מייצגת",
+			  spanData	: 1,							textENG		 : "Main Picture",
+			  dataFld	: "files",						width		 : fieldWidth}
+
+	field2 = {type      : "select",						textHEB 	 : "גודל",
+			  spanData  : 1,							textENG      : "Size",
+			  dataFld   : "dimensionId",				width     	 : fieldWidth,
+			  options	: globalDimensions}	
+
+	show   = {type		: "span",						textHEB		 : "הצגת קובץ",
+			  spanData	: 1,							textENG		 : "Show file",
+			  dataFld   : "show",						width		 : fieldWidth,
+			  className : "styleLink", 					action       : "showFile()"}
+
+	del    = {type		: "span",						textHEB		 : "מחיקה",
+			  spanData	: 1,							textENG		 : "Delete file",
+			  dataFld  	: "delete",						width		 : fieldWidth,
+			  className : "styleLink", 					action       : "deleteFile()"}
+
+	hidden1= {type		: "hidden",						dataFld   	 : "linkToFile"}
+
+  	fields.push (field1, field2);
+			  
+	if (type == "update")
+		fields.push (show, del, hidden1);
+
+	pageObj.addFormFields (galleryFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths2 = {HEB : new Array(100,530),
+				 	 ENG : new Array(100,530)}
+
+	var frameId = pageObj.addFormFrame (galleryFormId, "תיאור", "Description"); 
+
+	field1 = {type			: "xstandard",				textHEB		 : "תיאור",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "txt",					width	 	 : 620,
+			  height  		: 280,						mandatory	 : false,
+			  action		: "setUpdated()",			lang		 : langArray}
+
+  	fields = new Array(field1);
+	
+	pageObj.addFormFields (galleryFormId, frameId, fieldsWidths2, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (galleryFormId, "מתקדם", "Advanced"); 
+
+    field1 = {type			: "yesNoSelect",			textHEB		 : "הצגה במפת האתר",
+			  spanData		: 1,						textENG		 : "Show on Sitemap",
+			  dataFld		: "showOnSitemap",			width		 : fieldWidth,
+			  mandatory		: true,						defaultValue : "1"}
+
+	field2 = {type			: "select",					textHEB		 : "קישור אב בסרגל ניווט",
+			  spanData		: 1,						textENG		 : "Navigation parent",
+			  dataFld		: "navParentId",			width		 : fieldWidth,
+			  mandatory		: false,					defaultValue : "1",
+			  options		: globalAllPages}
+
+	field3 = {type			: "text",					textHEB		 : "כותרת לסרגל ניווט",
+			  spanData		: 1,						textENG		 : "Navigation title",
+			  dataFld		: "navTitle",				width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "30",						lang		 : langArray}
+
+  	fields = new Array(field1, field2, field3);
+	
+	pageObj.addFormFields (galleryFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	commonAddSeoFrame (galleryFormId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	categories_addFormFrame (galleryFormId, type, "קטגוריות הגלריה", "Categories", fieldsWidths, id, "gallery", "createGalleryForm_finish")
+}
+
+function createGalleryForm_finish ()
+{
+	type = globalType;
+
+	pageObj.generateForm  (galleryFormId, true);
+
+	formTableObj = new Object(pageObj.getFormTableId (galleryFormId, 5));
+
+	commonSetGlobalData ("formTableObj",  formTableObj);	// save it for categoryOfItem iframe
+
+	if (multiUploadStart(undefined, galleryFormId))
+	{
+		createGalleryFormButtons (type);	
+		handleDisplay 		  	 (type + "Gallery");
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteFile																				*/
+/* ---------------------------------------------------------------------------------------- */
+function deleteFile ()
+{
+	pageObj.setFieldValue(galleryFormId, "formSourceFile", "");
+	pageObj.setFieldValue(galleryFormId, "fileDeleted", 	"1");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showFile																					*/
+/* ---------------------------------------------------------------------------------------- */
+function showFile ()
+{
+	window.open (pageObj.getFieldValue(galleryFormId, "linkToFile"), "_blank");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createGalleryFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createGalleryFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + galleryFormId + ")"}
+		   
+   	actionType = type;
+	if (type == "duplicate")
+		actionType = "add"
+
+	btn3	= {type			: "save",
+			   action		: "submitGalleryForm('" + actionType + "Save')"}
+
+	btn4	= {type			: type,
+			   action		: "submitGalleryForm('" + actionType + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn4));
+
+	if (galleryFormButtonsId == -1)
+		galleryFormButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (galleryFormButtonsId, btnsGroups, pageObj.getFormWidth(galleryFormId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* addCategory																				*/
+/* ---------------------------------------------------------------------------------------- */
+function addCategory (type)
+{
+	if (type == "add")
+	{
+		commonMsgBox ("info", "יש לבצע שמירה של הגלריה לפני קישור לקטגוריות", "Save new gallery before adding categories");
+		return false;
+	}
+	
+	commonSetGlobalData ("action", "add");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (searchFormId, galleryIdCol.xmlTag));
+	commonSetGlobalData ("catType", "gallery");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* updateCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function updateCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור שורה", "Choose a row")
+		return false;
+	}
+
+	commonSetGlobalData ("action", "update");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (galleryFormId, galleryIdCol.xmlTag));
+	commonSetGlobalData ("catType", "gallery");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function deleteCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור שורה", "Choose a row")
+		return false;
+	}
+
+	var itemId 		= pageObj.getFieldValue (searchFormId, galleryIdCol.xmlTag);
+	var categoryId 	= pageObj.getSelectedValueOf (formTableObj, "id");
+	
+	categories_deleteCategory (galleryFormId, formTableObj, itemId, categoryId, "gallery");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadItemCategories																		*/
+/* ---------------------------------------------------------------------------------------- */
+function loadItemCategories ()
+{
+	var itemId 		= pageObj.getFieldValue (searchFormId, galleryIdCol.xmlTag);
+
+	categories_loadItemCategories (galleryFormId, formTableObj, itemId, "gallery");
+}
+
+var global_submitType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitGalleryForm																		*/
+/* ---------------------------------------------------------------------------------------- */
+function submitGalleryForm (type)
+{
+	global_submitType = type;
+
+	if (!pageObj.validateForm(galleryFormId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(galleryFormId));
+
+	command = type + "Gallery";
+
+	if (type == "addSave")
+		command = "addGallery";
+
+	if (type == "updateSave")
+		command = "updateGallery";
+
+	var picFile = uploadGetFileName();
+	serverObj.addTag ("picSource",   picFile);
+	serverObj.addTag ("fileDeleted", pageObj.getFieldValue(galleryFormId, "fileDeleted"));
+
+	serverObj.sendRequest("galleries." + command, undefined, "submitGalleryForm_continue");
+}
+
+function submitGalleryForm_continue (i)
+{
+	var type = global_submitType;
+
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		globalGalleries = undefined;
+
+		serverOptions_getGalleries("choose", "after_reloadGalleries");
+	}
+}
+
+function after_reloadGalleries (options)
+{
+	var type = global_submitType;
+
+	globalGalleries = options;
+
+	if (type != "addSave" && type != "updateSave" && type != "delete")
+	{
+		handleDisplay	("report");
+	}
+	else if (type != "delete")
+	{
+		commonMsgBox ("info", "נתוני הגלריה נשמרו בהצלחה", "Gallery saved successfully");
+	}
+
+	if (type == "delete")
+	{
+		var currGallery = globalGalleries[0].value;
+	}
+	else
+	{
+		var currGallery = pageObj.getFieldValue (searchFormId, galleryIdCol.xmlTag);
+	}
+
+	pageObj.setFieldOptions (searchFormId, galleryIdCol.xmlTag, globalGalleries);
+	pageObj.setFieldValue   (searchFormId, galleryIdCol.xmlTag, currGallery);
+
+	if (type == "addSave")
+	{
+		pageObj.hideComponent (galleryFormId);
+		pageObj.hideComponent (galleryFormButtonsId);
+		
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (duplicateTitleId);
+		pageObj.showComponent (updateGalleryTitleId);
+		
+		pageObj.setFieldValue (searchFormId, galleryIdCol.xmlTag, pageObj.getFieldValue(galleryFormId,galleryIdCol.xmlTag));
+		createGalleryForm     ("updateGallery");
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showGallery																				*/
+/* ---------------------------------------------------------------------------------------- */
+function showGallery ()
+{
+	selectedGallery = pageObj.getFieldValue(searchFormId, galleryIdCol.xmlTag);
+
+	if (selectedGallery == "")
+	{
+		commonMsgBox ("info", "יש לבחור גלריה", "Choose a gellery");
+		return false;
+	}
+
+	createShowPage    	();
+
+	createShowButtons 	();
+
+	handleDisplay 		("show");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createShowPage																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createShowPage ()
+{
+	fileHtml = "<iframe frameborder='0' width='100%' height='400' style='background-color:#f8f8f8' src='" + 
+						pageObj.getSelectedValueOf(tableId, "fullGalleryPath") + "'" +
+			   "</iframe>";
+
+	pageObj.initSpan      (spanGalleryId, fileHtml);
+
+	pageObj.showComponent (spanGalleryId); 
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createShowButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createShowButtons ()
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1));
+
+	if (showGalleryButtonsId == -1)
+		showGalleryButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (showGalleryButtonsId, btnsGroups, 10);
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteGallery																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteGallery() 
+{
+	selectedGallery = pageObj.getFieldValue(searchFormId, galleryIdCol.xmlTag);
+
+	if (selectedGallery == "")
+	{
+		commonMsgBox ("info", "יש לבחור גלריה", "Choose a gellery");
+		return false;
+	}
+
+	confirm("מחיקת גלריה " + selectedGallery, "delete gallery " + selectedGallery, "deleteGallery_confirm");
+}
+
+function deleteGallery_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	(galleryIdCol.xmlTag, pageObj.getFieldValue(searchFormId, galleryIdCol.xmlTag));
+	
+	serverObj.sendRequest("galleries.deleteGallery", undefined, "deleteGallery_continue");
+}
+
+function deleteGallery_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		globalGalleries = undefined;
+
+		global_submitType = "delete";
+
+		serverOptions_getGalleries ("choose", "after_reloadGalleries");
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditForm (type)
+{
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	if (type == "add")
+	{
+		// --------------------------------------------------------------------------------
+
+		fieldsWidths = {HEB : new Array(10,500),
+						ENG : new Array(10,500)}
+
+		fieldWidth  = 490;
+
+		var frameId = pageObj.addFormFrame (formId, "בחירת קבצים", "Choose files"); 
+
+		field1 = {type			: "multiUpload",			textHEB		 	: "",
+				  spanData		: 1,						textENG			: "",
+				  dataFld		: "files",					width			: fieldWidth,
+				  x				: 130,						y				: 85}
+
+	  	fields = new Array(field1);
+	
+		pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+	}
+	else
+	{
+		fieldsWidths = {HEB : new Array(150,300),
+						ENG : new Array(150,300)}
+
+		var fieldWidth  = 290;
+
+		var fields = new Array();
+
+		var frameId = pageObj.addFormFrame (formId, "הגדרות התמונה", "Picture definitions"); 
+	
+  		field1 = {type			: "onlineUpload",			textHEB		 : nameCol.textHEB,
+				  spanData		: 1,						textENG		 : nameCol.textENG,
+				  dataFld		: nameCol.xmlTag,			width	 	 : fieldWidth,
+				  defaultValue	: "",						mandatory	 : true}
+
+  		field2 = {type			: "text",					textHEB		 : titleCol.textHEB,
+				  spanData		: 1,						textENG		 : titleCol.textENG,
+				  dataFld		: titleCol.xmlTag,			width	 	 : fieldWidth,
+				  minLength		: "1",						mandatory	 : false,
+				  maxLength		: "100",					lang		 : langArray}
+
+	  	field3 = {type			: "text",					textHEB		 : posCol.textHEB,
+				  spanData		: 1,						textENG		 : posCol.textENG,
+				  dataFld		: posCol.xmlTag,			width	 	 : fieldWidth,
+				  minLength		: "1",						mandatory	 : false,
+				  maxLength		: "50"}	
+
+		hidden = {type			: "hidden",					dataFld	 	 : "galleryId",
+				  defaultValue	: pageObj.getFieldValue(searchFormId, galleryIdCol.xmlTag)}
+
+		hidden2 = {type			: "hidden",					dataFld   	 : sourceFileCol.xmlTag}
+	
+		hidden3 = {type			: "hidden",					dataFld      : idCol.xmlTag}
+
+	    langs  = {type			: "hidden",					dataFld		 : "usedLangs",
+				  defaultValue  : langArray.join(",")}
+
+		field =  {type			: "span",					textHEB		 : "קובץ מקור",
+				  spanData  	: 1,						textENG		 : "Source file",
+				  dataFld		: "formSourceFile",			width   	 : fieldWidth}
+
+		fields.push (field);
+
+		field1.mandatory = false;
+		
+		fields.push (field1, field2, field3, hidden, hidden2, hidden3, langs);
+	
+		pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+		pageObj.setFormXml (formId, globalDetailsXml);
+	}
+
+	pageObj.generateForm  (formId, false);
+
+	if (type == "add")
+	{
+		var galleryId = pageObj.getFieldValue(searchFormId,galleryIdCol.xmlTag);
+
+		multiUploadStart("https://www.i-bos.co.il/3.0/php/uploadHtml5GalleryImage.php?galleryId=" + galleryId, formId);
+	}
+	else
+	{
+		multiUploadStart (undefined, formId);
+	}
+
+	createEditFormButtons (type);
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btnsGroups = new Array ();
+
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	if (type == "add")
+	{
+		btn1.action = "loadData();" + btn1.action;
+
+		btnsGroups.push (new Array(btn1));
+	}
+	else
+	{
+		btn2 	= {type			: "lang",
+				   lang			: langArray,
+				   action		: "commonChangeFormLang(" + formId + ")"}
+
+		btn3	= {type			: type,
+				   action		: "submitForm()"}
+
+
+		btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3));
+	}
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm ()
+{
+	if (!pageObj.validateForm(formId)) return false;
+
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	var picFile = uploadGetFileName();
+	if (picFile == ERROR_WAIT_LOADING)
+		return false;
+
+	serverObj.addTag ("sourceFile",   picFile);
+
+	serverObj.sendRequest("galleryImages.updateGalleryImage", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh 		();
+		handleDisplay	("report");
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showImage																				*/
+/* ---------------------------------------------------------------------------------------- */
+function showImage ()
+{
+	if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור תמונה", "Choose a picture");
+		return false;
+	}
+
+	createShowPage    	();
+
+	createShowButtons 	();
+
+	handleDisplay 		("show");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createShowPage																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createShowPage ()
+{
+	fileHtml = "<iframe frameborder='0' width='100%' height='420' style='background-color:#f8f8f8' src='" + 
+						pageObj.getSelectedValueOf(tableId, "fullFilePath") + "'" +
+			   "</iframe>";
+
+	pageObj.initSpan      (spanFileId, fileHtml);
+
+	pageObj.showComponent (spanFileId); 
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createShowButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createShowButtons ()
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1));
+
+	if (showButtonsId == -1)
+		showButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (showButtonsId, btnsGroups, 10);
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteGalleryImage																		*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteGalleryImage() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור תמונה", "Choose a picture");
+		return false;
+	}
+	
+	confirm ("מחיקת התמונה", "delete the picture", "deleteGalleryImage_confirm");
+}
+
+function deleteGalleryImage_confirm ()
+{
+	var id 		= pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+
+	serverObj.cleanRequest ();
+	serverObj.addTag	("id", id);
+	serverObj.addTag	("galleryId", pageObj.getFieldValue(searchFormId, galleryIdCol.xmlTag));
+	serverObj.addTag	(nameCol.xmlTag, pageObj.getSelectedValueOf(tableId,nameCol.xmlTag));
+
+	serverObj.sendRequest("galleryImages.deleteGalleryImage", undefined, "deleteGalleryImage_continue");
+}
+
+function deleteGalleryImage_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()" onclick="hidePic()">
+</body>
+
+</html>
+

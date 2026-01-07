@@ -1,0 +1,491 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var pageTitleId		= -1;
+var pageSubTitleId	= -1;
+var addTitleId		= -1;
+var updateTitleId	= -1;
+var tableId			= -1;
+var rowButtonsId	= -1;
+var formId			= -1;
+var formButtonsId	= -1;
+
+var cfgFormId		= -1;
+var cfgFormButtonsId= -1;
+
+var idCol			= {textHEB	: "מזהה",			textENG	: "", 		xmlTag : "id"		}
+var	dayCol			= {textHEB	: "תאריך",	 		textENG	: "", 		xmlTag : "offDay"	}
+var	descCol			= {textHEB	: "תיאור",	 		textENG	: "", 		xmlTag : "dayDesc"	}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	createPageTitles    ();	
+	createCfgForm		();
+
+	pageSubTitleId = pageObj.addPageSubTitle ("טבלת ימים", "Days");
+
+	createDataTable     ();
+	createTableButtons  ();
+	loadData			();			
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+ 	pageTitleId   	= pageObj.addPageTitle 	  ("ניהול ימי אי-פעילות", "");
+	addTitleId		= pageObj.addPageSubTitle ("הוספת תאריך",   "");
+}
+	
+var globalAllPages	= undefined;
+var globalCfgXml	= undefined;
+
+/* ---------------------------------------------------------------------------------------- */
+/* createCfgForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createCfgForm ()
+{
+	if (cfgFormId == -1)
+		cfgFormId   = pageObj.addForm ();
+	
+	if (cfgFormButtonsId == -1)
+		cfgFormButtonsId = pageObj.addRowOfButtons 	 ();
+
+	if (globalAllPages == undefined)
+		serverOptions_getPagesNames		(undefined, "after_loadAllPages");
+
+	if (globalCfgXml == undefined)
+		serverObj.sendRequest("offDays.getConfig", undefined, "after_getConfig");
+
+	createCfgForm_continue ();
+}
+
+function after_loadAllPages (options)
+{
+	globalAllPages = new Object(options);
+
+	createCfgForm_continue ();
+}
+
+function after_getConfig (i)
+{
+	globalCfgXml = asyncResponseXml.getResponseXml (i);
+
+	createCfgForm_continue ();
+}
+
+function createCfgForm_continue ()
+{
+	if (globalCfgXml == undefined || globalAllPages == undefined)  return;
+
+	var levels = new selectOptionsObj();
+	levels.addOption ("none", 		 "לא פעילה",  "");
+	levels.addOption ("all", 		 "מלאה", 	  "");
+	levels.addOption ("onlyBanners", "רק באנרים", "");
+
+	pageObj.resetForm (cfgFormId);
+
+	pageObj.setFormXml (cfgFormId, globalCfgXml);
+
+	// ------------------------------------------------------------------------------------ 
+
+	frameId = pageObj.addFormFrame (cfgFormId, "הגדרות", ""); 
+
+	fieldsWidths = {HEB : new Array (120,110,210,110),
+					ENG : new Array (120,110,210,110)};
+
+	fieldWidth = 100;
+
+	fields = new Array();
+
+	field1  = {type      : "select",				textHEB 	 : "שמירת שבת",
+		   	   spanData  : 1,						textENG      : "",
+			   dataFld   : "saturdayLevel",			width     	 : fieldWidth,
+			   options	 : levels.getOptions(),		defaultValue : "none"}
+
+	field2 =  {type      : "time",					textHEB 	 : "שעה מינימלית של כניסת השבת",
+			   spanData  : 1,						textENG      : "",
+			   dataFld   : "saturdayMinStartHour",	width     	 : fieldWidth}
+
+	field3  = {type      : "select",				textHEB 	 : "דף שיוצג בשבת",
+		   	   spanData  : 1,						textENG      : "",
+			   dataFld   : "offPage",				width     	 : fieldWidth,
+			   options	 : globalAllPages}
+
+	field4 =  {type      : "time",					textHEB 	 : "שעה מקסימלית של יציאת השבת",
+			   spanData  : 1,						textENG      : "",
+			   dataFld   : "saturdayMaxEndHour",	width     	 : fieldWidth}
+
+	fields.push (field1, field2, field3, field4);
+	
+	pageObj.addFormFields (cfgFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (cfgFormId, false);
+
+	createCfgFormButtons  ();
+
+	pageObj.showComponent (pageTitleId);
+	pageObj.showComponent (cfgFormId);
+	pageObj.showComponent (cfgFormButtonsId);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createCfgFormButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createCfgFormButtons ()
+{
+	btn1	= {type			: "update",
+			   action		: "submitCfgForm()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1));
+
+	pageObj.generateRowOfButtons (cfgFormButtonsId, btnsGroups, pageObj.getFormWidth(cfgFormId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitCfgForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function submitCfgForm ()
+{
+	if (!pageObj.validateForm(cfgFormId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(cfgFormId));
+
+	serverObj.sendRequest("offDays.updateConfig", undefined, "submitCfgForm_continue");
+}
+
+function submitCfgForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		commonMsgBox ("info", "הנתונים נשמרו בהצלחה","Data was saved successfully");
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction  (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	columns = new Array ();
+
+	column1		= {textHEB	: idCol.textHEB,			widthHEB : 70,
+				   textENG	: idCol.textENG,			widthENG : 70,
+				   sortType : "number",					sortDir  : "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: dayCol.textHEB,			widthHEB : 120,
+				   textENG	: dayCol.textENG,			widthENG : 120,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : dayCol.xmlTag,			dir		 : "ltr"}
+		   
+	column3		= {textHEB	: descCol.textHEB,			widthHEB : 345,
+				   textENG	: descCol.textENG,			widthENG : 345,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : descCol.xmlTag}
+		   
+	columns.push (column1, column2, column3);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 200, 170);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+    btn2	= {type			: "delete",
+			   action		: "deleteOffDay()"}
+
+	btn3	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2), new Array(btn3));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (cfgFormId);
+		pageObj.showComponent (cfgFormButtonsId);
+		pageObj.showComponent (pageSubTitleId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (cfgFormId);
+		pageObj.hideComponent (cfgFormButtonsId);
+		pageObj.hideComponent (pageSubTitleId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	serverObj.cleanRequest ();
+
+	serverObj.sendRequest("offDays.getOffDays", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+function loadData_continue (i) 
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		handleDisplay 		  ("report")
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	if (type == "update")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור תאריך");
+			return false;
+		}
+	}
+
+	createEditForm  	  (type);
+	createEditFormButtons (type);
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditForm (type)
+{
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(80,300),
+					ENG : new Array(80,300)}
+
+	fieldWidth	= 290;
+
+	var dayVal  = "";
+	var descVal = "";
+	var idVal   = "";
+	if (type == "update")
+	{
+		dayVal  = pageObj.getSelectedValueOf(tableId, dayCol.xmlTag);
+		descVal = pageObj.getSelectedValueOf(tableId, descCol.xmlTag);
+		idVal	= pageObj.getSelectedValueOf(tableId, idCol.xmlTag);
+	}
+
+	var frameId = pageObj.addFormFrame (formId, "תאריך", ""); 
+
+	field1 = {type      	: "date",             	    textHEB      : dayCol.textHEB,
+              spanData  	: 1,                        textENG      : dayCol.textENG,
+			  dataFld  		: dayCol.xmlTag,  		  	mandatory    : true,
+			  defaultValue	: dayVal}
+
+	field2 = {type      	: "text",             	    textHEB      : descCol.textHEB,
+              spanData  	: 1,                        textENG      : descCol.textENG,
+			  dataFld  		: descCol.xmlTag,  		  	width		 : fieldWidth,
+			  defaultValue	: descVal}
+
+	hidden = {type			: "hidden", 				dataFld		 : idCol.xmlTag,
+			  defaultValue	: idVal}
+
+	fields = new Array(field1, field2, hidden);
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId, false);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+var global_submitType;
+var submitCommand;
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.cleanRequest ();
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	global_submitType	 = type;
+	submitCommand = type + "OffDay";
+
+	serverObj.sendRequest("offDays." + submitCommand, undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+		doRefresh 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteOffDay																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteOffDay() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור תאריך");
+		return false;
+	}
+
+	confirm("מחיקת התאריך", "", "deleteOffDay_confirm");
+}
+
+function deleteOffDay_confirm ()
+{
+	var id 	= pageObj.getSelectedValueOf(tableId, "id");
+	
+	serverObj.cleanRequest ();
+	serverObj.addTag	("id", id);
+	
+	serverObj.sendRequest("offDays.deleteOffDay", undefined, "deleteOffDay_continue");
+}
+
+function deleteOffDay_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

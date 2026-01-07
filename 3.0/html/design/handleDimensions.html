@@ -1,0 +1,459 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/multiUpload.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var pageTitleId		= -1;
+var addTitleId		= -1;
+var updateTitleId	= -1;
+var tableId			= -1;
+var rowButtonsId	= -1;
+var formId			= -1;
+var formButtonsId	= -1;
+
+var idCol			= {textHEB	: "קוד", 	   textENG	: "Id",				   xmlTag	: "id"			}
+var descriptionCol	= {textHEB	: "תיאור",	   textENG	: "Description",	   xmlTag	: "description"	}
+var widthCol		= {textHEB	: "רוחב",	   textENG  : "Width",			   xmlTag	: "width"		}
+var heightCol		= {textHEB	: "גובה",	   textENG  : "Height",			   xmlTag	: "height"		}
+var colorCol		= {textHEB	: "צבע",	   textENG  : "Color",			   xmlTag	: "color"		}
+var forceSizeCol	= {textHEB	: "אלץ גודל",  textENG  : "Force size",		   xmlTag	: "forceSize"	}
+var allowCropCol	= {textHEB	: "אפשר חיתוך",textENG  : "Allow Crop",		   xmlTag	: "allowCrop"	}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage 	();
+
+	createPageTitles    ();	
+	createDataTable     ();
+	createTableButtons  ();
+	loadData			();			
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	= pageObj.addPageTitle 	  ("ניהול ממדי תמונות", "Dimensions management");
+	addTitleId		= pageObj.addPageSubTitle ("הוספת ממד תמונה",	"Add a dimension");
+	updateTitleId	= pageObj.addPageSubTitle ("עדכון ממד תמונה",	"Update a dimension");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,			widthHEB : 70,
+				   textENG	: idCol.textENG,			widthENG : 70,
+				   sortType : "number",					sortDir  : "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: descriptionCol.textHEB,	widthHEB : 320,
+				   textENG	: descriptionCol.textENG,	widthENG : 320,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : descriptionCol.xmlTag}
+		   
+	column3		= {textHEB	: "גודל",					widthHEB : 150,
+				   textENG	: "Size",					widthENG : 150,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : "dimensions",				dir		 : "ltr"}
+		   
+	column4		= {textHEB	: colorCol.textHEB,			widthHEB : 100,
+				   textENG	: colorCol.textENG,			widthENG : 100,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : colorCol.xmlTag,			dir		 : "ltr"}
+		   
+	column5		= {textHEB	: forceSizeCol.textHEB,		widthHEB : 100,
+				   textENG	: forceSizeCol.textENG,		widthENG : 100,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : forceSizeCol.xmlTag+"Text"}
+		   
+	column6		= {textHEB	: allowCropCol.textHEB,		widthHEB : 120,
+				   textENG	: allowCropCol.textENG,		widthENG : 120,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : allowCropCol.xmlTag+"Text"}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5, column6);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 350, 270);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteDimension()"}
+
+	btn4	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	serverObj.cleanRequest ();
+	serverObj.sendRequest("dimensions.getDimensions", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i) 
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		commonSetGlobalData ("dimensionsXml", "");	// force to reload
+	}
+
+	if (global_firstTime)
+	{
+		handleDisplay 		("report");
+		global_firstTime = false;
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type, id)
+{
+	if (type == "update" && id == undefined)
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור ממד תמונה", "Choose a row");
+			return false;
+		}
+	}
+
+	createEditForm  	  (type, id);
+
+	if (multiUploadStart(undefined, formId))
+	{
+		createEditFormButtons (type);
+		handleDisplay 		  (type);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditForm (type, id)
+{
+	// create add/update form (if needed)
+	// ------------------------------------------------------------------------------------ 
+	if (formId == -1)
+	{
+		// first creation
+		formId   = pageObj.addForm ();
+	}
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(120,120,120,120),
+					ENG : new Array(120,120,120,120)}
+
+	var frameId = pageObj.addFormFrame (formId, "הגדרות", "Definitions"); 
+
+  	field1 = {type			: "text",					textHEB		 : descriptionCol.textHEB,
+			  spanData		: 3,						textENG		 : descriptionCol.textENG,
+			  dataFld		: descriptionCol.xmlTag,	width	 	 : 355,
+			  minLength		: "1",						mandatory	 : true,
+			  maxLength		: "200"}
+
+	field2 = {type      	: "number",					textHEB 	 : widthCol.textHEB,
+			  spanData  	: 1,						textENG      : widthCol.textENG,
+			  dataFld		: widthCol.xmlTag,			width	 	 : 110,
+			  maxLength 	: 4,						minValue	 : 0,
+			  mandatory		: true}
+
+	field3 = {type      	: "number",					textHEB 	 : heightCol.textHEB,
+			  spanData  	: 1,						textENG      : heightCol.textENG,
+			  dataFld		: heightCol.xmlTag,			width		 : 110,
+			  maxLength 	: 4,						minValue	 : 0,
+			  mandatory		: true}
+
+	field4 = {type      	: "yesNoSelect",			textHEB 	 : forceSizeCol.textHEB,
+			  spanData  	: 1,						textENG      : forceSizeCol.textENG,
+			  dataFld		: forceSizeCol.xmlTag,		width		 : 110,
+			  mandatory		: true,						defaultValue : "0"}
+
+	field6 = {type      	: "yesNoSelect",			textHEB 	 : allowCropCol.textHEB,
+			  spanData  	: 1,						textENG      : allowCropCol.textENG,
+			  dataFld		: allowCropCol.xmlTag,		width		 : 110,
+			  mandatory		: true,						defaultValue : "0"}
+
+	color = "";
+	if (type == "update")
+	{
+		color = pageObj.getSelectedValueOf(tableId,colorCol.xmlTag);
+	}
+	field5 = {type			: "color",					textHEB		 : colorCol.textHEB,
+			  spanData		: 1,						textENG		 : colorCol.textENG,
+			  dataFld		: colorCol.xmlTag,			width	 	 : 110,
+			  minLength		: "4",						mandatory	 : false,
+			  maxLength		: "15",						color		 : color}
+
+	field7 = {type      	: "number",					textHEB 	 : "איכות (1-100)",
+			  spanData  	: 1,						textENG      : "Quality (1-100)",
+			  dataFld		: "quality",				width		 : 110,
+			  mandatory		: true,						defaultValue : "0"}
+
+  	fields = new Array(field1, field2, field3, field4, field5, field6, field7);
+	
+	field1 = {type		: "onlineUpload",				textHEB	 	 : "סימן מים",
+			  spanData	: 3,							textENG		 : "Water mark",
+			  dataFld	: "file",						width		 : 355,
+			  x			: 165,							y			 : 192,
+	  		  xEng		: 448}
+
+	show   = {type		: "span",						textHEB		 : "הצגת קובץ",
+			  spanData	: 1,							textENG		 : "Show file",
+			  dataFld   : "show",						width		 : 110,
+			  className : "styleLink", 					action       : "showFile()"}
+
+	del    = {type		: "span",						textHEB		 : "מחיקה",
+			  spanData	: 1,							textENG		 : "Delete",
+			  dataFld  	: "delete",						width		 : 110,
+			  className : "styleLink", 					action       : "deleteFile()"}
+
+	hidden1= {type		: "hidden",						dataFld   	 : "linkToFile"}
+
+  	fields.push (field1);
+			  
+	if (type == "update")
+	{
+		fields.push (show, del, hidden1);
+
+		pageObj.setFormXml (formId, pageObj.getSelectedRowAsXml(tableId));
+
+		hidden = {type		: "hidden",			
+				  dataFld	: idCol.xmlTag}
+		fields.push (hidden);
+	}
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	pageObj.generateForm  (formId, false);
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteFile																				*/
+/* ---------------------------------------------------------------------------------------- */
+function deleteFile ()
+{
+	pageObj.setFieldValue(formId, "formSourceFile", "");
+	pageObj.setFieldValue(formId, "fileDeleted", 	"1");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showFile																					*/
+/* ---------------------------------------------------------------------------------------- */
+function showFile ()
+{
+	window.open (pageObj.getFieldValue(formId, "linkToFile"), "_blank");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+var global_submitType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	var watermarkFile = uploadGetFileName();
+	if (watermarkFile == ERROR_WAIT_LOADING)
+		return false;
+
+	serverObj.addTag ("watermarkFile",   watermarkFile);
+	serverObj.addTag ("fileDeleted", pageObj.getFieldValue(formId, "fileDeleted"));
+
+	global_submitType	 = type;
+	submitCommand = type + "Dimension";
+	
+	serverObj.sendRequest("dimensions." + submitCommand, undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+		doRefresh 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteDimension																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteDimension() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור ממד תמונה", "Choose a row");
+		return false;
+	}
+
+	var id 	= pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	
+	confirm("מחיקת ממד תמונה " + id, "delete dimension " + id, "deleteDimension_confirm");
+}
+
+function deleteDimension_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+
+	serverObj.sendRequest("dimensions.deleteDimension", undefined, "deleteDimension_continue");
+}
+
+function deleteDimension_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>
+
+

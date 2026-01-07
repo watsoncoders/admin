@@ -1,0 +1,635 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var pageTitleId		= -1;
+var addTitleId		= -1;
+var updateTitleId	= -1;
+var duplicateTitleId= -1;
+var searchFormId	= -1;
+var searchButtonsId	= -1;
+var tableId			= -1;
+var rowButtonsId	= -1;
+var formId			= -1;
+var formButtonsId	= -1;
+var formTableId		= -1;
+
+var idCol		= {textHEB	: "קוד", 			textENG	: "", xmlTag	: "id"				}
+var typeCol		= {textHEB	: "סוג חלון", 		textENG	: "", xmlTag	: "type"  			}
+var showOnCol	= {textHEB	: "מוצג בדף", 		textENG	: "", xmlTag	: "showOnPageId"	}
+var popPageCol  = {textHEB  : "דף החלון",		textENG : "", xmlTag 	: "popPageId"		}
+var statusCol	= {textHEB	: "סטטוס", 		  	textENG	: "", xmlTag	: "status"			}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();	
+	addSearchSection    ();	
+	createDataTable     ();	
+	createTableButtons  ();	
+
+	serverOptions_getPages ("empty", "after_loadPages");
+}
+
+var globalPages;
+
+function after_loadPages (options)
+{
+	globalPages = options;
+
+	createSearchSection ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   		= pageObj.addPageTitle 	  ("ניהול חלונות קופצים", "");
+	addTitleId			= pageObj.addPageSubTitle ("הוספת חלון קופץ",	"");
+	updateTitleId		= pageObj.addPageSubTitle ("עדכון חלון קופץ",	"");
+	duplicateTitleId	= pageObj.addPageSubTitle ("שכפול חלון קופץ",	"");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+var typeOptions = new selectOptionsObj();
+typeOptions.addOption ("",				 "",						   "");
+typeOptions.addOption ("popunderLoad", 	 "חלון קופץ מתחת בכניסה לדף",  "");
+typeOptions.addOption ("popunderUnload", "חלון קופץ מתחת ביציאה מהדף", "");
+typeOptions.addOption ("popupLoad", 	 "חלון קופץ מעל בכניסה לדף",   "");
+typeOptions.addOption ("popupUnload", 	 "חלון קופץ מעל ביציאה מהדף",  "");
+typeOptions.addOption ("popupMsg", 		 "הודעה קופצת בכניסה לדף",     "");
+typeOptions.addOption ("chooseLang",	 "הודעה קופצת לבחירת שפה",     "");
+
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	if (globalPages == undefined) return;
+
+	var queryXml = commonGetGlobalData ("popWindowsQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (searchFormId, queryXml);
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	field1 = {type      	: "text",				textHEB		 : idCol.textHEB,
+			  spanData  	: 1,					textENG		 : idCol.textENG,
+			  dataFld   	: idCol.xmlTag,			width   	 : 50,
+			  minLength 	: "1",					mandatory 	 : false,
+			  maxLength 	: "10"}
+
+	field2 = {type			: "select",				textHEB		 : typeCol.textHEB,
+			  spanData		: 1,					textENG		 : typeCol.textENG,
+			  dataFld		: typeCol.xmlTag,		width	 	 : 200,
+			  options		: typeOptions.getOptions()}
+
+	field3 = {type			: "select",				textHEB		 : showOnCol.textHEB,
+			  spanData		: 1,					textENG		 : showOnCol.textENG,
+			  dataFld		: showOnCol.xmlTag,		width	 	 : 200,
+			  options		: globalPages}
+
+  	fields.push (field1, field2, field3);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(35,80,50,230,60,width),
+					ENG : new Array(35,80,50,230,60,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+
+	loadData ();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction  (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,			widthHEB : 60,
+				   textENG	: idCol.textENG,			widthENG : 60,
+				   sortType : "number",					sortDir  : "descending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: typeCol.textHEB,			widthHEB : 200,
+				   textENG	: typeCol.textENG,			widthENG : 200,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : typeCol.xmlTag}
+
+	column3		= {textHEB	: popPageCol.textHEB,		widthHEB : 200,
+				   textENG	: popPageCol.textENG,		widthENG : 200,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : "popPage"}
+
+	column4		= {textHEB	: showOnCol.textHEB,		widthHEB : 200,
+				   textENG	: showOnCol.textENG,		widthENG : 200,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : "showOnPage"}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 300, 250);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "duplicate",
+			   action		: "openForm('duplicate')"}
+
+	btn4	= {type			: "delete",
+			   action		: "deletePopWindow()"}
+
+	btn5	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3, btn4), new Array(btn5));
+
+	rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (duplicateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+
+		if (!pageObj.isCollapse (searchFormId))
+		{
+			pageObj.showComponent (searchButtonsId);
+		}
+	}
+
+	if (type == "add" || type == "update" || type == "duplicate")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("popWindowsQueryXml", queryXml);
+
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("popWindows.getPopWindows", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay 	("report");
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+var globalType;
+var globaId;
+
+var globalDetailsXml;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type, id)
+{
+	globalType = type;
+	globalId   = id;
+
+	if ((type == "update" && id == undefined) || type == "duplicate")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור חלון קופץ");
+			return false;
+		}
+
+		if (globalId == undefined)
+			globalId = pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+	}
+
+	if (type == "update"|| type == "duplicate")
+	{
+		serverObj.addTag	   (idCol.xmlTag, globalId);
+		serverObj.addTag	   ("action", type);
+		serverObj.sendRequest("popWindows.getPopWindowDetails", undefined, "after_loadDetails");
+	}
+	else
+	{ 
+		serverObj.sendRequest("popWindows.getPopWindowNextId", undefined, "after_loadDetails");
+	}
+
+}
+
+var statusOptions = new selectOptionsObj();
+statusOptions.addOption ("active",   "פעיל", 		"");
+statusOptions.addOption ("inactive", "לא פעיל", 	"");
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+function openForm_continue (type, id)
+{
+	var type = globalType;
+	var id   = globalId;
+
+	if (globalDetailsXml == undefined) return;
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	if (type == "update" || type == "duplicate")
+	{
+		pageObj.setFormXml (formId, globalDetailsXml);
+	}
+
+	var	id = commonGetInnerData (globalDetailsXml, idCol.xmlTag);
+	
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(180,180,180,180),
+					ENG : new Array(180,180,180,180)}
+
+	fieldWidth  = 170;
+
+	var frameId = pageObj.addFormFrame (formId, "הגדרות החלון קופץ", ""); 
+
+	field1 = {type			: "span",					textHEB		 : idCol.textHEB,
+			  spanData		: 1,						textENG		 : idCol.textENG,
+			  dataFld		: idCol.xmlTag,				width	 	 : fieldWidth,
+			  defaultValue  : id}
+
+	field2 = {type			: "select",					textHEB		 : statusCol.textHEB,
+			  spanData		: 1,						textENG		 : statusCol.textENG,
+			  dataFld		: statusCol.xmlTag,			width	 	 : fieldWidth,
+			  options		: statusOptions.getOptions(),
+			  mandatory	 	: true,						defaultValue : "active"}
+
+	field3 = {type			: "select",					textHEB		 : typeCol.textHEB,
+			  spanData		: 1,						textENG		 : typeCol.textENG,
+			  dataFld		: typeCol.xmlTag,			width	 	 : fieldWidth,
+			  options		: typeOptions.getOptions(),
+			  mandatory	    : true}
+
+	field4 = {type			: "select",					textHEB		 : popPageCol.textHEB,
+			  spanData		: 1,						textENG		 : popPageCol.textENG,
+			  dataFld		: popPageCol.xmlTag,		width	 	 : fieldWidth,
+			  options		: globalPages,
+			  mandatory	    : true}
+
+	field5 = {type			: "select",					textHEB		 : showOnCol.textHEB,
+			  spanData		: 3,						textENG		 : showOnCol.textENG,
+			  dataFld		: showOnCol.xmlTag,			width	 	 : fieldWidth,
+			  options		: globalPages}
+
+  	field6 = {type			: "number",					textHEB		 : "מס' פעמים מקסימלי להצגה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "counter",				width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "2",						minValue	 : 1}
+
+  	field7 = {type			: "number",					textHEB		 : "מס' דפים נצפים לפני הצגה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "counterBefore",			width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "2",						minValue	 : 1}
+
+  	field8 = {type			: "number",					textHEB		 : "רוחב החלון",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "popWidth",				width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "4",						minValue	 : 0}
+
+  	field9 = {type			: "number",					textHEB		 : "גובה החלון",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "popHeight",				width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "4",						minValue	 : 0}
+
+  	field10= {type			: "number",					textHEB		 : "מיקום X",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "popLeft",				width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "4",						minValue	 : 0}
+
+  	field11= {type			: "number",					textHEB		 : "מיקום Y",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "popTop",					width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "4",						minValue	 : 0}
+
+	fields = new Array(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11);
+	
+	hidden = {type			: "hidden", 				dataFld		 : idCol.xmlTag}
+
+	fields.push (hidden);
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId,false);
+
+	createEditFormButtons (type);
+
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	actionType = type;
+	if (type == "duplicate")
+		actionType = "add"
+
+	btn2	= {type			: "save",
+			   action		: "submitForm('" + actionType + "Save')"}
+
+	btn3	= {type			: type,
+			   action		: "submitForm('" + actionType + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2, btn3));
+
+	if (formButtonsId == -1)
+	{
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	}
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+var globalSubmitType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	globalSubmitType = type;
+
+	if (!pageObj.validateForm(formId)) return false;
+	
+	if (pageObj.getFieldValue(formId, showOnCol.xmlTag) == pageObj.getFieldValue(formId, popPageCol.xmlTag))
+	{
+		pageObj.displayAndSetError (formId, showOnCol.xmlTag, "דף החלון והדף בו הוא יוצג אינם יכולים להיות אותו הדף");
+		return false;
+	}
+
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	command = type + "PopWindow";
+	
+	if (type == "addSave")
+	{
+		command = "addPopWindow";
+	}
+		
+	if (type == "updateSave")
+	{
+		command = "updatePopWindow";
+	}
+		
+	serverObj.sendRequest("popWindows." + command, undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var type = globalSubmitType;
+
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		if (type != "addSave" && type != "updateSave")
+		{
+			doRefresh 		();
+			handleDisplay	("report");
+		}
+		else
+		{
+			doRefresh 		();
+			commonMsgBox ("info", "נתוני החלון קופץ נשמרו בהצלחה");
+		}
+		
+		if (type == "addSave")
+		{
+			pageObj.hideComponent (formId);
+			pageObj.hideComponent (formButtonsId);
+			
+			var id = commonGetInnerData(responseXml,idCol.xmlTag);
+
+			pageObj.setSelectedRow (tableId, idCol.xmlTag, id);
+
+			pageObj.hideComponent (addTitleId);
+			pageObj.hideComponent (duplicateTitleId);
+			pageObj.showComponent (updateTitleId);
+			
+			openForm ("update", id);
+			createEditFormButtons ("update");
+			
+			pageObj.showComponent (formId);
+			pageObj.showComponent (formButtonsId);
+		}
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deletePopWindow																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deletePopWindow() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור חלון קופץ");
+		return false;
+	}
+
+	var id = pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+	
+	confirm("מחיקת חלון קופץ " + id, "delete popup window " + id, "deletePopWindow_confirm");
+}
+
+function deletePopWindow_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, pageObj.getSelectedValueOf (tableId, idCol.xmlTag));
+	
+	serverObj.sendRequest("popWindows.deletePopWindow", undefined, "deletePopWindow_continue");
+}
+
+function deletePopWindow_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>
+

@@ -1,0 +1,1216 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var addTitleId			= -1;
+var updateTitleId		= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+
+var days_pageTitleId	= -1;
+var days_tableId		= -1;
+var days_rowButtonsId	= -1;
+
+var days_addTitleId		= -1;
+var days_updateTitleId	= -1;
+var days_formId			= -1;
+var days_formButtonsId	= -1;
+
+var less_addTitleId		= -1;
+var less_updateTitleId	= -1;
+var less_formId			= -1;
+var less_formButtonsId	= -1;
+
+var	idCol				= {textHEB	: "קוד",				textENG	: "",	xmlTag	: "pageId"			}
+var nameCol				= {textHEB	: "שם הקורס",			textENG : "", 	xmlTag	: "name"			}
+var	durationCol			= {textHEB	: "משך הקורס",		 	textENG	: "",   xmlTag	: "duration"		}
+var	numLessonsCol		= {textHEB	: "מס' הרצאות",	   		textENG	: "",   xmlTag	: "numLessons"		}
+var	courseLangCol		= {textHEB	: "שפה",	   			textENG	: "",   xmlTag	: "courseLanguage"	}
+var aboutCol			= {textHEB  : "תיאור",				textENG : "",	xmlTag	: "about"			}
+var statusCol			= {textHEB  : "סטטוס",				textENG : "",	xmlTag	: "status"			}
+var paymentsNoCol		= {textHEB  : "מס' תשלומים",		textENG : "",	xmlTag	: "paymentsNo"		}
+var paymentPriceCol		= {textHEB  : "תשלום ראשון",		textENG : "",	xmlTag	: "paymentPrice"	}
+
+var	days_idCol			= {textHEB	: "קוד",				textENG	: "",	xmlTag	: "id"				}
+var	days_posCol			= {textHEB	: "#",					textENG	: "",	xmlTag	: "pos"				}
+var days_lessonCol		= {textHEB	: "הרצאה",				textENG	: "",	xmlTag	: "lessonId"		}
+var days_lecturerCol	= {textHEB	: "מרצה",				textENG	: "",	xmlTag	: "lecturerId"		}
+var	days_durationCol	= {textHEB	: "משך",				textENG	: "",	xmlTag	: "duration"		}
+
+var langs	= new selectOptionsObj();
+langs.addOption ("",	"",			"");
+langs.addOption ("HEB",	"עברית",	"");
+langs.addOption ("ENG",	"אנגלית",	"");
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage 	  ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();
+	addSearchSection    ();
+	createDataTable     ();	
+	createTableButtons  ();	
+	createSearchSection ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   		= pageObj.addPageTitle 	  ("ניהול קורסים", 	 	"");
+	addTitleId			= pageObj.addPageSubTitle ("הוספת קורס",		"");
+	updateTitleId		= pageObj.addPageSubTitle ("עדכון פרטי קורס",	"");
+
+	days_pageTitleId   	= pageObj.addPageSubTitle ("סילבוס הקורס", 	 	"");
+	days_addTitleId		= pageObj.addPageSubTitle ("הוספת יום",			"");
+	days_updateTitleId	= pageObj.addPageSubTitle ("עדכון יום",			"");
+	less_addTitleId		= pageObj.addPageSubTitle ("הוספת הרצאה",		"");
+	less_updateTitleId	= pageObj.addPageSubTitle ("עדכון הרצאה",		"");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+var statuses	= new selectOptionsObj();
+statuses.addOption ("",		"",			"");
+statuses.addOption ("1",	"פעיל",		"");
+statuses.addOption ("0",	"לא פעיל",	"");
+
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	commonFormSetQueryXml ("israeliCoursesQueryXml");
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	var fieldWidth  = 150;
+
+	field1 = {type      : "select",					textHEB		 : statusCol.textHEB,
+			  spanData  : 1,						textENG		 : statusCol.textENG,
+			  dataFld   : statusCol.xmlTag,			width   	 : 85,
+			  options	: statuses.getOptions(),	defaultValue : "active"}
+
+  	field2 = {type		: "select",					textHEB		 : courseLangCol.textHEB,
+		  	  spanData	: 1,						textENG		 : courseLangCol.textENG,
+			  dataFld	: courseLangCol.xmlTag,		width	 	 : 70,
+			  options	: langs.getOptions()}
+
+	field3 = {type      : "text",					textHEB		 : "לפי שם",
+			  spanData  : 1,						textENG		 : "",
+			  dataFld   : "name",					width		 : fieldWidth}
+
+  	fields.push (field1, field2, field3);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(45,115,35,100,50,width),
+					ENG : new Array(45,115,35,100,50,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+
+	loadData			();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// ------------------------------------------------------------------------------------
+	column1		=  {textHEB		: idCol.textHEB,			widthHEB : 60,
+			   		textENG		: idCol.textENG,			widthENG : 60,
+			   		sortType	: "number",					sortDir  : "ascending",
+				   	xmlTag   	: idCol.xmlTag}
+		   
+	column2		=  {textHEB		: nameCol.textHEB,			widthHEB : 230,
+			   		textENG		: nameCol.textENG,			widthENG : 230,
+			   		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: nameCol.xmlTag}
+
+	column3		=  {textHEB		: durationCol.textHEB,		widthHEB : 300,
+			  		textENG		: durationCol.textENG,		widthENG : 300,
+			   		sortType	: "text",					sortDir  : "ascending",
+			  		xmlTag   	: durationCol.xmlTag}
+		   
+	column4		=  {textHEB		: "הרצאות",					widthHEB : 100,
+			  		textENG		: "",						widthENG : 100,
+			   		sortType	: "text",					sortDir  : "ascending",
+			  		xmlTag   	: numLessonsCol.xmlTag}
+		   
+	column5		=  {textHEB		: courseLangCol.textHEB,	widthHEB : 70,
+			  		textENG		: courseLangCol.textENG,	widthENG : 70,
+			   		sortType	: "text",					sortDir  : "ascending",
+			  		xmlTag   	: courseLangCol.xmlTag}
+		   
+	column6		=  {textHEB		: statusCol.textHEB,		widthHEB : 100,
+			   		textENG		: statusCol.textENG,		widthENG : 100,
+			  		 sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: statusCol.xmlTag}
+
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5, column6);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 350, 270);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteCourse()"}
+
+	btn4	= {type			: "",
+			   textHEB		: "סילבוס הקורס",
+			   action		: "showCourseDays()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		pageObj.hideComponent (days_pageTitleId);
+		pageObj.hideComponent (days_tableId);
+		pageObj.hideComponent (days_rowButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+	else if (type == "add" || type == "update" || type == "showDays")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		if (type == "add" || type == "update")
+		{
+			// show from
+			pageObj.showComponent (eval(type + "TitleId"));
+			pageObj.showComponent (formId);
+			pageObj.showComponent (formButtonsId);
+		}
+		else if (type == "showDays")
+		{
+			pageObj.hideComponent (days_addTitleId);
+			pageObj.hideComponent (days_updateTitleId);
+			pageObj.hideComponent (days_formId);
+			pageObj.hideComponent (days_formButtonsId);
+
+			pageObj.hideComponent (less_addTitleId);
+			pageObj.hideComponent (less_updateTitleId);
+			pageObj.hideComponent (less_formId);
+			pageObj.hideComponent (less_formButtonsId);
+
+			pageObj.showComponent (days_pageTitleId);
+			pageObj.showComponent (days_tableId);
+			pageObj.showComponent (days_rowButtonsId);
+		}
+	}
+	else if (type == "addDay" || type == "updateDay" || type == "addLesson" || type == "updateLesson")
+	{
+		pageObj.hideComponent (days_pageTitleId);
+		pageObj.hideComponent (days_tableId);
+		pageObj.hideComponent (days_rowButtonsId);
+
+		switch (type)
+		{
+			case "addDay"		: 	pageObj.showComponent (days_addTitleId);	break;
+			case "updateDay"	: 	pageObj.showComponent (days_updateTitleId);	break;
+			case "addLesson"	: 	pageObj.showComponent (less_addTitleId);	break;
+			case "updateLesson"	: 	pageObj.showComponent (less_updateTitleId);	break;
+		}
+
+		if (type == "addDay" || type == "updateDay")
+		{
+			pageObj.showComponent (days_formId);
+			pageObj.showComponent (days_formButtonsId);
+		}
+		else
+		{
+			pageObj.showComponent (less_formId);
+			pageObj.showComponent (less_formButtonsId);
+		}
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	commonSaveQueryXml ("israeliCoursesQueryXml");
+
+	serverObj.sendRequest("israeliCourses.getCourses", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay 		("report");	
+	
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+var globalType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	globalType = type;
+
+	if (type == "update")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור קורס");
+			return false;
+		}
+
+		serverObj.cleanRequest 	();
+		serverObj.addTag		(idCol.xmlTag, pageObj.getSelectedValueOf (tableId, idCol.xmlTag));
+		serverObj.sendRequest	("israeliCourses.getCourseDetails", undefined, "openForm_continue");
+	}
+	else
+	{
+		openForm_continue ();
+	}
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function openForm_continue (i)
+{
+	var type = globalType;
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	if (type == "update")
+	{
+		var responseXml = asyncResponseXml.getResponseXml (i);
+			
+		pageObj.setFormXml (formId, responseXml);
+	}
+	
+	// -----------------------------------------------------------------------------------------------------------
+
+	fieldsWidths = {HEB : new Array(120,150,120,150),
+					ENG : new Array(120,150,120,150)}
+
+	var fieldWidth  = 140;
+	var fieldWidth2 = 411;
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	var frameId = pageObj.addFormFrame (formId, "זיהוי", ""); 
+
+	fields = new Array();
+
+	field1   = {type		: "select",						textHEB		 : statusCol.textHEB,
+			  	spanData  	: 1,							textENG 	 : statusCol.textENG,
+			 	dataFld		: statusCol.xmlTag,				width		 : fieldWidth,
+			  	options		: statuses.getOptions(),		defaultValue : "1"}
+
+  	field2 	 = {type		: "text",						textHEB		 : nameCol.textHEB,
+		  		spanData	: 1,							textENG		 : nameCol.textENG,
+		  		dataFld		: nameCol.xmlTag,				width	 	 : fieldWidth,
+				maxLength 	: "50"}
+
+  	field3 	 = {type		: "textarea",					textHEB		 : durationCol.textHEB,
+		  		spanData	: 3,							textENG		 : durationCol.textENG,
+				dataFld		: durationCol.xmlTag,			width	 	 : fieldWidth2,
+				rows		: 3}
+
+  	field4 	 = {type		: "text",						textHEB		 : numLessonsCol.textHEB,
+		  		spanData	: 1,							textENG		 : numLessonsCol.textENG,
+		  		dataFld		: numLessonsCol.xmlTag,			width	 	 : fieldWidth}
+
+  	field5 	 = {type		: "select",						textHEB		 : courseLangCol.textHEB,
+		  		spanData	: 1,							textENG		 : courseLangCol.textENG,
+				dataFld		: courseLangCol.xmlTag,			width	 	 : fieldWidth,
+				options		: langs.getOptions(),			mandatory	 : true}
+
+   	fields = new Array(field1, field2, field3, field4, field5);
+
+	hidden = {type			: "hidden",						dataFld   	 : idCol.xmlTag}
+	fields.push (hidden);
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths2 = {HEB : new Array(0,680),
+				 	 ENG : new Array(0,680)}
+
+	var frameId = pageObj.addFormFrame (formId, "תיאור", ""); 
+
+	field1 = {type		: "xstandard",				textHEB		 : "",
+			  spanData	: 1,						textENG		 : "",
+			  dataFld	: aboutCol.xmlTag,			width	 	 : 670,
+			  height  	: 350}
+
+  	fields = new Array(field1);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths2, fields);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	var frameId = pageObj.addFormFrame (formId, "תשלום", ""); 
+
+	fields = new Array();
+
+	for (i = 1; i <= 4; i++)
+	{
+		field1   = {type		: "number",						textHEB		 : paymentsNoCol.textHEB + " " + i,
+				  	spanData  	: 1,							textENG 	 : paymentsNoCol.textENG + " " + i,
+					dataFld		: paymentsNoCol.xmlTag + i,		width		 : fieldWidth}
+
+		field2   = {type		: "amount",						textHEB		 : paymentPriceCol.textHEB + " " + i,
+				  	spanData  	: 1,							textENG 	 : paymentPriceCol.textENG + " " + i,
+					dataFld		: paymentPriceCol.xmlTag + i,	width		 : fieldWidth}
+
+	   	fields.push(field1, field2);
+	}
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	commonAddSeoFrame (formId, undefined, false);
+	
+	// -----------------------------------------------------------------------------------------------------------
+
+	pageObj.generateForm  (formId);
+	createEditFormButtons (type);
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	if (!pageObj.validateForm(formId)) return false;
+
+	serverObj.cleanRequest ();
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	serverObj.sendRequest("israeliCourses." + type + "Course", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+		doRefresh 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteCourse																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteCourse() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור קורס");
+		return false;
+	}
+
+	confirm("מחיקת הקורס", "", "deleteCourse_confirm");
+}
+
+function deleteCourse_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+	
+	serverObj.sendRequest("israeliCourses.deleteCourse", undefined, "deleteCourse_continue");
+}
+
+function deleteCourse_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+var lessons;
+
+/* ---------------------------------------------------------------------------------------- */
+/* showCourseDays																			*/
+/* ---------------------------------------------------------------------------------------- */
+function showCourseDays ()
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור קורס");
+		return false;
+	}
+
+	if (days_tableId == -1)
+	{
+		// first creation of days table
+		days_tableId  	= pageObj.addTable ();
+
+		pageObj.setLoadFunction (days_tableId, "loadDays");
+		
+		column1		=  {textHEB		: days_idCol.textHEB,		widthHEB : 60,
+				   		textENG		: days_idCol.textENG,		widthENG : 60,
+					   	xmlTag   	: days_idCol.xmlTag}
+
+		column2		=  {textHEB		: days_posCol.textHEB,		widthHEB : 150,
+				   		textENG		: days_posCol.textENG,		widthENG : 150,
+					   	xmlTag   	: days_posCol.xmlTag}
+		   
+		column3		=  {textHEB		: "תיאור",					widthHEB : 290,
+				   		textENG		: "",						widthENG : 290,
+					   	xmlTag   	: "title"}
+		   
+		column4		=  {textHEB		: days_lecturerCol.textHEB,	widthHEB : 250,
+				   		textENG		: days_lecturerCol.textENG,	widthENG : 250,
+					   	xmlTag   	: days_lecturerCol.xmlTag}
+
+		column5		= {textHEB		: days_durationCol.textHEB,	widthHEB : 60,
+				   		textENG		: days_durationCol.textENG,	widthENG : 60,
+					   	xmlTag   	: days_durationCol.xmlTag}
+
+		columns = new Array ();
+		columns.push (column1, column2, column3, column4, column5);
+
+		pageObj.setTableColumns (days_tableId, columns);
+		pageObj.setTableHeight	(days_tableId, 350, 270);
+
+		btn1	= {type			: "",
+				   textHEB		: "הוספת יום",
+				   action		: "openDayForm('add')",
+		   		   inPopup		: false}
+
+		btn2	= {type			: "",
+				   textHEB		: "הוספת הרצאה",
+				   action		: "openLessonForm('add')",
+		   		   inPopup		: false}
+
+		btn3	= {type			: "",
+				   textHEB		: "עדכון",
+				   action		: "showUpdateForm()"}
+
+		btn4	= {type			: "",
+				   textHEB		: "מחיקה",
+				   action		: "deleteRow()"}
+
+		btn5	= {type			: "back",
+			  	   action		: "handleDisplay('report')"}
+
+		btnsGroups = new Array ();
+
+		btnsGroups.push (new Array(btn1, btn2, btn3, btn4), new Array(btn5));
+
+		if (days_rowButtonsId == -1)
+			days_rowButtonsId = pageObj.addRowOfButtons ();
+
+		pageObj.generateRowOfButtons (days_rowButtonsId, btnsGroups, pageObj.getTableWidth(days_tableId));
+	}
+
+	pageObj.updatePageTitle (days_pageTitleId, "סילבוס - " + pageObj.getSelectedValueOf(tableId,nameCol.xmlTag), "");
+
+	if (lessons == undefined)
+	{
+		serverObj.cleanRequest 	();
+		serverObj.addTag		("all", "1");
+		serverObj.sendRequest	("israeliLessons.getLessons", undefined, "after_loadLessons"); 
+	}
+	else
+	{
+		loadDays ();
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* after_loadLessons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function after_loadLessons (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	var selectOptions	= new selectOptionsObj();
+
+	if (responseXml != null)
+	{
+		var itemsNode = responseXml.getElementsByTagName("items").item(0);
+
+		if (itemsNode != null)
+		{
+			selectOptions.addOption ("", "", "");
+
+			for (i=0; i < itemsNode.childNodes.length; i++)
+			{
+				var currNode    = itemsNode.childNodes[i];
+	
+				if (currNode.nodeName != "item") continue;
+	
+				var id   	= commonGetInnerData (currNode, "id");
+				var title  	= commonGetInnerData (currNode, "chooseText");
+	
+				selectOptions.addOption (id, title, title);
+			}
+		}
+	}
+
+	lessons = selectOptions.getOptions ();
+
+	loadDays ();
+}
+
+var daysXml;
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadDays																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadDays () 
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	("courseId", pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+
+	serverObj.sendRequest("israeliCourses.getCourseLessons", pageObj.getTablePaging(days_tableId), "loadDays_continue"); 
+}
+
+function loadDays_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.resetTable 	   (days_tableId);
+
+		pageObj.setTableXmls   (days_tableId, responseXml);
+		pageObj.setTablePaging (days_tableId, responseXml);
+
+		pageObj.generateTable (days_tableId);
+
+		handleDisplay 		("showDays");	
+
+		daysXml = responseXml.getElementsByTagName("days").item(0);
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showUpdateForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function showUpdateForm ()
+{
+	if (!pageObj.isRowSelected(days_tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור שורה");
+		return false;
+	}
+
+	if (pageObj.getSelectedValueOf (days_tableId, days_posCol.xmlTag).indexOf("יום") == -1)
+	{
+		openLessonForm ("update");
+	}
+	else
+	{
+		openDayForm ("update");
+  	}	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteRow																				*/
+/* ---------------------------------------------------------------------------------------- */
+function deleteRow ()
+{
+	if (!pageObj.isRowSelected(days_tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור שורה");
+		return false;
+	}
+
+	if (pageObj.getSelectedValueOf (days_tableId, days_posCol.xmlTag).indexOf("יום") == -1)
+	{
+		confirm("מחיקת היום והרצאותיו", "", "deleteLesson");
+	}
+	else
+	{
+		confirm("מחיקת היום והרצאותיו", "", "deleteDay");
+  	}	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openDayForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function openDayForm (type)
+{
+	globalType = type;
+
+	if (type == "update")
+	{
+		global_lastDay	= pageObj.getSelectedValueOf (days_tableId, days_idCol.xmlTag);
+
+		serverObj.cleanRequest 	();
+		serverObj.addTag		(days_idCol.xmlTag, global_lastDay);
+		serverObj.sendRequest	("israeliCourses.getCourseDayDetails", undefined, "openDayForm_continue");
+	}
+	else
+	{
+		openDayForm_continue ();
+	}
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function openDayForm_continue (i)
+{
+	var type = globalType;
+
+	if (days_formId == -1)
+		days_formId   = pageObj.addForm ();
+
+	pageObj.resetForm (days_formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	if (type == "update")
+	{
+		var responseXml = asyncResponseXml.getResponseXml (i);
+			
+		pageObj.setFormXml (days_formId, responseXml);
+	}
+	
+	// -----------------------------------------------------------------------------------------------------------
+
+	fieldsWidths = {HEB : new Array(70,400),
+					ENG : new Array(70,400)}
+
+	var fieldWidth  = 390;
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	var frameId = pageObj.addFormFrame (days_formId, "זיהוי", ""); 
+
+	fields = new Array();
+
+  	field1 	 = {type		: "text",						textHEB		 : "כותרת",
+		  		spanData	: 1,							textENG		 : "",
+		  		dataFld		: "title",						width	 	 : fieldWidth,
+				maxLength 	: "180"}
+
+   	fields = new Array(field1);
+
+	hidden = {type			: "hidden",						dataFld   	 : days_idCol.xmlTag}
+	fields.push (hidden);
+
+	var removePos = 0;
+
+	if (type == "update")
+	{
+		removePos = commonGetInnerData (responseXml, "dayNo")*1 + 1;
+	}
+
+	// build pos options
+	
+	var posOptions = commonGetPosOptions (daysXml, removePos, "title");
+
+	field1 = {type			: "select",					textHEB		 : "מיקום",
+			  spanData		: 3,						textENG		 : "",
+			  dataFld		: "dayNo",					width	 	 : fieldWidth,
+			  options		: posOptions.getOptions(),	mandatory	 : true,
+	  		  defaultValue	: "1"}
+
+	fields.push (field1);
+
+	pageObj.addFormFields (days_formId, frameId, fieldsWidths, fields);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	pageObj.generateForm  (days_formId, false);
+
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('showDays')"}
+
+	btn2	= {type			: type,
+			   action		: "submitDayForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (days_formButtonsId == -1)
+		days_formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (days_formButtonsId, btnsGroups, pageObj.getFormWidth(days_formId));
+
+	handleDisplay 		  (type + "Day");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitDayForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function submitDayForm (type)
+{
+	if (!pageObj.validateForm(days_formId)) return false;
+
+	serverObj.cleanRequest 	();
+	serverObj.setXml 		(pageObj.getFormXml(days_formId));
+	serverObj.addTag		("courseId", pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+
+	serverObj.sendRequest("israeliCourses." + type + "CourseDay", undefined, "submitDayForm_continue");
+}
+
+function submitDayForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("showDays");
+		loadDays 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteDay																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteDay () 
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	(days_idCol.xmlTag, pageObj.getSelectedValueOf(days_tableId,days_idCol.xmlTag));
+	
+	serverObj.sendRequest("israeliCourses.deleteCourseDay", undefined, "deleteDay_continue");
+}
+
+function deleteDay_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		loadDays ();
+	}
+	return true;
+}
+
+var lessonsXml;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openLessonForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function openLessonForm (type)
+{
+	globalType = type;
+
+	lessonsXml = undefined;
+
+	if (type == "update")
+	{
+		// get day lessons
+		serverObj.cleanRequest 	();
+		serverObj.addTag		("id", pageObj.getSelectedValueOf (days_tableId, days_idCol.xmlTag));
+		serverObj.sendRequest	("israeliCourses.getDayLessons", undefined, "openLessonForm_after");
+	}
+	else if (global_lastDay != "")
+	{
+		serverObj.cleanRequest 	();
+		serverObj.addTag		("dayId", global_lastDay);
+		serverObj.sendRequest	("israeliCourses.getDayLessons", undefined, "openLessonForm_after");
+	}
+	else
+	{
+		openLessonForm_continue ();
+	}
+}
+
+function openLessonForm_after (i)
+{
+	lessonsXml = asyncResponseXml.getResponseXml (i);
+
+	if (globalType == "update")
+	{
+		serverObj.cleanRequest 	();
+		serverObj.addTag		(days_idCol.xmlTag, pageObj.getSelectedValueOf (days_tableId, days_idCol.xmlTag));
+		serverObj.sendRequest	("israeliCourses.getCourseLessonDetails", undefined, "openLessonForm_continue");
+	}
+	else
+	{
+		openLessonForm_continue ();
+	}
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function openLessonForm_continue (i)
+{
+	var type = globalType;
+
+	if (less_formId == -1)
+		less_formId   = pageObj.addForm ();
+
+	pageObj.resetForm (less_formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	if (type == "update")
+	{
+		var responseXml = asyncResponseXml.getResponseXml (i);
+			
+		pageObj.setFormXml (less_formId, responseXml);
+	}
+	
+	// -----------------------------------------------------------------------------------------------------------
+
+	var dayOptions	= new selectOptionsObj();
+
+	if (daysXml != null)
+	{
+		var itemsNode = daysXml.getElementsByTagName("items").item(0);
+
+		if (itemsNode == null)
+		{
+			commonMsgBox ("info", "עדיין לא מוגדרים ימים. לא ניתן להוסיף הרצאה");
+			return false;
+		} 
+
+		dayOptions.addOption ("", "< בחירת יום >", "");
+
+		for (i=0; i < itemsNode.childNodes.length; i++)
+		{
+			var currNode    = itemsNode.childNodes[i];
+
+			if (currNode.nodeName != "item") continue;
+
+			var id   	= commonGetInnerData (currNode, "id");
+			var title  	= "יום " + commonGetInnerData (currNode, "pos") + " - " + commonGetInnerData (currNode, "title");
+
+			dayOptions.addOption (id, title, title);
+		}
+	}
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	fieldsWidths = {HEB : new Array(70,400),
+					ENG : new Array(70,400)}
+
+	var fieldWidth  = 390;
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	var frameId = pageObj.addFormFrame (less_formId, "זיהוי", ""); 
+
+	fields = new Array();
+
+  	field1 	 = {type		: "select",						textHEB		 : "יום",
+		  		spanData	: 1,							textENG		 : "",
+		  		dataFld		: "dayId",						width	 	 : fieldWidth,
+				options		: dayOptions.getOptions(),		mandatory	 : true,
+				action		: "onSelectDay()",				defaultValue : global_lastDay}
+
+	field2   = {type      	: "select",						textHEB		 : days_lessonCol.textHEB,
+			    spanData  	: 1,							textENG		 : days_lessonCol.textENG,
+			    dataFld   	: days_lessonCol.xmlTag,		width   	 : fieldWidth,
+			    options		: lessons}
+
+   	fields = new Array(field1, field2);
+
+	hidden = {type			: "hidden",						dataFld   	 : days_idCol.xmlTag}
+	fields.push (hidden);
+
+	var removePos = 0;
+
+	if (type == "update")
+	{
+		removePos = commonGetInnerData (responseXml, "pos")*1 + 1;
+	}
+
+	// build pos options
+	
+	var posOptions = commonGetPosOptions (lessonsXml, removePos, "title").getOptions();
+
+	defaultPos	= 1;
+	if (posOptions.length != 0)
+	{
+		defaultPos	= posOptions[posOptions.length-1].value;
+	}
+
+	field1 = {type			: "select",					textHEB		 : "מיקום",
+			  spanData		: 3,						textENG		 : "",
+			  dataFld		: "pos",					width	 	 : fieldWidth,
+			  options		: posOptions,				mandatory	 : true,
+	  		  defaultValue	: defaultPos}
+
+	fields.push (field1);
+
+	pageObj.addFormFields (less_formId, frameId, fieldsWidths, fields);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	pageObj.generateForm  (less_formId, false);
+
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('showDays')"}
+
+	btn2	= {type			: type,
+			   action		: "submitLessonForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (less_formButtonsId == -1)
+		less_formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (less_formButtonsId, btnsGroups, pageObj.getFormWidth(less_formId));
+
+	handleDisplay 		  (type + "Lesson");
+}
+
+var global_lastDay = "";
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectDay																				*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectDay ()
+{
+	var day = pageObj.getFieldValue (less_formId, "dayId");
+
+	if (day == "")
+	{
+		pageObj.setFieldOptions (less_formId, "pos", "");
+	}
+	else
+	{
+		global_lastDay = day;
+
+		serverObj.cleanRequest 	();
+		serverObj.addTag		("dayId", day);
+		serverObj.sendRequest	("israeliCourses.getDayLessons", undefined, "after_getLessons");
+	}
+}
+
+function after_getLessons (i)
+{
+	lessonsXml = asyncResponseXml.getResponseXml (i);
+
+	var posOptions = commonGetPosOptions (lessonsXml, 0, "title").getOptions();
+
+	pageObj.setFieldOptions (less_formId, "pos", posOptions);
+	pageObj.setFieldValue   (less_formId, "pos", posOptions[posOptions.length-1].value); 
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitLessonForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function submitLessonForm (type)
+{
+	if (!pageObj.validateForm(less_formId)) return false;
+
+	serverObj.cleanRequest 	();
+	serverObj.setXml 		(pageObj.getFormXml(less_formId));
+	serverObj.addTag		("courseId", pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+
+	serverObj.sendRequest("israeliCourses." + type + "CourseLesson", undefined, "submitLessonForm_continue");
+}
+
+function submitLessonForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("showLessons");
+		loadDays 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteLesson																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteLesson () 
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	(days_idCol.xmlTag, pageObj.getSelectedValueOf(days_tableId,days_idCol.xmlTag));
+	
+	serverObj.sendRequest("israeliCourses.deleteCourseLesson", undefined, "deleteLesson_continue");
+}
+
+function deleteLesson_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		loadDays ();
+	}
+	return true;
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

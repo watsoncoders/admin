@@ -1,0 +1,1911 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/nadlansFiles.js?v=1"></script>
+<script language="JavaScript" src="../../javascript2/multiUpload.js"></script>
+
+<script language="JavaScript">
+
+var langArray			= commonGetGlobalData ("langArray");
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var addTitleId			= -1;
+var updateTitleId		= -1;
+var duplicateTitleId	= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+
+var addNadlanTitleId	= -1;
+var updateNadlanTitleId	= -1;
+var nadlanFormId		= -1;
+var nadlanFormButtonsId	= -1;
+
+var nadlanIdCol			= {textHEB	: "קוד",				textENG : "",	xmlTag	: "nadlanId"		}
+var nadlanNameCol		= {textHEB	: "שם הלוח",			textENG : "",	xmlTag	: "title"			}
+
+var	itemIdCol			= {textHEB	: "קוד",				textENG	: "",	xmlTag	: "itemId"			}
+var	statusCol			= {textHEB	: "סטטוס",			   	textENG	: "",   xmlTag	: "status"			}
+var nadlanTypeCol		= {textHEB	: "סוג עסקה",			textENG : "",	xmlTag	: "nadlanType"		}
+var itemTypeCol			= {textHEB	: "סוג הנכס",			textENG : "",	xmlTag  : "itemType"		}
+var numRoomsCol			= {textHEB	: "מס' חדרים",			textENG : "",	xmlTag  : "numRooms"		}
+var insertTimeCol		= {textHEB	: "הוספה",				textENG : "",	xmlTag  : "insertTime"		}
+var updateTimeCol		= {textHEB	: "עדכון",				textENG : "",	xmlTag  : "updateTime"		}
+var expireTimeCol		= {textHEB	: "תוקף",				textENG : "",	xmlTag  : "expireTime"		}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage 	  ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    				();
+	nadlansFiles_createSpanFile 		();
+	addSearchSection    				();
+	nadlansFiles_createTable			();
+	nadlansFiles_createTableButtons		();
+	createDataTable     				();	
+	createTableButtons  				();	
+	createSearchSection 				();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   		= pageObj.addPageTitle 	  ("ניהול נדל\"ן",  		"");
+	addTitleId			= pageObj.addPageSubTitle ("הוספת מודעה",			"");
+	updateTitleId		= pageObj.addPageSubTitle ("עדכון מודעה",			"");
+	duplicateTitleId	= pageObj.addPageSubTitle ("שכפול מודעה",			"");
+
+	addNadlanTitleId	= pageObj.addPageSubTitle ("הוספת לוח נדל\"ן",		"");
+	updateNadlanTitleId	= pageObj.addPageSubTitle ("עדכון פרטי הלוח",		"");
+
+	nadlansFiles_createTitles ();
+}
+	
+var statusOptions = new selectOptionsObj();
+statusOptions.addOption ("" , 	  	  "", 	 	"");
+statusOptions.addOption ("new", 	  "חדשה",  	"");
+statusOptions.addOption ("approved",  "מאושרת",	"");
+statusOptions.addOption ("expire",    "פג תוקף","");
+statusOptions.addOption ("rejected",  "נדחתה", 	"");
+statusOptions.addOption ("deleted",   "נמחקה", 	"");
+
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+var globalNadlans;
+var globalCities;
+var globalPhoneRecords;
+
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	var queryXml = commonGetGlobalData ("nadlanItemsQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (searchFormId, queryXml);
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	serverOptions_getNadlans (false, "after_getNadlans");
+
+	serverOptions_getCities  (true, undefined, "after_getCities");
+
+	serverOptions_getPhonesRecords (true, "after_getPhonesRecords");
+
+	serverObj.cleanRequest ();
+	serverObj.addTag	   (nadlanIdCol.xmlTag, pageObj.getFieldValue(searchFormId, nadlanIdCol.xmlTag));
+	serverObj.sendRequest  ("nadlans.getNadlanDetails", undefined, "now_getAllValues");
+
+}
+
+// ----------------------------------------------------------------------------------------
+
+function getNadlanDetails (i)
+{
+	globalNadlanDetails = asyncResponseXml.getResponseXml (i);
+
+	serverObj.sendRequest("enums.getAllValues", undefined, "after_getAllValues");
+}
+
+function after_getAllValues (i)
+{
+	globalEnumValuesXml = asyncResponseXml.getResponseXml (i);
+
+	createSearchSection_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getNadlans (options)
+{
+	globalNadlans = options;
+
+	createSearchSection_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getCities(options)
+{
+	globalCities = options;
+
+	createSearchSection_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getPhonesRecords (options)
+{
+	globalPhoneRecords = options;
+
+	createSearchSection_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function createSearchSection_continue ()
+{
+	if (globalNadlans == undefined || globalCities == undefined || globalPhoneRecords == undefined || globalEnumValuesXml == undefined) return;
+
+	var nadlanTypeEnum = commonGetInnerData(globalNadlanDetails, "nadlanType");
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	var defaultNadlan = 0;
+	if (globalNadlans.length > 0)
+		defaultNadlan = globalNadlans[0].value;
+
+	var fieldWidth = 140;
+
+	field1 = {type      : "select",					textHEB		 : "נדל\"ן",
+			  spanData  : 1,						textENG		 : "",
+			  dataFld   : nadlanIdCol.xmlTag,		width   	 : fieldWidth,
+			  options	: globalNadlans,			defaultValue : defaultNadlan,
+			  action	: "onChangeQuery()"}
+
+	field2 = {type      : "select",					textHEB		 : statusCol.textHEB,
+			  spanData  : 1,						textENG		 : statusCol.textENG,
+			  dataFld   : statusCol.xmlTag,			width		 : fieldWidth,
+			  action	: "onChangeQuery()",		options		 : statusOptions.getOptions()}
+
+	field3 = {type      : "select",					textHEB		 : nadlanTypeCol.textHEB,
+			  spanData  : 1,						textENG		 : nadlanTypeCol.textENG,
+			  dataFld   : nadlanTypeCol.xmlTag,		width		 : fieldWidth,
+			  action	: "onChangeQuery()",		options		 : getEnumOptions(nadlanTypeEnum, true)}
+
+  	field4 = {type		: "select",					textHEB		 : "סוכן",
+		  	  spanData	: 1,						textENG		 : "",
+	 		  dataFld	: "contactFromBook",		width	 	 : fieldWidth,
+		 	  options 	: globalPhoneRecords}
+
+	field5 = {type		: "select",					textHEB		 : "יישוב",
+		     spanData	: 1,						textENG		 : "",
+			 dataFld	: "cityId",					width		 : fieldWidth,
+			 options	: globalCities,				action		 : "onChangeQuery()"}
+
+  	field6 = {type		: "text",					textHEB		 : "איש קשר",
+		  	  spanData	: 1,						textENG		 : "",
+			  dataFld	: "contactName",			width	 	 : fieldWidth,
+			  maxLength : "50"}
+
+	field7 = {type		: "date",					textHEB		 : "מתאריך",
+			  spanData	: 1,						textENG		 : "",
+			  dataFld	: "fromUpdateDate",			width	 	 : fieldWidth}
+
+	field8 = {type		: "date",					textHEB		 : "עד תאריך",
+			  spanData	: 1,						textENG		 : "",
+			  dataFld	: "toUpdateDate",			width	 	 : fieldWidth}
+
+  	fields.push (field1, field2, field3, field4, field5, field6, field7, field8);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(70,160,70,160,70,160,70,width),
+					ENG : new Array(70,160,70,160,70,160,70,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "",
+			   textHEB		: "הוספת לוח",
+			   textENG		: "",
+			   action		: "openForm('addNadlan')"}
+
+	btn3	= {type			: "",
+			   textHEB		: "הגדרות לוח",
+			   textENG		: "",
+			   action		: "openForm('updateNadlan')"}
+
+	btn4	= {type			: "",
+			   textHEB		: "מחיקת לוח",
+			   textENG		: "",
+			   action		: "deleteNadlan()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2,btn3, btn4));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+
+	loadData ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onChangeQuery																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onChangeQuery ()
+{
+	setTimeout ("doRefresh();", 100);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	pageObj.tableIsMultiSelection (tableId);
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// ------------------------------------------------------------------------------------
+	column1		=  {textHEB		: itemIdCol.textHEB,		widthHEB : 70,
+			   		textENG		: itemIdCol.textENG,		widthENG : 60,
+			   		sortType	: "number",					sortDir  : "ascending",
+				   	xmlTag   	: itemIdCol.xmlTag}
+		   
+	column2		=  {textHEB		: statusCol.textHEB,		widthHEB : 100,
+			  		textENG		: statusCol.textENG,		widthENG : 100,
+			   		sortType	: "text",					sortDir  : "ascending",
+			  		xmlTag   	: statusCol.xmlTag}
+		   
+	column3		=  {textHEB		: nadlanTypeCol.textHEB,	widthHEB : 130,
+			   		textENG		: nadlanTypeCol.textENG,	widthENG : 130,
+			  	 	sortType 	: "text",					sortDir  : "ascending",
+			  		xmlTag   	: nadlanTypeCol.xmlTag}
+		   
+	column4		=  {textHEB		: itemTypeCol.textHEB,		widthHEB : 130,
+			   		textENG		: itemTypeCol.textENG,		widthENG : 130,
+			   		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: itemTypeCol.xmlTag}
+
+	column5		=  {textHEB		: "מחיר",					widthHEB : 100,
+			   		textENG		: "",						widthENG : 100,
+			   		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: "price"}
+
+	column6		=  {textHEB		: "חדרים",					widthHEB : 100,
+			   		textENG		: numRoomsCol.textENG,		widthENG : 100,
+			  		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: numRoomsCol.xmlTag}
+
+	column7		=  {textHEB		: insertTimeCol.textHEB,	widthHEB : 100,
+			   		textENG		: insertTimeCol.textENG,	widthENG : 100,
+			  		sortType 	: "date",					sortDir  : "ascending",
+			   		xmlTag   	: insertTimeCol.xmlTag}
+
+	column8		=  {textHEB		: updateTimeCol.textHEB,	widthHEB : 100,
+			   		textENG		: updateTimeCol.textENG,	widthENG : 100,
+			  		sortType 	: "date",					sortDir  : "ascending",
+			   		xmlTag   	: updateTimeCol.xmlTag}
+
+	column9		=  {textHEB		: expireTimeCol.textHEB,	widthHEB : 100,
+			   		textENG		: expireTimeCol.textENG,	widthENG : 100,
+			  		sortType 	: "date",					sortDir  : "ascending",
+			   		xmlTag   	: expireTimeCol.xmlTag}
+
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5, column6, column7, column8, column9);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 400, 200);
+
+	// ------------------------------------------------------------------------------------
+
+	data1   	= {textHEB  : "סטטיסטיקה", 	      xmlTag   : "statistic",
+				   textENG  : "",				  spanData : 1}
+
+	moreDataCols = new Array(data1);
+
+   	moreDataWidths = {HEB : new Array (90,"*"),
+    				  ENG : new Array (90,"*")};
+	
+	pageObj.addTableExtension (tableId, moreDataWidths, moreDataCols);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "duplicate",
+			   action		: "openForm('duplicate')"}
+
+	btn4	= {type			: "delete",
+			   action		: "deleteItem()",
+			   isMulti		: true}
+
+    btn5	= {type			: "",
+			   textHEB		: "הצגת מודעה",
+			   action		: "showItem()"}
+
+	btn6	= {type			: "",
+			   textHEB		: "קבצי מודעה",
+			   action		: "nadlansFiles_showPage()"}
+
+	btn7	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn4), new Array(btn5), new Array(btn6), new Array(btn7));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (duplicateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+		pageObj.hideComponent (addNadlanTitleId);
+		pageObj.hideComponent (updateNadlanTitleId);
+		pageObj.hideComponent (nadlanFormId);
+		pageObj.hideComponent (nadlanFormButtonsId);
+	
+		// files
+		pageObj.hideComponent (filesTitleId);
+		pageObj.hideComponent (filesTableId);
+		pageObj.hideComponent (filesRowButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "files")
+	{
+		// hide edit files form
+		pageObj.hideComponent (addFilesTitleId);
+		pageObj.hideComponent (updateFileTitleId);
+		pageObj.hideComponent (showTitleId);
+		pageObj.hideComponent (filesFormId);
+		pageObj.hideComponent (filesFormButtonsId);
+		pageObj.hideComponent (spanFileId);
+		pageObj.hideComponent (showButtonsId);
+
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show files table
+		pageObj.showComponent (filesTitleId);
+		pageObj.showComponent (filesTableId);
+		pageObj.showComponent (filesRowButtonsId);
+	}
+
+	if (type == "addFiles" || type == "updateFile" || type == "show")
+	{
+		// hide files table
+		pageObj.hideComponent (filesTitleId);
+		pageObj.hideComponent (filesTableId);
+		pageObj.hideComponent (filesRowButtonsId);
+
+		// show file form
+		pageObj.showComponent (eval(type + "TitleId"));
+
+		if (type == "show")
+		{
+			pageObj.showComponent (showTitleId);
+			pageObj.showComponent (showButtonsId);
+		}
+		else
+		{
+			pageObj.showComponent (filesFormId);
+			pageObj.showComponent (filesFormButtonsId);
+		}
+	}
+
+	if (type == "add" || type == "update" || type == "duplicate")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+
+	if (type == "addNadlan" || type == "updateNadlan")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (nadlanFormId);
+		pageObj.showComponent (nadlanFormButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("nadlanItemsQueryXml", queryXml);
+
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("nadlans.getNadlanItems", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay ("report");	
+
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+var globalDimensions;
+var globalDetailsXml;
+var globalLayouts;
+var globalPages;
+var globalEnums;
+
+var globalNadlanDetails;
+
+var globalEnumValuesXml;
+
+var globalType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type, id)
+{
+	globalType = type;
+
+	if ((type == "update" || type == "duplicate") && id == undefined)
+	{
+		if (pageObj.areRowsSelected(tableId))
+		{
+			commonMsgBox ("info", "יש לבחור מודעה אחת בלבד");
+			return false;
+		}
+
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור מודעה");
+			return false;
+		}
+
+		id = pageObj.getSelectedValueOf (tableId, itemIdCol.xmlTag);
+	}
+
+	var selectedNadlan = pageObj.getFieldValue(searchFormId, nadlanIdCol.xmlTag);
+
+	if (type == "addNadlan" || type == "updateNadlan")
+	{
+		if (type == "updateNadlan" && selectedNadlan == "")
+		{
+			commonMsgBox ("info", "יש לבחור לוח מהרשימה");
+			return false;
+		}
+
+		if (globalDimensions == undefined)
+			serverOptions_getDimensions			(true, "after_loadDimensions");
+
+		if (globalLayouts == undefined)
+			serverOptions_getLayoutsByType		("essay", "after_loadLayouts");
+
+		if (globalPages == undefined)
+			serverOptions_getPages				("choose", "after_loadPages");
+
+		if (globalEnums == undefined)
+			serverOptions_getEnums				("nadlan", 0, "after_loadEnums");
+
+		if (type == "updateNadlan")
+		{
+			globalNadlanDetails = undefined;
+
+			serverObj.cleanRequest ();
+			serverObj.addTag	   (nadlanIdCol.xmlTag, selectedNadlan);
+			serverObj.sendRequest  ("nadlans.getNadlanDetails", undefined, "after_getNadlanDetails");
+		}
+
+		openForm_continue ();
+	}
+	
+	if (type == "add" || type == "update" || type == "duplicate")
+	{
+		if (type == "add" &&  selectedNadlan == "")
+		{
+			commonMsgBox ("info", "יש לבחור לוח מהרשימה");
+			return false;
+		}
+
+		globalNadlanDetails = undefined;
+
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (nadlanIdCol.xmlTag, selectedNadlan);
+		serverObj.sendRequest  ("nadlans.getNadlanDetails", undefined, "after_getNadlanDetails");
+
+		if (type == "update" || type == "duplicate")
+		{
+			serverObj.cleanRequest ();
+			serverObj.addTag("id", id);
+			
+			serverObj.sendRequest("nadlans.getNadlanItemDetails", undefined, "after_getNadlanItemDetails");
+		}
+
+		openForm_continue ();
+	}
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadDimensions (options)
+{
+	globalDimensions = options;
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadLayouts (options)
+{
+	globalLayouts = options;
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadPages (options)
+{
+	globalPages = options;
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadEnums (options)
+{
+	globalEnums = options;
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getNadlanDetails (i)
+{
+	globalNadlanDetails = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getNadlanItemDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+var confirmsOptions = new selectOptionsObj();
+confirmsOptions.addOption ("auto", 	 	  "אוטומטי", 		"");
+confirmsOptions.addOption ("manual", 	  "ידני",    		"");
+confirmsOptions.addOption ("userConfirm", "אישור באימייל",  "");
+
+var hideOptions = new selectOptionsObj();
+hideOptions.addOption   ("always", 	"תמיד",						"");
+hideOptions.addOption   ("never",	 "אף פעם",					"");
+hideOptions.addOption   ("yes",	 	"לבחירת הגולש, התחלתי כן",	"");
+hideOptions.addOption   ("no",	 	"לבחירת הגולש, התחלתי לא",	"");
+
+var emailOptions = new selectOptionsObj();
+emailOptions.addOption ("none",	 		"לא לשלוח",		"");
+emailOptions.addOption ("owner",	 	"בעל המודעה",	"");
+emailOptions.addOption ("siteManager",	"בעל האתר",		"");
+emailOptions.addOption ("both",			"לשניהם",		"");
+
+function openForm_continue ()
+{
+	type = globalType;
+
+	if (type == "addNadlan" || type == "updateNadlan")
+	{
+		if (globalDimensions == undefined || globalLayouts == undefined || globalPages == undefined || 
+			(type == "updateNadlan" && globalNadlanDetails == undefined)) return;
+
+		createNadlanForm  	  	(type);
+		createNadlanFormButtons (type);	
+	}
+	
+	if (type == "add" || type == "update")
+	{
+		if (globalPhoneRecords == undefined || globalEnumValuesXml == undefined || globalNadlanDetails == undefined ||
+			((type == "update" || type == "duplicate" ) && globalDetailsXml == undefined)) return;
+
+		createEditForm  	  (type);
+		createEditFormButtons (type);
+	}
+
+	handleDisplay (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createNadlanForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createNadlanForm (type)
+{
+	if (nadlanFormId == -1)
+		nadlanFormId   = pageObj.addForm ();
+	
+	pageObj.resetForm (nadlanFormId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(180,180,180,180),
+					ENG : new Array(180,180,180,180)}
+
+	var fieldWidth   = 160;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (nadlanFormId, "הגדרות", ""); 
+
+	fields = new Array();
+	
+	if (type == "updateNadlan")
+	{
+		titleAction = "generalSetWinTitle(\"title\", \"update\", nadlanFormId)";
+
+		pageObj.setFormXml (nadlanFormId, globalNadlanDetails);
+	}
+	else
+	{
+		titleAction = "generalSetWinTitle(\"title\", \"add\", nadlanFormId)";
+	}
+
+	hidden	= {type			: "hidden",					dataFld		 : nadlanIdCol.xmlTag}
+
+	fields.push (hidden);
+	
+  	field1 = {type			: "text",					textHEB		 : nadlanNameCol.textHEB,
+			  spanData		: 1,						textENG		 : nadlanNameCol.textENG,
+			  dataFld		: nadlanNameCol.xmlTag,		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : true,
+			  maxLength		: "200",					lang		 : langArray,
+			  action		: titleAction}
+
+	field2 = {type			: "select",					textHEB		 : layoutCol.textHEB,
+			  spanData		: 1,						textENG		 : layoutCol.textENG,
+			  dataFld		: layoutCol.xmlTag,			width	 	 : fieldWidth,
+			  options		: globalLayouts, 			mandatory	 : false}
+
+	field3 = {type			: "amount",					textHEB		 : "שער המרת מטבע",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "conversionRate",			width	 	 : fieldWidth,
+			  maxLength		: 5}
+
+	field4 = {type			: "select",					textHEB		 : "אישור מודעות",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "confirmType",			width	 	 : fieldWidth,
+			  options		: confirmsOptions.getOptions(),
+			  mandatory	 	: true,						defaultValue : "auto"}
+
+	field5 = {type			: "select",					textHEB		 : "הסתרת דוא\"ל באתר",
+		      spanData		: 1,						textENG		 : "",
+			  dataFld		: "hideMsgEmail",			width		 : fieldWidth,
+			  options		: hideOptions.getOptions(),	defaultValue : "yes"}
+
+	field6 = {type			: "select",					textHEB		 : "דף מודעה על אישור מודעה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "confirmPageId",			width	 	 : fieldWidth,
+			  options		: globalPages,				mandatory	 : false}
+
+	field7 = {type			: "select",					textHEB		 : "דף מודעה על שגיאה בזיהוי",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "errorPageId",			width	 	 : fieldWidth,
+			  options		: globalPages,				mandatory	 : false}
+
+	field8 = {type			: "select",					textHEB		 : "דף מודעה על אישור מחיקה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "confirmDeletePageId",	width	 	 : fieldWidth,
+			  options		: globalPages,				mandatory	 : false}
+
+	field9 = {type			: "select",					textHEB		 : "שליחת אישור באימייל",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "sendInformEmail",		width	 	 : fieldWidth,
+			  options		: emailOptions.getOptions()}
+
+    fields.push (field1, field2, field3, field4, field5, field6, field7, field8, field9);
+
+    pageObj.addFormFields (nadlanFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (nadlanFormId, "שדות מודעה בלוח", ""); 
+
+	fields = new Array();
+
+  	field1 = {type			: "select",					textHEB		 : "סוג עסקה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "nadlanType",				width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	field2 = {type			: "select",					textHEB		 : "סוג הנכס",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "itemType",				width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	field3 = {type			: "select",					textHEB		 : "שכונה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "neighborhood",			width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	field4 = {type			: "select",					textHEB		 : "מספר חדרים",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "numRooms",				width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	field5 = {type			: "select",					textHEB		 : "מספר קומות",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "numFloors",				width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	field6 = {type			: "select",					textHEB		 : "מספר קומה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "floorNo",				width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	field7 = {type			: "select",					textHEB		 : "מספר אמבטיות",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "numBathrooms",			width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	field8 = {type			: "select",					textHEB		 : "מספר שירותים",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "numToilets",				width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	field9 = {type			: "select",					textHEB		 : "מספר מרפסות",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "numBalconies",			width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	field10= {type			: "select",					textHEB		 : "מספר מפלסים",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "numHomeLevels",			width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	field11= {type			: "select",					textHEB		 : "כיווני אוויר",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "airDirections",			width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	field12= {type			: "select",					textHEB		 : "כיוון החזית",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "frontDirection",			width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	field13= {type			: "select",					textHEB		 : "מטבח",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "kitchen",				width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	field14= {type			: "select",					textHEB		 : "ריהוט",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "furnishing",				width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	field15= {type			: "select",					textHEB		 : "מצב הנכס",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "propertyStatus",			width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	field16= {type			: "select",					textHEB		 : "תקופת השכרה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "rentPeriod",				width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	field17= {type			: "select",					textHEB		 : "מספר שותפים",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "numPartners",			width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	field18= {type			: "select",					textHEB		 : "סיבות למחיקה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "deleteReason",			width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	fields.push (field1, field2, field3, field4, field5, field6, field7, field8, field9, field10,
+		  		 field11, field12, field13, field14, field15, field16, field17, field18);
+
+    pageObj.addFormFields (nadlanFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (nadlanFormId, "תצוגת מודעות בלוח", ""); 
+
+	fields = new Array();
+
+  	field1 = {type			: "number",					textHEB		 : "מספר מודעות בדף",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "numItemsInPage",			width	 	 : fieldWidth}
+
+  	field2 = {type			: "number",					textHEB		 : "מספר דפים בסרגל",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "numPages",				width	 	 : fieldWidth}
+
+  	field3 = {type			: "number",					textHEB		 : "תדירות הופעת באנר",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "numItemsBeforeBanner",	width	 	 : fieldWidth,
+			  action		: "onChangeBanner()"}
+
+  	field4 = {type			: "number",					textHEB		 : "רוחב הבאנר",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "bannerWidth",			width	 	 : fieldWidth}
+
+  	field5 = {type			: "number",					textHEB		 : "גובה הבאנר",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "bannerHeight",			width	 	 : fieldWidth}
+
+  	field6 = {type			: "number",					textHEB		 : "מספר באנרים מקסימלי",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "maxBannersInPage",		width	 	 : fieldWidth}
+
+	fields.push (field1, field2, field3, field4, field5, field6);
+
+    pageObj.addFormFields (nadlanFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (nadlanFormId, "הגדרות לתמונות מודעה", ""); 
+
+	fields = new Array();
+
+	field1 = {type      	: "select",				textHEB 	 : "גודל לתמונה 1",
+			  spanData  	: 1,					textENG      : "",
+			  dataFld   	: "picDimension1",		width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	field2 = {type      	: "select",				textHEB 	 : "גודל לתמונה 2",
+			  spanData  	: 1,					textENG      : "",
+			  dataFld   	: "picDimension2",		width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	fields.push (field1, field2);
+
+    pageObj.addFormFields (nadlanFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	commonAddSeoFrame (nadlanFormId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (nadlanFormId, true);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onChangeBanner																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onChangeBanner ()
+{
+	var numItemsBeforeBanner = pageObj.getFieldValue(nadlanFormId,"numItemsBeforeBanner");
+	if (numItemsBeforeBanner != "" && numItemsBeforeBanner != 0)
+	{
+		pageObj.changeMandatory (nadlanFormId, "bannerWidth",  true);
+		pageObj.changeMandatory (nadlanFormId, "bannerHeight", true);
+
+		if (pageObj.getFieldValue(nadlanFormId,"maxBannersInPage") == "")
+			pageObj.setFieldValue (nadlanFormId, "maxBannersInPage", "1");
+
+		pageObj.changeMandatory (nadlanFormId, "maxBannersInPage", true);
+	}
+	else
+	{
+		pageObj.changeMandatory (nadlanFormId, "bannerWidth",  false);
+		pageObj.changeMandatory (nadlanFormId, "bannerHeight", false);
+
+		pageObj.setFieldValue   (nadlanFormId, "bannerWidth",  "");
+		pageObj.setFieldValue   (nadlanFormId, "bannerHeight", "");
+
+		pageObj.setFieldValue   (nadlanFormId, "maxBannersInPage", "0");
+
+		pageObj.changeMandatory (nadlanFormId, "maxBannersInPage", false);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createNadlanFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createNadlanFormButtons (type)
+{
+	if (type == "addNadlan")
+	   	btnType = "add";
+	else 
+		btnType = "update";
+		
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + formId + ")"}
+
+	btn3	= {type			: btnType,
+			   action		: "submitNadlanForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3));
+
+	if (nadlanFormButtonsId == -1)
+		nadlanFormButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (nadlanFormButtonsId, btnsGroups, pageObj.getFormWidth(nadlanFormId));
+
+}
+
+var global_submitType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitNadlanForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function submitNadlanForm (type)
+{
+	global_submitType = type;
+
+	if (!pageObj.validateForm(nadlanFormId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(nadlanFormId));
+
+	serverObj.sendRequest("nadlans." + type, undefined, "submitNadlanForm_continue");
+}
+
+function submitNadlanForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		globalNadlans = undefined;
+
+		serverOptions_getNadlans (false, "after_reloadNadlans");
+	}
+}
+
+function after_reloadNadlans (options)
+{
+	type	= global_submitType;
+
+	globalNadlans = options;
+
+	if (type != "delete")
+	{
+		handleDisplay	("report");
+	}
+
+	if (type == "delete")
+	{
+		var currNadlan = globalNadlans[0].value;
+	}
+	else
+	{
+		var currNadlan = pageObj.getFieldValue (searchFormId, nadlanIdCol.xmlTag);
+	}
+
+	pageObj.setFieldOptions (searchFormId, nadlanIdCol.xmlTag, globalNadlans);
+	pageObj.setFieldValue   (searchFormId, nadlanIdCol.xmlTag, currNadlan);
+
+	if (type == "delete")
+	{
+		doRefresh ();
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteNadlan																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteNadlan () 
+{
+    if (pageObj.getFieldValue (searchFormId, nadlanIdCol.xmlTag) == "") 
+	{
+		commonMsgBox ("info", "יש לבחור לוח");
+		return false;
+	}
+
+	confirm("מחיקת הלוח ומודעותיו", "delete nadlan tablet", "deleteNadlan_confirm");
+}
+
+function deleteNadlan_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.setXml	   (pageObj.getFormXml(searchFormId));
+	
+	serverObj.sendRequest("nadlans.deleteNadlan", undefined, "deleteNadlan_continue");
+}
+
+function deleteNadlan_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		globalNadlans = undefined;
+
+		global_submitType = "delete";
+
+		serverOptions_getNadlans (false, "after_reloadNadlans");
+	}
+	return true;
+}
+
+var oneStatusOptions = new selectOptionsObj();
+oneStatusOptions.addOption ("new", 	  "חדשה", 	"");
+oneStatusOptions.addOption ("approved",  "אושרה", 	"");
+oneStatusOptions.addOption ("rejected",  "נדחתה", 	"");
+oneStatusOptions.addOption ("deleted",   "נמחקה", 	"");
+
+var genderOptions = new selectOptionsObj();
+genderOptions.addOption	("",		 "",		"");
+genderOptions.addOption ("f",		 "נקבה",	"");
+genderOptions.addOption ("m",		 "זכר",		"");
+
+var boldLevels = new selectOptionsObj();
+boldLevels.addOption ("0",	"ללא הדגשה",	"");
+boldLevels.addOption ("1",	"רמה נמוכה",		"");
+boldLevels.addOption ("2",	"רמה בינונית",		"");
+boldLevels.addOption ("3",	"רמה גבוהה",		"");
+
+var currencyOptions = new selectOptionsObj();
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditForm (type)
+{
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var nadlanId     = pageObj.getFieldValue (searchFormId, nadlanIdCol.xmlTag);
+
+	// ------------------------------------------------------------------------------------ 
+
+	if (type == "update" || type == "duplicate")
+	{
+		pageObj.setFormXml (formId, globalDetailsXml);
+
+		var id	= pageObj.getSelectedValueOf (tableId, itemIdCol.xmlTag);
+
+		if (type == "update")
+		{
+			var url	 = commonGetGlobalData("siteUrl") + "/index2.php?id=" + nadlanId + "&lang=" + langArray[0] + "&itemId=" + id;
+
+			showPage = "<div style='float:left'><a href='"+url+"' target='_blank' style='text-decoration:none;color:#7F9621'>הצגת המודעה</a></div>";
+
+			pageObj.updatePageTitle (updateTitleId, showPage + "עדכון מודעה " + id);
+		}
+	}
+	
+	// -----------------------------------------------------------------------------------------------------------
+
+	fieldsWidths = {HEB : new Array(190,180,180,180),
+					ENG : new Array(190,180,180,180)}
+
+	var fieldWidth  = 160;
+	var fieldWidth2 = 522;
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	var frameId = pageObj.addFormFrame (formId, "זיהוי", ""); 
+
+	hidden	 = {type		: "hidden",						dataFld		 : itemIdCol.xmlTag};
+
+
+	hidden2  = {type		: "hidden",		
+		  	 	dataFld		: nadlanIdCol.xmlTag, 			defaultValue : nadlanId};
+			
+	field1   = {type      	: "select",						textHEB		 : "לוח נדל\"ן",
+			    spanData  	: 1,							textENG		 : "",
+			    dataFld   	: "nadlan",						width   	 : fieldWidth,
+				options		: globalNadlans,				defaultValue : nadlanId,
+			    state		: "lock"}
+
+	field2   = {type		: "select",						textHEB		 : statusCol.textHEB,
+			  	spanData  	: 1,							textENG 	 : statusCol.textENG,
+			 	dataFld		: statusCol.xmlTag,				width		 : fieldWidth,
+			  	options		: oneStatusOptions.getOptions(),defaultValue : "approved"}
+
+	field3 = {type			: "yesNoSelect",				textHEB		 : "מודעה נבחרת",
+			  spanData		: 1,							textENG		 : "",
+			  dataFld		: "isSelected",					width	 	 : fieldWidth,
+			  mandatory	 	: false,						defaultValue : "0"}
+
+	field4 = {type			: "select",						textHEB		 : "הדגשה",
+			  spanData		: 1,							textENG		 : "",
+			  dataFld		: "boldLevel",					width	 	 : fieldWidth,
+			  mandatory	 	: false,						defaultValue : "0",
+			  options		: boldLevels.getOptions()}
+
+  	field5   = {type		: "text",						textHEB		 : "קוד לקוח",
+		  		spanData	: 3,							textENG		 : "",
+		 		dataFld		: "code",						width	 	 : fieldWidth,
+		 		maxLength 	: "50"}
+
+	field6 = {type			: "date",						textHEB		 : "תאריך הוספה",
+			  spanData		: 1,							textENG		 : "",
+			  dataFld		: "insertTime",					width	 	 : fieldWidth,
+			  defaultValue	: today()}
+
+	if (type == "update")
+	{
+		field6.type = "span";
+	}
+
+	fields = new Array(hidden, hidden2, field1, field2, field3, field4, field5, field6);
+
+	if (type == "update")
+	{
+		field7 = {type			: "date",					textHEB		 : "תאריך עדכון",
+				  spanData		: 1,						textENG		 : "",
+				  dataFld		: "updateTime",				width	 	 : fieldWidth,
+				  defaultValue	: today()}
+
+		if (commonGetInnerData(globalDetailsXml, "status") == "deleted")
+		{
+			fields.push (field7);
+
+			field1 = {type			: "span",				textHEB		 : "תאריך מחיקה",
+					  spanData		: 1,					textENG		 : "",
+					  dataFld		: "deleteTime",			width	 	 : fieldWidth,
+				  	  defaultValue	: today()}
+
+			fields.push (field1);
+
+			field1 = "";
+			deleteReason = commonGetInnerData(globalNadlanDetails, "deleteReason");
+
+			if (deleteReason == 0)
+			{
+				field1 = {type		: "text",					textHEB		: "סיבה למחיקה",
+						  spanData	: 1,						textENG		: "",
+						  dataFld	: "deleteReason",			width		: fieldWidth}
+			}
+			else
+			{
+				if (deleteReason != -1)
+				{
+					field1 = {type		: "select",				textHEB		: "סיבה למחיקה",
+							  spanData	: 1,					textENG		: "",
+							  dataFld	: "deleteReason",		width		: fieldWidth,
+							  options	: getEnumOptions(deleteReason)}
+				}
+			}
+			if (field1 != "")
+				fields.push (field1);
+
+			field1	 = {type		: "number",					textHEB		: "מחיר מכירה/השכרה",
+					    spanData	: 1,						textENG		: "",
+					    dataFld		: "salePrice",				width		: fieldWidth,
+						maxLength	: "10"}			
+
+			field2	 = {type		: "select",					textHEB		: "מטבע מכירה",
+					    spanData	: 1,						textENG		: "",
+					    dataFld		: "saleCurrency",			width		: fieldWidth,
+						options		: currencyOptions.getOptionsOf("currency")}
+
+			field3	 = {type		: "text",					textHEB		: "משרד תווך",
+					    spanData	: 1,						textENG		: "",
+						dataFld		: "saleByBroker",			width		: fieldWidth,
+						maxLength	: "100"}
+
+			fields.push (field1, field2, field3);
+		}
+		else
+		{
+			fields.push (field7);
+		}
+	}
+
+	field1 	 = {type		: "date",						textHEB		 : "תאריך אחרון",
+			    spanData	: 1,							textENG		 : "",
+			    dataFld		: "expireTime",					width	 	 : fieldWidth}
+
+	field2  = {type			: "yesNoSelect",				textHEB		 : "יש הערכת שמאי",
+			   spanData		: 1,							textENG		 : "",
+			   dataFld		: "hasAssessment",				width	 	 : fieldWidth,
+			   mandatory 	: false,						defaultValue : "0"}
+
+	field3	 = {type		: "number",						textHEB		: "הערכת שמאי",
+			    spanData	: 1,							textENG		: "",
+			    dataFld		: "assessmentPrice",			width		: fieldWidth,
+				maxLength	: "10"}			
+
+	fields.push (field1, field2, field3);
+
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	var frameId = pageObj.addFormFrame (formId, "פרטים", ""); 
+
+	fields = new Array();
+
+	checks = new Array(new Array("nadlanType", 			"סוג עסקה"),
+					   new Array("itemType",			"סוג הנכס"),
+					   new Array("cityId",				"יישוב"),
+					   new Array("neighborhood",		"שכונה"),
+					   new Array("street",				"רחוב"),
+					   new Array("streetNo",			"מס' רחוב"),
+					   new Array("freeAddress",			"כתובת (חופשי)"),
+					   new Array("price",				"מחיר"),
+					   new Array("currency",			"מטבע"),
+					   new Array("rentPeriod",			"תקופת השכרה"),
+					   new Array("immediateEviction",	"פינוי מיידי"),
+					   new Array("flexibleEviction",	"פינוי גמיש"),
+					   new Array("evictionDate",		"תאריך פינוי"),
+					   new Array("evictionText",		"פינוי (טקסט חופשי)"),
+					   new Array("forSaleByBroker",		"מתיווך"),
+					   new Array("numPartners",			"מתאים לשותפים"),
+					   new Array("plottage",			"שטח מגרש"),
+					   new Array("buildPlottage",		"שטח בנוי"),
+					   new Array("balconyPlottage",		"שטח מרפסת"),
+					   new Array("gardenPlottage",		"שטח גינה"),
+					   new Array("nadlanYear",			"שנת בנייה"),
+
+					   new Array("propertyStatus",		"מצב הנכס"),
+					   new Array("numApartments",		"מספר דירות בבניין"),
+					   new Array("numRooms",			"מספר חדרים"),
+					   new Array("numFloors",			"מספר קומות"),
+					   new Array("floorNo",				"קומת הנכס"),
+					   new Array("numToilets",			"חדרי שירותים"),
+					   new Array("numBathrooms",		"חדרי אמבטיות"),
+					   new Array("numBalconies",		"מספר מרפסות"),
+					   new Array("numHomeLevels",		"מספר מפלסים"),
+					   new Array("utilityRoom",			"חדר שירות"),
+					   new Array("elevator",			"מעלית"),
+					   new Array("parking",				"חניה"),
+					   new Array("garden",				"גינה"),
+					   new Array("parentsBedroom",		"יחידת הורים"),
+					   new Array("store",				"מחסן"),
+					   new Array("mamad",				"ממ\"ד"),
+					   new Array("disabledAccess",		"גישה לנכים"),
+					   new Array("frontDirection",		"כיוון החזית"),
+					   new Array("airDirections",		"כיווני אוויר"),
+
+					   new Array("trellises",			"סורגים"),
+					   new Array("airConditioning",		"מיזוג"),
+					   new Array("heating",				"הסקה"),
+					   new Array("solarHotWater",		"דוד שמש"),
+					   new Array("kitchen",				"מטבח"),
+					   new Array("furnishing",			"ריהוט"),
+					   new Array("furnishingText",		"פירוט הריהוט")
+					  );
+
+	for (var i=0; i<checks.length; i++)
+	{	
+		switch (checks[i][0])
+		{
+			case "cityId"	:
+				
+				field	 = {type		: "select",					textHEB		: checks[i][1],
+						    spanData	: 1,						textENG		: "",
+						    dataFld		: checks[i][0],				width		: fieldWidth,
+							options		: globalCities,				action		: "onSelectCity()"}
+				fields.push (field);
+				break;
+
+			case "neighborhood"	:
+				
+				field	 = {type		: "select",					textHEB		: checks[i][1],
+						    spanData	: 1,						textENG		: "",
+						    dataFld		: checks[i][0],				width		: fieldWidth,
+							options		: ""}
+				fields.push (field);
+				break;
+
+			case "street"	:
+				field	 = {type		: "text",				textHEB		: checks[i][1],
+						    spanData	: 1,					textENG		: "",
+						    dataFld		: checks[i][0],			width		: fieldWidth,
+							maxLength	: "50"}			
+				fields.push (field);
+				break;
+
+			case "streetNo"	:
+				field	 = {type		: "text",				textHEB		: checks[i][1],
+						    spanData	: 1,					textENG		: "",
+						    dataFld		: checks[i][0],			width		: fieldWidth,
+							maxLength	: "10"}			
+				fields.push (field);
+				break;
+
+			case "freeAddress"	:
+				field	 = {type		: "text",				textHEB		: checks[i][1],
+						    spanData	: 3,					textENG		: "",
+						    dataFld		: checks[i][0],			width		: fieldWidth2,
+							maxLength	: "200"}			
+				fields.push (field);
+				break;
+
+			case "furnishingText"	:
+				field	 = {type		: "textarea",			textHEB		: checks[i][1],
+						    spanData	: 1,					textENG		: "",
+						    dataFld		: checks[i][0],			width		: fieldWidth,
+							rows		: 2}			
+				fields.push (field);
+				break;
+
+			case "currency"	:
+				
+				field	 = {type		: "select",				textHEB		: checks[i][1],
+						    spanData	: 1,					textENG		: "",
+						    dataFld		: checks[i][0],			width		: fieldWidth,
+							options		: currencyOptions.getOptionsOf("currency")}
+				fields.push (field);
+				break;
+
+			case "price"			: 
+			case "plottage"			:
+			case "buildPlottage"	:
+			case "balconyPlottage"	:
+			case "gardenPlottage"	:
+				field	 = {type		: "amount",				textHEB		: checks[i][1],
+						    spanData	: 1,					textENG		: "",
+						    dataFld		: checks[i][0],			width		: fieldWidth,
+							maxLength	: "10",					afterDot	: "2",
+																beforeDot	: "8"}			
+				fields.push (field);
+
+				break;
+
+			case "elevator"			:
+			case "parking"			:
+			case "airConditioning"	:
+			case "heating"			:
+			case "parentsBedroom"	:
+			case "store"			:
+			case "immediateEviction":
+			case "flexibleEviction"	:
+			case "garden"			:
+			case "solarHotWater"	:
+			case "mamad"			:
+			case "trellises"		:
+			case "utilityRoom"		:
+			case "disabledAccess"	:
+			case "forSaleByBroker"	:
+				field	 = {type		: "yesNoSelect",			textHEB		: checks[i][1],
+						    spanData	: 1,						textENG		: "",
+							dataFld		: checks[i][0],				width		: fieldWidth,
+							defaultValue: "0"}
+
+				if (checks[i][0] == "immediateEviction")
+					field.action = "onSetImmediate()";
+
+				fields.push (field);
+				break;
+
+			case "evictionDate"		:
+				field = {type			: "date",					textHEB		 : checks[i][1],
+						  spanData		: 1,						textENG		 : "",
+						  dataFld		: checks[i][0],				width	 	 : fieldWidth}
+				fields.push (field);
+				break;
+
+			default	:
+				var show = commonGetInnerData(globalNadlanDetails, checks[i][0]);
+				if (show != -1)
+				{
+					field	 = {type		: "text",				textHEB		: checks[i][1],
+							    spanData	: 1,					textENG		: "",
+							    dataFld		: checks[i][0],			width		: fieldWidth,
+								maxLength	: "100"}
+
+					if (show != 0)
+					{
+						if (checks[i][0] == "airDirections")
+						{
+							field.type 		= "multiSelect";
+							field.height	= 80;
+							field.options	= getEnumOptions(show, false);
+						}
+						else
+						{
+							field.type 		= "select";
+							field.options	= getEnumOptions(show);
+						}
+					}
+
+					fields.push (field);
+				}
+
+				break;
+		}
+		
+		if (checks[i][0] == "nadlanYear")
+		{
+			// end this frame and open new one
+			pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+			
+			var frameId = pageObj.addFormFrame (formId, "מאפיינים", ""); 
+
+			fields = new Array();
+		}
+
+		if (checks[i][0] == "airDirections")
+		{
+			// end this frame and open new one
+			pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+			
+			var frameId = pageObj.addFormFrame (formId, "תכולה", ""); 
+
+			fields = new Array();
+		}
+	}
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths2 = {HEB : new Array(80,650),
+				 	 ENG : new Array(80,650)}
+
+	var frameId = pageObj.addFormFrame (formId, "תיאור", ""); 
+
+	field1 = {type			: "xstandard",				textHEB			: "תיאור",
+			  spanData		: 1,						textENG		 	: "",
+			  dataFld		: "description",			width	 	 	: 630,
+			  height  		: 220}
+
+	field2 = {type			: "textarea",				textHEB		 	: "הערות",
+			  spanData		: 1,						textENG		 	: "",
+			  dataFld		: "remarks",				width	 	 	: 640,
+			  rows  		: 5}
+
+  	fields = new Array(field1, field2);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths2, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(190,180,180,180),
+					ENG : new Array(190,180,180,180)}
+
+	var frameId = pageObj.addFormFrame (formId, "התקשרות", ""); 
+
+	field1 = {type			: "select",						textHEB		 : "בחירה מספר טלפונים",
+		      spanData		: 3,							textENG		 : "",
+			  dataFld		: "contactFromBook",			width		 : fieldWidth,
+			  options		: globalPhoneRecords}
+
+  	field2   = {type		: "text",						textHEB		 : "שם איש קשר",
+		  		spanData	: 3,							textENG		 : "",
+		 		dataFld		: "contactName",				width	 	 : fieldWidth,
+		 		maxLength 	: "50"}
+
+  	field3   = {type		: "text",						textHEB		 : "טלפון 1",
+		  		spanData	: 1,							textENG		 : "",
+		  		dataFld		: "contactPhone1",				width	 	 : fieldWidth,
+		  		maxLength 	: "20"}
+
+  	field4   = {type		: "text",						textHEB		 : "טלפון 2",
+		  		spanData	: 1,							textENG		 : "",
+		  		dataFld		: "contactPhone2",				width	 	 : fieldWidth,
+		  		maxLength 	: "20"}
+
+  	field5 	= {type			: "email",						textHEB		 : "אימייל",
+		  	   spanData		: 1,							textENG		 : "",
+			   dataFld		: "contactEmail",				width	 	 : fieldWidth,
+		  	   maxLength 	: "200"}
+
+	field6  = {type			: "yesNoSelect",				textHEB		 : "הסתרת האימייל",
+			   spanData		: 1,							textENG		 : "",
+			   dataFld		: "hideEmail",					width	 	 : fieldWidth,
+			   mandatory 	: false,						defaultValue : "0"}
+
+	field7  = {type			: "yesNoSelect",				textHEB		 : "להתקשר בשבת?",
+			   spanData		: 1,							textENG		 : "",
+			   dataFld		: "saturdayContact",			width	 	 : fieldWidth,
+			   mandatory 	: false,						defaultValue : "0"}
+
+	field8	 = {type		: "select",						textHEB		 : "עיר",
+			    spanData	: 1,							textENG		 : "",
+			    dataFld		: "contactCityId",				width		 : fieldWidth,
+				options		: globalCities}
+
+  	field9   = {type		: "text",						textHEB		 : "כתובת",
+		  		spanData	: 3,							textENG		 : "",
+		 		dataFld		: "contactAddress",				width	 	 : fieldWidth,
+		 		maxLength 	: "200"}
+
+  	field10  = {type		: "textEng",					textHEB		 : "אתר",
+		  		spanData	: 3,							textENG		 : "",
+		 		dataFld		: "contactSiteUrl",				width	 	 : fieldWidth,
+		 		maxLength 	: "200"}
+
+   	fields = new Array(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	pageObj.generateForm  (formId);
+
+	if (type == "update")
+	{
+		var cityId = commonGetInnerData (globalDetailsXml, "cityId");
+		setTimeout ("onSelectCity(" + cityId + ")",100);
+
+		var neighborhood = commonGetInnerData (globalDetailsXml, "neighborhood");
+		if (neighborhood != undefined && neighborhood != "")
+		{
+			setTimeout ("pageObj.setFieldValue (formId, \"neighborhood\", " + neighborhood + ")",200);
+		}
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectCity																				*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectCity (cityId)
+{
+	if (cityId == undefined)
+		cityId = pageObj.getFieldValue (formId, "cityId");
+
+	if (cityId != "")
+	{
+		serverOptions_getNeighborhoods (cityId, true, undefined, "after_getNeighborhoods");
+	}
+	else
+	{
+		pageObj.setFieldOptions (formId, "neighborhood", "");
+	}
+}
+
+function after_getNeighborhoods (options)
+{
+	pageObj.setFieldOptions (formId, "neighborhood", options);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* getEnumOptions																			*/
+/* ---------------------------------------------------------------------------------------- */
+function getEnumOptions (enumId, withEmpty)
+{
+	if (withEmpty == undefined) withEmpty = true;
+
+	var selectOptions 	= new selectOptionsObj();
+
+	if (withEmpty)
+		selectOptions.addOption ("", "" ,"");
+
+	var itemsNode = globalEnumValuesXml.getElementsByTagName("items" + enumId).item(0);
+
+	for (i=0; i < itemsNode.childNodes.length; i++)
+	{
+		var currNode    = itemsNode.childNodes[i];
+
+		var id  	= commonGetInnerData (currNode, "valueId");
+		var name 	= commonGetInnerData (currNode, "text");
+
+		var optionText = id + " - " + name;
+
+		selectOptions.addOption (id, optionText, optionText);
+	}
+
+	return selectOptions.getOptions ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSetImmediate																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onSetImmediate ()
+{
+	if (pageObj.getFieldValue (formId, "immediateEviction") == 0)
+	{
+		pageObj.setFieldState (formId, "evictionDate", "unlock");
+	}
+	else
+	{
+		pageObj.setFieldValue (formId, "evictionDate", "");
+		pageObj.setFieldState (formId, "evictionDate", "lock");
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	actionType = type;
+	if (type == "duplicate")
+		actionType = "add"
+
+	btn2	= {type			: "save",
+			   action		: "submitForm('" + actionType + "Save')"}
+
+	btn3	= {type			: type,
+			   action		: "submitForm('" + actionType + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2, btn3));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	global_submitType = type;
+
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	command = type + "NadlanItem";
+
+	if (type == "addSave")
+	{
+		command = "addNadlanItem";
+	}
+		
+	if (type == "updateSave")
+	{
+		command = "updateNadlanItem";
+	}
+		
+	serverObj.sendRequest("nadlans." + command, undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var type = global_submitType;
+
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		if (type != "addSave" && type != "updateSave")
+		{
+			handleDisplay	("report");
+			doRefresh 		();
+		}
+		else
+		{
+			doRefresh 		();
+			commonMsgBox ("info", "נתוני המודעה נשמרו בהצלחה", "Item details has been saved successfully");
+		}
+
+		if (type == "addSave")
+		{
+			pageObj.hideComponent (formId);
+			pageObj.hideComponent (formButtonsId);
+			
+			var id = commonGetInnerData (responseXml, itemIdCol.xmlTag);
+
+			pageObj.setSelectedRow (tableId, itemIdCol.xmlTag, id);
+
+			pageObj.hideComponent (addTitleId);
+			pageObj.hideComponent (duplicateTitleId);
+			pageObj.showComponent (updateTitleId);
+			
+			openForm ("update", id);
+		}
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteItem																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteItem() 
+{
+    if (!pageObj.isRowSelected(tableId) && !pageObj.areRowsSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור מודעה");
+		return false;
+	}
+
+	var ids = pageObj.getSelectedValuesOf(tableId,itemIdCol.xmlTag);
+	
+	if (ids.length == 1)
+	{
+		confirmMsg 		= "מחיקת המודעה";
+		confirmMsgEng	= "delete nadlan item";
+	}
+	else
+	{
+		confirmMsg 		= "מחיקת " + ids.length + " המודעות המסומנות";
+		confirmMsgEng	= "delete " + ids.length + " nadlan items";
+	}
+
+	confirm(confirmMsg, confirmMsgEng, "deleteItem_confirm");
+}
+
+function deleteItem_confirm ()
+{
+	var ids = pageObj.getSelectedValuesOf(tableId,itemIdCol.xmlTag);
+	
+	serverObj.cleanRequest ();
+	serverObj.addTags	(itemIdCol.xmlTag, ids);
+
+	serverObj.sendRequest("nadlans.deleteNadlanItem", undefined, "deleteNadlanItem_continue");
+}
+
+function deleteNadlanItem_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showItem																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function showItem() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור מודעה");
+		return false;
+	}
+
+	var selectedNadlan 	= pageObj.getFieldValue(searchFormId, nadlanIdCol.xmlTag);
+	var id 				= pageObj.getSelectedValueOf(tableId,itemIdCol.xmlTag);
+	
+	window.open (commonGetGlobalData("siteUrl") + "/index2.php?id=" + selectedNadlan + "&lang=" + langArray[0] + "&itemId=" + id);
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetTable (tableId);
+	loadData();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>
+

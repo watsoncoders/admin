@@ -1,0 +1,262 @@
+<html>
+<head>
+
+<meta http-equiv = "Pragma"  content="no-cache">
+<meta http-equiv = "Expires" content="-1">
+<meta http-equiv="content-type" content="text/html;charset=windows-1255">
+
+<!-- This is the only required include -->
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= top.globalFrame.langArray;
+
+var pageObj			= new dynamicPageObj();			// page object
+var serverObj		= new serverInterfaceObj();		// server object
+
+// all page components
+var formTitleId		= -1;
+var formId			= -1;
+var formButtonsId	= -1;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	// debug modes
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitle    ();		// page titles
+
+	showForm ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitle																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitle ()
+{
+	formTitleId		= pageObj.addPageTitle ("הגדרות עיצוב גרפי", "Design Manager", "הנתונים בסוגריים הם נתוני ברירת המחדל");
+	pageObj.showComponent (formTitleId);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function showForm ()
+{
+	createForm  	  ();	// create form
+
+	createFormButtons ();	// create the form buttons
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function createForm ()
+{
+	// create form (if needed)
+	// ------------------------------------------------------------------------------------ 
+	if (formId == -1)
+	{
+		// first creation
+		formId   = pageObj.addForm ();
+	}
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+	var responseXml = serverObj.sendRequest("design.getDesign");
+
+	pageObj.setFormXml (formId, responseXml);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "התמונה בכותרת האתר", ""); 
+
+	fields = new Array();
+
+	field1 =  {type      : "text",					textHEB 	 : "שם קובץ הלוגו",
+			   spanData  : 1,						textENG      : "",
+			   dataFld   : "logoPic",				width     	 : "415",
+			   minLength : "5",					 	defaultValue : "",
+			   maxLength : "100",					mandatory 	 : false}
+
+   	fields.push (field1); 
+	
+	fieldsWidths = {HEB : new Array (100,420),
+					ENG : new Array (100,420)};
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	frameId = pageObj.addFormFrame (formId, "מידות העמוד", ""); 
+
+	fields = new Array();
+
+	field1 =  {type      : "number",				textHEB 	 : "רוחב העמוד הכולל (760)",
+			   spanData  : 1,						textENG      : "",
+			   dataFld   : "privateWidth",			width     	 : "365",
+			   minLength : "1",					 	defaultValue : "760",
+			   maxLength : "4",						mandatory 	 : false,
+	   		   beforeDot : 4,						afterDot	 : 0}
+
+	field2 =  {type      : "number",				textHEB 	 : "רוחב איזור התוכן (600)",
+			   spanData  : 1,						textENG      : "",
+			   dataFld   : "privateMiddleWidth",	width     	 : "365",
+			   minLength : "1",					 	defaultValue : "600",
+			   maxLength : "4",						mandatory 	 : false,
+	   		   beforeDot : 4,						afterDot	 : 0}
+
+	fields.push (field1, field2); 
+
+	fieldsWidths = {HEB : new Array (150,370),
+				    ENG : new Array (150,370)};
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	frameId = pageObj.addFormFrame (formId, "עיצוב תיבה באתר", ""); 
+
+	fields = new Array();
+
+	field1 =  {type      : "text",					textHEB 	 : "שם קובץ התיבה",
+			   spanData  : 1,						textENG      : "",
+			   dataFld   : "boxPic",				width     	 : "315",
+			   minLength : "5",					 	defaultValue : "",
+			   maxLength : "100",					mandatory 	 : false}
+
+	field2 =  {type      : "number",				textHEB 	 : "גובה הצלע העליונה בתיבה",
+			   spanData  : 1,						textENG      : "",
+			   dataFld   : "topHeight",				width     	 : "315",
+			   minLength : "1",					 	defaultValue : "",
+			   maxLength : "4",						mandatory 	 : false,
+	   		   beforeDot : 4,						afterDot	 : 0}
+
+	field3 =  {type      : "number",				textHEB 	 : "רוחב הצלע השמאלית בתיבה",
+			   spanData  : 1,						textENG      : "",
+			   dataFld   : "leftWidth",				width     	 : "315",
+			   minLength : "1",					 	defaultValue : "",
+			   maxLength : "4",						mandatory 	 : false,
+	   		   beforeDot : 4,						afterDot	 : 0}
+
+	field4 =  {type      : "number",				textHEB 	 : "רוחב הצלע הימנית בתיבה",
+			   spanData  : 1,						textENG      : "",
+			   dataFld   : "rightWidth",			width     	 : "315",
+			   minLength : "1",					 	defaultValue : "",
+			   maxLength : "4",						mandatory 	 : false,
+			   beforeDot : 4,						afterDot	 : 0}
+
+	field5 =  {type      : "number",				textHEB 	 : "גובה הצלע התחתונה בתיבה",
+			   spanData  : 1,						textENG      : "",
+			   dataFld   : "bottomHeight",			width     	 : "315",
+			   minLength : "1",					 	defaultValue : "",
+			   maxLength : "4",						mandatory 	 : false,
+	   		   beforeDot : 4,						afterDot	 : 0}
+	fields.push (field1, field2, field3, field4, field5);
+	
+	fieldsWidths = {HEB : new Array (200,320),
+					ENG : new Array (200,320)};
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	frameId = pageObj.addFormFrame (formId, "תוספות שונות", ""); 
+
+	fields = new Array();
+
+	field1 =  {type		 : "textarea",				textHEB		 : "קוד לפני תמונת הכותרת",
+			   spanData	 : 1,						textENG		 : "",
+			   dataFld	 : "more",					cols	 	 : 42,
+			   rows  	 : 3,						mandatory	 : false,
+			   dir		 : "ltr"}
+
+	field2 =  {type		 : "textarea",				textHEB		 : "קוד אחרי תמונת הכותרת",
+			   spanData	 : 1,						textENG		 : "",
+			   dataFld	 : "more",					cols	 	 : 42,
+			   rows  	 : 3,						mandatory	 : false,
+			   dir		 : "ltr"}
+
+	field3 =  {type		 : "textarea",				textHEB		 : "קוד להצגה בתחתית העמוד",
+			   spanData	 : 1,						textENG		 : "",
+			   dataFld	 : "more",					cols	 	 : 42,
+			   rows  	 : 3,						mandatory	 : false,
+			   dir		 : "ltr"}
+
+	fields.push (field1, field2, field3);
+	
+	fieldsWidths = {HEB : new Array (150,370),
+					ENG : new Array (150,370)};
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId);
+
+	pageObj.showComponent (formId);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createFormButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createFormButtons ()
+{
+	btn3	= {type			: "update",
+			   action		: "submitForm()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn3));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+	pageObj.showComponent (formButtonsId);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm ()
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	var responseXml = serverObj.sendRequest("design.updateDesign");
+
+	if (responseXml != null)
+	{
+		commonMsgBox ("info", "הנתונים נשמרו בהצלחה","Data was saved successfully");
+	}
+	return true;
+}
+
+//-->
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+</html>
+
+

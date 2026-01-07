@@ -1,0 +1,229 @@
+<!--RCS: @(#) $Id: msgBox.html,v 1.2 2005/07/05 12:23:34 liat Exp $ -->
+
+<html dir="rtl">
+<head>
+<title>Message Box</title>
+<meta http-equiv = "Pragma"  content="no-cache">
+<meta http-equiv = "Expires" content="-1">
+<meta http-equiv = "content-type" content="text/html;charset=windows-1255">
+<link rel="stylesheet" href="../css2/common.css" type="text/css"/>
+<script language="JavaScript" src="../javascript2/general.js"></script>
+<script language="JavaScript">
+/* -------------------------------------------------------------*/
+/* onLoad														*/
+/* -------------------------------------------------------------*/
+function onLoad()
+{
+	if (getCookie ("language") == "HEB")
+		document.dir="rtl";
+	else
+		document.dir="ltr";
+
+	var parentWindow = dialogArguments.win;
+	window.msg_span.innerHTML = parentWindow.msg;
+
+	if (window.msg_span.innerText == "undefined")
+	{
+		window.close();
+	}
+
+	var msgKind = parentWindow.msgKind;
+
+	language = parentWindow.language;
+	if (language == "") language = "HEB";
+	
+	setButtonValues(language);
+
+	if (language == "HEB")
+	{
+		window.hebBtnTd.style.display = "";
+	
+
+		switch (msgKind)
+		{
+			case "confirm" : window.confirmMsgTr.style.display  = "";
+						 	 window.confirmImgHeb.style.display = "";
+							 break;
+
+			case "info"	   : window.infoMsgTr.style.display 	= "";
+						 	 window.infoImgHeb.style.display    = "";
+							 break;
+
+			case "waiting" : window.waitingMsgTr.style.display 	= "";
+						 	 window.infoImgHeb.style.display    = "";
+							 break;
+		}
+	}
+	else
+	{
+		window.engBtnTd.style.display = "";
+
+		switch (msgKind)
+		{
+			case "confirm" : window.confirmMsgTr.style.display  = "";
+							 window.confirmImgEng.style.display = "";
+							 break;
+
+			case "info"    : window.infoMsgTr.style.display 	= "";
+						  	 window.infoImgEng.style.display    = "";
+							 break;
+
+			case "action"  : window.actionMsgTr.style.display   = "";
+							 theForm.actionBtn.value		    = parentWindow.actionBtnText;
+							 break;
+		}
+	}
+
+	if (msgKind == "waiting")
+		setTimeout ("checkHttpObj()", 200);
+}
+
+var numRetries = 7;
+function checkHttpObj ()
+{
+	httpObj = dialogArguments.httpObj;
+
+	if (httpObj.readyState == 4 || numRetries == 0)
+	{
+		window.close ();
+	}
+	else
+	{
+		numRetries--;
+
+		setTimeout ("checkHttpObj()",500*(7-numRetries))
+	}
+}
+
+function setButtonValues( theLanguage) 
+{
+	if (theLanguage == "HEB" ) 
+	{
+		window.infoBtnOK.innerText 			= "אישור";
+		window.confirmBtnOK.innerText 		= "אישור";
+		window.confirmBtnCancel.innerText 	= "ביטול";
+	}
+	else 
+	{
+
+		window.infoBtnOK.innerText			= "OK";
+		window.confirmBtnOK.innerText 		= "OK";
+		window.confirmBtnCancel.innerText 	= "Cancel";
+	}
+}
+
+/* -------------------------------------------------------------*/
+/* doOnClick													*/
+/* -------------------------------------------------------------*/
+function doOnClick ()
+{
+	dialogArguments.win.msgConfirmValue=1;
+}
+
+//-->
+</script>
+
+</head>
+
+<body topmargin="0" onload="onLoad()">
+<center>
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0" id="mainTbl">
+<tr height="7">
+	<td width="15"  >&nbsp;</td>
+	<td width="24"  ></td>
+	<td width="100%"></td>
+	<td width="20"  ></td>
+	<td width="27"  ></td>
+	<td width="15"  >&nbsp;</td>
+</tr>	
+<tr id="hebBtnTd" height="43" style="display:none">
+	<td></td>
+	<td><img src="../imagesNew/msgBoxTL.gif"></td>						
+	<td style="background-image:url(../imagesNew/msgBoxT.gif)"></td>
+	<td colspan="2"><img id="infoImgHeb" src="../imagesNew/msgBoxInfo.gif" style="display:none"><img id="confirmImgHeb" src="../imagesNew/msgBoxConfirm.gif" style="display:none"></td>
+	<td></td>
+</tr>
+<tr id="engBtnTd" height="43" style="display:none">
+	<td></td>
+	<td><img src="../imagesNew/msgBoxTL.gif"></td>						
+	<td style="background-image:url(../imagesNew/msgBoxT.gif)"></td>
+	<td colspan="2"><img id="infoImgEng" src="../imagesNew/msgBoxInfo.gif" style="display:none"><img id="confirmImgEng" src="../imagesNew/msgBoxConfirm.gif" style="display:none"></td>
+	<td></td>
+</tr>
+<tr height="100%">
+	<td></td>
+	<td style="background-image:url(../imagesNew/msgBoxL.gif)"></td>
+	<td style="background-image:url(../imagesNew/msgBoxBG.gif)" align="center" colspan="2">
+		<span class="styleMsgText" id="msg_span"></span><br/><br/>
+	</td>
+	<td style="background-image:url(../imagesNew/msgBoxR.gif);background-repeat:repeat-y"></td>
+	<td></td>
+</tr>
+<tr height="34" id="waitingMsgTr" style="display:none">
+	<td></td>
+	<td><img src="../imagesNew/msgBoxBL.gif"></td>
+	<td style="background-image:url(../imagesNew/msgBoxB.gif)" colspan="2" align="center" valign="top">
+	<td><img src="../imagesNew/msgBoxBR.gif"></td>
+	<td></td>
+</tr>
+<tr height="34" id="infoMsgTr" style="display:none">
+	<td></td>
+	<td><img src="../imagesNew/msgBoxBL.gif"></td>
+	<td style="background-image:url(../imagesNew/msgBoxB.gif)" colspan="2" align="center" valign="top">
+		<table border="0" cellspacing="0" cellpadding="0" onclick="window.close()">
+		<tr height="23">
+				<td width="9"><img src="../imagesNew/msgBoxBtnL.gif"></img></td>
+				<td style="background-image:url(../imagesNew/msgBoxBtnBG.gif)"><span class="styleButton" id="infoBtnOK">אישור</span></td>
+				<td width="9"><img src="../imagesNew/msgBoxBtnR.gif"></td>
+		</tr>
+		</table>
+	</td>
+	<td><img src="../imagesNew/msgBoxBR.gif"></td>
+	<td></td>
+</tr>
+<tr height="34" id="confirmMsgTr" style="display:none">
+	<td></td>
+	<td><img src="../imagesNew/msgBoxBL.gif"></td>
+	<td style="background-image:url(../imagesNew/msgBoxB.gif)" colspan="2" align="center" valign="top">
+		<table cellpadding="0" cellspacing="0" border="0">
+		<tr>
+			<td>
+				<table border="0" cellspacing="0" cellpadding="0" onclick="window.close();doOnClick();">
+				<tr height="23">
+					<td width="9"><img src="../imagesNew/msgBoxBtnL.gif"></img></td>
+					<td style="background-image:url(../imagesNew/msgBoxBtnBG.gif)"><span class="styleButton" id="confirmBtnOK">אישור</span></td>
+					<td width="9"><img src="../imagesNew/msgBoxBtnR.gif"></td>
+				</tr>
+				</table>
+			</td>
+			<td width="10"></td>
+			<td>
+				<table border="0" cellspacing="0" cellpadding="0" onclick="window.close()">
+				<tr height="23">
+					<td width="9"><img src="../imagesNew/msgBoxBtnL.gif"></img></td>
+					<td style="background-image:url(../imagesNew/msgBoxBtnBG.gif)"><span class="styleButton" id="confirmBtnCancel">ביטול</span></td>
+					<td width="9"><img src="../imagesNew/msgBoxBtnR.gif"></td>
+				</tr>
+				</table>
+			</td>
+		</tr>
+		</table>
+	</td>
+	<td><img src="../imagesNew/msgBoxBR.gif"></td>
+	<td></td>
+</tr>
+<tr>
+	<td height="7"></td>
+</tr>	
+</table>
+</center>
+</body>
+</html>
+
+
+
+
+
+
+

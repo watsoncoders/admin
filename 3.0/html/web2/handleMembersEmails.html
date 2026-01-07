@@ -1,0 +1,518 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray			= commonGetGlobalData ("langArray");
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var showTitleId			= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+
+var idCol				= {textHEB : "מזהה",			textENG	: "",	xmlTag : "id"				}
+var memberIdCol			= {textHEB : "גולש",			textENG : "",	xmlTag : "memberId"			}
+var folderIdCol			= {textHEB : "ספרייה",			textENG : "",	xmlTag : "folderId"			}
+var sendMemberCol		= {textHEB : "השולח/הנמען",		textENG : "",	xmlTag : "sendMember"		}
+var statusCol			= {textHEB : "סטטוס",			textENG : "",	xmlTag : "status"			}
+var insertTimeCol		= {textHEB : "תאריך ושעה",		textENG : "",	xmlTag : "insertTime"		}
+var subjectCol			= {textHEB : "נושא",	 		textENG	: "", 	xmlTag : "subject"			}
+var contentCol			= {textHEB : "תוכן",	 		textENG	: "", 	xmlTag : "content"			}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();
+	addSearchSection    ();
+	createDataTable     ();
+	createTableButtons  ();
+	createSearchSection ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId  = pageObj.addPageTitle 	("ניהול דואר גולשים", 		"");
+	showTitleId	 = pageObj.addPageSubTitle 	("הצגת הודעה",				"");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+var globalMembers;
+var globalFolders;
+
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	var queryXml = commonGetGlobalData ("membersEmailsQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (searchFormId, queryXml);
+	}
+
+	serverOptions_getMembers (false, undefined, true, "after_getMembers");
+}
+
+function after_getMembers (options)
+{
+	globalMembers = options;
+
+	serverOptions_getEmailFolders(commonGetInnerData(commonGetGlobalData("membersEmailsQueryXml"), memberIdCol.xmlTag), "after_getEmailFolders");
+}
+
+function after_getEmailFolders (options)
+{
+	globalFolders = options;
+	
+	createSearchSection_continue ();
+}
+
+function createSearchSection_continue ()
+{
+	if (globalMembers == undefined || globalFolders == undefined) return;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	field1 = {type      : "select",					textHEB		 : memberIdCol.textHEB,
+			  spanData  : 1,						textENG		 : memberIdCol.textENG,
+			  dataFld   : memberIdCol.xmlTag,		width		 : 200,
+			  mandatory : true,						options		 : globalMembers,
+			  action	: "onSelectMember()",	    defaultValue : globalMembers[0].value}
+
+
+	field2 = {type      : "select",					textHEB		 : folderIdCol.textHEB,
+			  spanData  : 1,						textENG		 : folderIdCol.textENG,
+			  dataFld   : folderIdCol.xmlTag,		width		 : 150,
+			  mandatory : false,					options		 : globalFolders,
+	  		  action	: "doRefresh()"}
+
+  	fields.push (field1, field2);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(50,220,50,width),
+					ENG : new Array(50,220,50,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "report",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+
+	loadData ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectMember																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectMember ()
+{
+	var memberId = pageObj.getFieldValue (searchFormId, memberIdCol.xmlTag);
+
+	if (memberId == "")
+	{
+		pageObj.setFieldOptions (searchFormId, folderIdCol.xmlTag, "");
+	}
+	else
+	{
+		serverOptions_getEmailFolders(memberId, "after_getMemberFolders");
+	}
+}
+
+function after_getMemberFolders (options)
+{
+	pageObj.setFieldOptions (searchFormId, folderIdCol.xmlTag, options);
+	doRefresh ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,			widthHEB 	: 80,
+				   textENG	: idCol.textENG,			widthENG 	: 80,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: sendMemberCol.textHEB,	widthHEB 	: 180,
+				   textENG	: sendMemberCol.textENG,	widthENG 	: 180,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : sendMemberCol.xmlTag,		onmouseover	: "showFull(this, \"sendName\")"}
+		   
+	column3		= {textHEB	: statusCol.textHEB,		widthHEB 	: 80,
+				   textENG	: statusCol.textENG,		widthENG 	: 80,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : statusCol.xmlTag}
+		   
+	column4		= {textHEB	: insertTimeCol.textHEB,	widthHEB 	: 150,
+				   textENG	: insertTimeCol.textENG,	widthENG 	: 150,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : insertTimeCol.xmlTag}
+		   
+	column5		= {textHEB	: subjectCol.textHEB,		widthHEB 	: 270,
+				   textENG	: subjectCol.textENG,		widthENG 	: 270,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : subjectCol.xmlTag,		onmouseover	: "showFull(this, \"fullSubject\")"}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 330, 330);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showFull																					*/
+/* ---------------------------------------------------------------------------------------- */
+function showFull (col, tagName)
+{
+    var rowOfCol   = col.parentNode;
+	var rowIndex   = rowOfCol.rowIndex;
+
+	var postTitle  = pageObj.getRowValueOf (tableId, rowIndex, tagName);
+
+	col.title = postTitle;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "show",
+			   action		: "openForm()"}
+
+	btn2	= {type			: "delete",
+			   action		: "deleteEmailMsg()"}
+
+	btn3	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2), new Array(btn3));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (showTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "show")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	if (!pageObj.validateForm (searchFormId)) return false;
+
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("membersEmailsQueryXml", queryXml);
+
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("membersEmails.getEmailMsgs", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay ("report");
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+var globalDetailsXml;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm ()
+{
+	if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור הודעה");
+		return false;
+	}
+
+	id = pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+
+	serverObj.cleanRequest ();
+	serverObj.addTag	   (idCol.xmlTag, id);
+	serverObj.sendRequest("membersEmails.getEmailMsgDetails", undefined, "openForm_continue");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm_continue																		*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm_continue (i)
+{
+	responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(100,210,100,210),
+					ENG : new Array(100,210,100,210)}
+
+	var fieldWidth   = 200;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "פרטים", ""); 
+
+	pageObj.setFormXml (formId, responseXml);
+	
+	field1 = {type      	: "span",					textHEB		 : idCol.textHEB,
+			  spanData  	: 1,						textENG		 : idCol.textENG,
+			  dataFld   	: idCol.xmlTag,				width		 : fieldWidth}
+
+	field2 = {type      	: "span",					textHEB		 : "ספרייה",
+			  spanData  	: 1,						textENG		 : "",
+			  dataFld   	: "folderName",				width		 : fieldWidth}
+
+	field3 = {type			: "span",					textHEB	 	 : memberIdCol.textHEB,
+			  spanData  	: 1,						textENG	 	 : memberIdCol.textENG,
+			  dataFld   	: "sendMember",				width      	 : fieldWidth}
+
+	field4 = {type			: "span",					textHEB	 	 : "שם השולח",
+			  spanData  	: 1,						textENG	 	 : "",
+			  dataFld   	: "sendName",				width      	 : fieldWidth}
+
+	field5 = {type			: "span",					textHEB		 : statusCol.textHEB,
+			  spanData		: 1,						textENG		 : statusCol.textENG,
+			  dataFld		: statusCol.xmlTag,			width		 : fieldWidth}	  
+	
+	field6 = {type			: "span",					textHEB		 : insertTimeCol.textHEB,
+			  spanData		: 1,						textENG		 : insertTimeCol.textENG,
+			  dataFld		: insertTimeCol.xmlTag,		width		 : fieldWidth}	  
+	
+	fields = new Array(field1, field2, field3, field4, field5, field6);
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "תוכן", ""); 
+
+	fieldsWidths = {HEB : new Array(60,560),
+					ENG : new Array(60,560)}
+
+	fieldWidth = 555;
+
+  	field1 = {type			: "span",					textHEB		 : subjectCol.textHEB,
+			  spanData		: 1,						textENG		 : subjectCol.textENG,
+			  dataFld		: subjectCol.xmlTag,		width	 	 : fieldWidth}
+
+	field2 = {type			: "xstandard",				textHEB		 : contentCol.textHEB,
+			  spanData		: 1,						textENG		 : contentCol.textENG,
+			  dataFld		: contentCol.xmlTag,		width	 	 : fieldWidth,
+			  height  		: 280,						mandatory	 : false}
+
+	fields = new Array(field1, field2);
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId);
+
+	createEditFormButtons ("show");
+	handleDisplay 		  ("show");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteEmailMsg																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteEmailMsg() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור הודעה");
+		return false;
+	}
+
+	confirm("מחיקת ההודעה", "", "deleteEmailMsg_confirm");
+}
+
+function deleteEmailMsg_confirm ()
+{
+	var memberId = pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, memberId);
+	
+	serverObj.sendRequest("membersEmails.deleteEmailMsg", undefined, "deleteEmailMsg_continue");
+}
+
+function deleteEmailMsg_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

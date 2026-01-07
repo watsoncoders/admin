@@ -1,0 +1,2048 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/carsFiles.js"></script>
+<script language="JavaScript" src="../../javascript2/multiUpload.js"></script>
+
+<script language="JavaScript">
+
+var langArray			= commonGetGlobalData ("langArray");
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var addTitleId			= -1;
+var updateTitleId		= -1;
+var duplicateTitleId	= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+
+var addCarTitleId		= -1;
+var updateCarTitleId	= -1;
+var carFormId			= -1;
+var carFormButtonsId	= -1;
+
+var carTypesTitleId		= -1;
+var carTypesTableId		= -1;
+var carTypesButtonsId	= -1;
+var uploadFormTitleId	= -1;
+var uploadFormId		= -1;
+var uploadFormButtonsId	= -1;
+
+
+var carIdCol			= {textHEB	: "קוד",				textENG : "",	xmlTag	: "carsTabletId"	}
+var carNameCol			= {textHEB	: "שם הלוח",			textENG : "",	xmlTag	: "title"			}
+var layoutCol			= {textHEB	: "דף עיצוב", 			textENG	: "", 	xmlTag	: "layoutId"		}
+var rewriteNameCol 		= {textHEB  : "כתובת סטטית",		textENG : "", 	xmlTag 	: "rewriteName"		}
+var winTitleCol 		= {textHEB  : "כותרת הדפדפן",		textENG : "", 	xmlTag 	: "winTitle"		}
+
+var	itemIdCol			= {textHEB	: "קוד",				textENG	: "",	xmlTag	: "itemId"			}
+var	statusCol			= {textHEB	: "סטטוס",			   	textENG	: "",   xmlTag	: "status"			}
+var carTypeCol			= {textHEB	: "סוג רכב",			textENG : "",	xmlTag	: "carType"			}
+var manufacturerCol		= {textHEB	: "יצרן",				textENG : "",	xmlTag  : "manufacturer"	}
+var modelCol			= {textHEB	: "מודל",				textENG : "",	xmlTag  : "model"			}
+var insertTimeCol		= {textHEB	: "הוספה",				textENG : "",	xmlTag  : "insertTime"		}
+var updateTimeCol		= {textHEB	: "עדכון",				textENG : "",	xmlTag  : "updateTime"		}
+var expireTimeCol		= {textHEB	: "תוקף",				textENG : "",	xmlTag  : "expireTime"		}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage 	  ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    				();
+	carsFiles_createSpanFile 			();
+	addSearchSection    				();
+	carsFiles_createTable				();
+	carsFiles_createTableButtons		();
+	createDataTable     				();	
+	createTableButtons  				();	
+	createSearchSection 				();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   		= pageObj.addPageTitle 	  ("ניהול לוחות רכב", 		"");
+	addTitleId			= pageObj.addPageSubTitle ("הוספת מודעה",			"");
+	updateTitleId		= pageObj.addPageSubTitle ("עדכון מודעה",			"");
+	duplicateTitleId	= pageObj.addPageSubTitle ("שכפול מודעה",			"");
+
+	addCarTitleId		= pageObj.addPageSubTitle ("הוספת לוח רכב",			"");
+	updateCarTitleId	= pageObj.addPageSubTitle ("עדכון פרטי הלוח",		"");
+
+	carTypesTitleId		= pageObj.addPageSubTitle ("ניהול סוגי רכב",		"");
+	uploadFormTitleId	= pageObj.addPageSubTitle ("טעינת קובץ סוגי רכב",	"");
+
+	carsFiles_createTitles ();
+}
+	
+var statusOptions = new selectOptionsObj();
+statusOptions.addOption ("" , 	  	  "", 	 	"");
+statusOptions.addOption ("new", 	  "חדשה",  	"");
+statusOptions.addOption ("approved",  "מאושרת",	"");
+statusOptions.addOption ("expire",    "פג תוקף","");
+statusOptions.addOption ("rejected",  "נדחתה", 	"");
+statusOptions.addOption ("deleted",   "נמחקה", 	"");
+
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+var globalCities;
+var globalAreas;
+var globalCars;
+
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	var queryXml = commonGetGlobalData ("carsQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (searchFormId, queryXml);
+	}
+
+	serverOptions_getCities	(true, undefined, "after_getCities");
+	serverOptions_getAreas	("noAll", undefined, "after_getAreas")
+	serverOptions_getCars	(false, "after_getCars");
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getCities (options)
+{
+	globalCities = options;
+
+	createSearchSection_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getAreas (options)
+{
+	globalAreas = options;
+
+	createSearchSection_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getCars (options)
+{
+	globalCars = options;
+
+	createSearchSection_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function createSearchSection_continue ()
+{
+	if (globalCities == undefined || globalAreas == undefined || globalCars == undefined) return;
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	var defaultCar = "";
+	if (globalCars.length > 0)
+		defaultCar = globalCars[0].value;
+
+	var fieldWidth = 140;
+
+	field1 = {type      : "select",					textHEB		 : "לוח רכב",
+			  spanData  : 1,						textENG		 : "",
+			  dataFld   : carIdCol.xmlTag,			width   	 : fieldWidth,
+			  options	: globalCars,				defaultValue : defaultCar,
+			  action	: "onChangeQuery()"}
+
+	field2 = {type      : "select",					textHEB		 : statusCol.textHEB,
+			  spanData  : 1,						textENG		 : statusCol.textENG,
+			  dataFld   : statusCol.xmlTag,			width		 : fieldWidth,
+			  action	: "onChangeQuery()",		options		 : statusOptions.getOptions()}
+
+  	field3 = {type		: "text",					textHEB		 : "איש קשר",
+		  	  spanData	: 1,						textENG		 : "",
+		 	  dataFld	: "contactName",			width	 	 : fieldWidth,
+		 	  maxLength	: "50"}
+
+	field4 = {type		: "select",					textHEB		: "אזור",
+		      spanData	: 1,						textENG		: "",
+			  dataFld	: "areaId",					width		: fieldWidth,
+			  options	: globalAreas,	
+			  action	: "onChangeQuery()"}
+
+	field5 = {type		: "select",					textHEB		: "יישוב",
+		      spanData	: 1,						textENG		: "",
+			  dataFld	: "cityId",					width		: fieldWidth,
+			  options	: globalCities,	
+			  action	: "onChangeQuery()"}
+
+  	field6 = {type		: "text",					textHEB		 : "לפי טקסט",
+		  	  spanData	: 1,						textENG		 : "",
+		 	  dataFld	: "anyText",				width	 	 : fieldWidth,
+		 	  maxLength	: "50"}
+
+  	fields.push (field1, field2, field3, field4, field5, field6);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(60,160,50,160,65,width),
+					ENG : new Array(60,160,50,160,65,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "",
+			   textHEB		: "הוספת לוח",
+			   textENG		: "",
+			   action		: "openForm('addCar')"}
+
+	btn3	= {type			: "",
+			   textHEB		: "הגדרות לוח",
+			   textENG		: "",
+			   action		: "openForm('updateCar')"}
+
+	btn4	= {type			: "",
+			   textHEB		: "מחיקת לוח",
+			   textENG		: "",
+			   action		: "deleteCar()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2,btn3, btn4));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+
+	loadData							();	
+
+	createCarTypesTable					();
+	createCarTypesTableButtons			();
+
+	var toShowCarTypes = commonGetURLParam("showCarTypes");
+
+	if (toShowCarTypes == "1")
+	{
+		loadCarTypes ();	
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onChangeQuery																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onChangeQuery ()
+{
+	setTimeout ("doRefresh();", 100);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	pageObj.tableIsMultiSelection (tableId);
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// ------------------------------------------------------------------------------------
+	column1		=  {textHEB		: itemIdCol.textHEB,		widthHEB : 70,
+			   		textENG		: itemIdCol.textENG,		widthENG : 70,
+			   		sortType	: "number",					sortDir  : "ascending",
+				   	xmlTag   	: itemIdCol.xmlTag}
+		   
+	column2		=  {textHEB		: statusCol.textHEB,		widthHEB : 80,
+			  		textENG		: statusCol.textENG,		widthENG : 80,
+			   		sortType	: "text",					sortDir  : "ascending",
+			  		xmlTag   	: statusCol.xmlTag}
+		   
+	column3		=  {textHEB		: carTypeCol.textHEB,		widthHEB : 100,
+			   		textENG		: carTypeCol.textENG,		widthENG : 100,
+			  	 	sortType 	: "text",					sortDir  : "ascending",
+			  		xmlTag   	: carTypeCol.xmlTag}
+		   
+	column4		=  {textHEB		: manufacturerCol.textHEB,	widthHEB : 100,
+			   		textENG		: manufacturerCol.textENG,	widthENG : 100,
+			   		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: manufacturerCol.xmlTag}
+
+	column5		=  {textHEB		: modelCol.textHEB,			widthHEB : 100,
+			   		textENG		: modelCol.textENG,			widthENG : 100,
+			  		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: modelCol.xmlTag}
+
+	column6		=  {textHEB		: "מחיר",					widthHEB : 100,
+			   		textENG		: "",						widthENG : 100,
+			   		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: "price"}
+
+	column7		=  {textHEB		: insertTimeCol.textHEB,	widthHEB : 100,
+			   		textENG		: insertTimeCol.textENG,	widthENG : 100,
+			  		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: insertTimeCol.xmlTag}
+
+	column8		=  {textHEB		: updateTimeCol.textHEB,	widthHEB : 100,
+			   		textENG		: updateTimeCol.textENG,	widthENG : 100,
+			  		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: updateTimeCol.xmlTag}
+
+	column9		=  {textHEB		: expireTimeCol.textHEB,	widthHEB : 100,
+			   		textENG		: expireTimeCol.textENG,	widthENG : 100,
+			  		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: expireTimeCol.xmlTag}
+
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5, column6, column7, column8, column9);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 300, 220);
+
+	// ------------------------------------------------------------------------------------
+
+	data1   	= {textHEB  : "סטטיסטיקה", 	      xmlTag   : "statistic",
+				   textENG  : "",				  spanData : 1}
+
+	moreDataCols = new Array(data1);
+
+   	moreDataWidths = {HEB : new Array (80,"*"),
+    				  ENG : new Array (80,"*")};
+	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "duplicate",
+			   action		: "openForm('duplicate')"}
+
+	btn4	= {type			: "delete",
+			   action		: "deleteItem()",
+			   isMulti		: true}
+
+    btn5	= {type			: "",
+			   textHEB		: "הצגת מודעה",
+			   action		: "showItem()"}
+
+	btn6	= {type			: "",
+			   textHEB		: "סוגי רכב",
+			   action		: "loadCarTypes()",
+			   inPopup		: false}
+
+	btn7	= {type			: "",
+			   textHEB		: "קבצי מודעה",
+			   action		: "carsFiles_showPage()"}
+
+	btn8	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn4), new Array(btn5), new Array(btn6,btn7), new Array(btn8));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (duplicateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+		pageObj.hideComponent (addCarTitleId);
+		pageObj.hideComponent (updateCarTitleId);
+		pageObj.hideComponent (carFormId);
+		pageObj.hideComponent (carFormButtonsId);
+	
+		// car types
+		pageObj.hideComponent (carTypesTitleId);
+		pageObj.hideComponent (carTypesTableId);
+		pageObj.hideComponent (carTypesButtonsId);
+
+		// files
+		pageObj.hideComponent (filesTitleId);
+		pageObj.hideComponent (filesTableId);
+		pageObj.hideComponent (filesRowButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "files")
+	{
+		// hide edit files form
+		pageObj.hideComponent (addFilesTitleId);
+		pageObj.hideComponent (updateFileTitleId);
+		pageObj.hideComponent (showTitleId);
+		pageObj.hideComponent (filesFormId);
+		pageObj.hideComponent (filesFormButtonsId);
+		pageObj.hideComponent (spanFileId);
+		pageObj.hideComponent (showButtonsId);
+
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show files table
+		pageObj.showComponent (filesTitleId);
+		pageObj.showComponent (filesTableId);
+		pageObj.showComponent (filesRowButtonsId);
+	}
+
+	if (type == "addFiles" || type == "updateFile" || type == "show")
+	{
+		// hide files table
+		pageObj.hideComponent (filesTitleId);
+		pageObj.hideComponent (filesTableId);
+		pageObj.hideComponent (filesRowButtonsId);
+
+		// show file form
+		pageObj.showComponent (eval(type + "TitleId"));
+
+		if (type == "show")
+		{
+			pageObj.showComponent (showTitleId);
+			pageObj.showComponent (showButtonsId);
+		}
+		else
+		{
+			pageObj.showComponent (filesFormId);
+			pageObj.showComponent (filesFormButtonsId);
+		}
+	}
+
+	if (type == "carTypes")
+	{
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		pageObj.hideComponent (uploadFormTitleId);
+		pageObj.hideComponent (uploadFormId);
+		pageObj.hideComponent (uploadFormButtonsId);
+
+		pageObj.showComponent (carTypesTitleId);
+		pageObj.showComponent (carTypesTableId);
+		pageObj.showComponent (carTypesButtonsId);
+	}
+
+	if (type == "uploadFile")
+	{
+		pageObj.hideComponent (carTypesTitleId);
+		pageObj.hideComponent (carTypesTableId);
+		pageObj.hideComponent (carTypesButtonsId);
+
+		pageObj.showComponent (uploadFormTitleId);
+		pageObj.showComponent (uploadFormId);
+		pageObj.showComponent (uploadFormButtonsId);
+	}
+
+	if (type == "add" || type == "update" || type == "duplicate")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+
+	if (type == "addCar" || type == "updateCar")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (carFormId);
+		pageObj.showComponent (carFormButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("carsQueryXml", queryXml);
+
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("cars.getCarItems", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay ("report");
+
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+	return true;
+}
+
+var globalDimensions;
+var globalLayouts;
+var globalPages;
+var globalEnums;
+var globalDetailsXml;
+
+var globalCarDetails;
+
+var globalPhoneRecords;
+var globalEnumValuesXml;
+var globalCarTypes;
+var globalManufacturers;
+var globalModels;
+
+var globalType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type, id)
+{
+	globalType = type;
+
+	if ((type == "update" || type == "duplicate") && id == undefined)
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור מודעה");
+			return false;
+		}
+
+		id = pageObj.getSelectedValueOf (tableId, itemIdCol.xmlTag);
+	}
+
+	selectedCar = pageObj.getFieldValue(searchFormId, carIdCol.xmlTag);
+
+	if (type == "addCar" || type == "updateCar")
+	{
+		if (type == "updateCar" && selectedCar == "")
+		{
+			commonMsgBox ("info", "יש לבחור לוח מהרשימה");
+			return false;
+		}
+
+		if (globalDimensions == undefined)
+			serverOptions_getDimensions (true, "after_loadDimensions");
+
+		if (globalPages == undefined)
+			serverOptions_getPages				("choose", "after_loadPages");
+
+		if (globalLayouts == undefined)
+			serverOptions_getLayoutsByType		("page", "after_loadLayouts");
+
+		if (globalEnums == undefined)
+			serverOptions_getEnums				("car", 0, "after_loadEnums");
+
+		if (type == "updateCar")
+		{
+			globalCarDetails = undefined;
+
+			id = pageObj.getFieldValue (searchFormId, carIdCol.xmlTag);
+
+			serverObj.cleanRequest ();
+			serverObj.addTag	   (carIdCol.xmlTag, id);
+			serverObj.sendRequest  ("cars.getCarDetails", undefined, "after_getCarDetails");
+		}
+
+		openForm_continue ();
+	}
+	
+	if (type == "add" || type == "update")
+	{
+		if (type == "add" &&  selectedCar == "")
+		{
+			commonMsgBox ("info", "יש לבחור לוח מהרשימה");
+			return false;
+		}
+
+		if (globalPhoneRecords == undefined)
+			serverOptions_getPhonesRecords (true, "after_getPhonesRecords");
+
+		if (globalEnumValuesXml == undefined)
+			serverObj.sendRequest("enums.getAllValues", undefined, "after_getAllValues");
+
+		globalCarDetails = undefined;
+
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (carIdCol.xmlTag, selectedCar);
+		serverObj.sendRequest  ("cars.getCarDetails", undefined, "after_getCarDetails");
+
+		if (type == "update" || type == "duplicate")
+		{
+			serverObj.cleanRequest ();
+			serverObj.addTag("id", id);
+			
+			serverObj.sendRequest("cars.getCarItemDetails", undefined, "after_getCarItemDetails");
+
+			globalCarTypes = undefined;
+			getCarTypes 	 ("openForm_continue");
+
+			globalManufacturers = undefined;
+			globalModels 		= undefined;
+		}
+
+		openForm_continue ();
+	}
+}
+
+var confirmsOptions = new selectOptionsObj();
+confirmsOptions.addOption ("auto", 	 	  "אוטומטי", 		"");
+confirmsOptions.addOption ("manual", 	  "ידני",    		"");
+confirmsOptions.addOption ("userConfirm", "אישור באימייל",  "");
+
+var hideOptions = new selectOptionsObj();
+hideOptions.addOption   ("always", 	"תמיד",						"");
+hideOptions.addOption   ("never",	 "אף פעם",					"");
+hideOptions.addOption   ("yes",	 	"לבחירת הגולש, התחלתי כן",	"");
+hideOptions.addOption   ("no",	 	"לבחירת הגולש, התחלתי לא",	"");
+
+var emailOptions = new selectOptionsObj();
+emailOptions.addOption ("none",	 		"לא לשלוח",		"");
+emailOptions.addOption ("owner",	 	"בעל המודעה",	"");
+emailOptions.addOption ("siteManager",	"בעל האתר",		"");
+emailOptions.addOption ("both",			"לשניהם",		"");
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadDimensions (options)
+{
+	globalDimensions = options;
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadPages (options)
+{
+	globalPages = options;
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadLayouts (options)
+{
+	globalLayouts = options;
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadEnums (options)
+{
+	globalEnums = options;
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getCarDetails (i)
+{
+	globalCarDetails = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getPhonesRecords (options)
+{
+	globalPhoneRecords = options;
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getAllValues (i)
+{
+	globalEnumValuesXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getCarItemDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	getManufacturers (commonGetInnerData(globalDetailsXml, carTypeCol.xmlTag), 		"openForm_continue");
+
+	getModels 		 (commonGetInnerData(globalDetailsXml, manufacturerCol.xmlTag),	"openForm_continue");
+}
+
+// ----------------------------------------------------------------------------------------
+
+function openForm_continue ()
+{
+	type = globalType;
+
+	if (type == "update" || type == "duplicate")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור מודעה");
+			return false;
+		}
+	}
+
+	selectedCar = pageObj.getFieldValue(searchFormId, carIdCol.xmlTag);
+
+	if (type == "addCar" || type == "updateCar")
+	{
+		if (globalDimensions == undefined || globalPages == undefined || globalLayouts == undefined || globalEnums == undefined ||
+			(type == "updateCar" && globalCarDetails == undefined)) return;
+
+		createCarForm  	  	 (type);
+		createCarFormButtons (type);	
+	}
+	
+	if (type == "add" || type == "update")
+	{
+		if (globalPhoneRecords == undefined || globalEnumValuesXml == undefined || globalCarDetails == undefined ||
+			((type == "update" || type == "duplicate") && 
+			 (globalDetailsXml == undefined || globalCarTypes == undefined || globalManufacturers == undefined || globalModels == undefined))) 
+			return;
+
+		createEditForm  	  (type);
+		createEditFormButtons (type);
+	}
+
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createCarForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createCarForm (type)
+{
+	if (carFormId == -1)
+		carFormId   = pageObj.addForm ();
+	
+	pageObj.resetForm (carFormId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(180,180,180,180),
+					ENG : new Array(180,180,180,180)}
+
+	var fieldWidth   = 150;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (carFormId, "הגדרות", ""); 
+
+	fields = new Array();
+	
+	if (type == "updateCar")
+	{
+		pageObj.setFormXml (carFormId, globalCarDetails);
+	}
+
+	hidden	= {type			: "hidden",					dataFld		 : carIdCol.xmlTag}
+
+	fields.push (hidden);
+	
+  	field1 = {type			: "text",					textHEB		 : carNameCol.textHEB,
+			  spanData		: 1,						textENG		 : carNameCol.textENG,
+			  dataFld		: carNameCol.xmlTag,		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : true,
+			  maxLength		: "200",					lang		 : langArray}
+
+	field2 = {type			: "select",					textHEB		 : layoutCol.textHEB,
+			  spanData		: 1,						textENG		 : layoutCol.textENG,
+			  dataFld		: layoutCol.xmlTag,			width	 	 : fieldWidth,
+			  options		: globalLayouts,
+			  mandatory	    : false}
+
+	field3 = {type			: "amount",					textHEB		 : "שער המרת מטבע",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "conversionRate",			width	 	 : fieldWidth,
+			  maxLength		: 5}
+
+	field4 = {type			: "select",					textHEB		 : "אישור מודעות",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "confirmType",			width	 	 : fieldWidth,
+			  options		: confirmsOptions.getOptions(),
+			  mandatory	 	: true,						defaultValue : "auto"}
+
+	field5 = {type			: "select",					textHEB		 : "הסתרת דוא\"ל באתר",
+		      spanData		: 1,						textENG		 : "",
+			  dataFld		: "hideMsgEmail",			width		 : fieldWidth,
+			  options		: hideOptions.getOptions(),	defaultValue : "yes"}
+
+	field6 = {type			: "select",					textHEB		 : "דף מודעה על אישור מודעה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "confirmPageId",			width	 	 : fieldWidth,
+			  options		: globalPages,				mandatory	 : false}
+
+	field7 = {type			: "select",					textHEB		 : "דף מודעה על שגיאה בזיהוי",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "errorPageId",			width	 	 : fieldWidth,
+			  options		: globalPages,				mandatory	 : false}
+
+	field8 = {type			: "select",					textHEB		 : "דף מודעה על אישור מחיקה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "confirmDeletePageId",	width	 	 : fieldWidth,
+			  options		: globalPages,				mandatory	 : false}
+
+	field9 = {type			: "select",					textHEB		 : "שליחת אישור באימייל",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "sendInformEmail",		width	 	 : fieldWidth,
+			  options		: emailOptions.getOptions()}
+
+    fields.push (field1, field2, field3, field4, field5, field6, field7, field8, field9);
+
+    pageObj.addFormFields (carFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (carFormId, "שדות מודעה בלוח", ""); 
+
+	fields = new Array();
+
+  	field1 = {type			: "select",					textHEB		 : "נפח מנוע",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "engineVolume",			width	 	 : fieldWidth,
+			  options		: globalEnums,				defaultValue : "0"}
+
+  	fields.push (field1);
+
+    pageObj.addFormFields (carFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (carFormId, "תצוגת מודעות בלוח", ""); 
+
+	fields = new Array();
+
+  	field1 = {type			: "number",					textHEB		 : "מספר מודעות בדף",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "numItemsInPage",			width	 	 : fieldWidth}
+
+  	field2 = {type			: "number",					textHEB		 : "מספר דפים בסרגל",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "numPages",				width	 	 : fieldWidth}
+
+  	field3 = {type			: "number",					textHEB		 : "תדירות הופעת באנר",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "numItemsBeforeBanner",	width	 	 : fieldWidth,
+			  action		: "onChangeBanner()"}
+
+  	field4 = {type			: "number",					textHEB		 : "רוחב הבאנר",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "bannerWidth",			width	 	 : fieldWidth}
+
+  	field5 = {type			: "number",					textHEB		 : "גובה הבאנר",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "bannerHeight",			width	 	 : fieldWidth}
+
+  	field6 = {type			: "number",					textHEB		 : "מספר באנרים מקסימלי",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "maxBannersInPage",		width	 	 : fieldWidth}
+
+	fields.push (field1, field2, field3, field4, field5, field6);
+
+    pageObj.addFormFields (carFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (carFormId, "הגדרות לתמונות מודעה", ""); 
+
+	fields = new Array();
+
+	field1 = {type      	: "select",				textHEB 	 : "גודל לתמונה 1",
+			  spanData  	: 1,					textENG      : "",
+			  dataFld   	: "picDimension1",		width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	field2 = {type      	: "select",				textHEB 	 : "גודל לתמונה 2",
+			  spanData  	: 1,					textENG      : "",
+			  dataFld   	: "picDimension2",		width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	fields.push (field1, field2);
+
+    pageObj.addFormFields (carFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	commonAddSeoFrame (carFormId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (carFormId, true);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectManufacturer																		*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectManufacturer ()
+{
+	var manufacturer = pageObj.getFieldValue (formId, manufacturerCol.xmlTag);
+
+	pageObj.setFieldOptions (formId, modelCol.xmlTag, serverOptions_getEnumValuesByParent(manufacturer, true, true));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onChangeBanner																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onChangeBanner ()
+{
+	var numItemsBeforeBanner = pageObj.getFieldValue(carFormId,"numItemsBeforeBanner");
+	if (numItemsBeforeBanner != "" && numItemsBeforeBanner != 0)
+	{
+		pageObj.changeMandatory (carFormId, "bannerWidth",  true);
+		pageObj.changeMandatory (carFormId, "bannerHeight", true);
+
+		if (pageObj.getFieldValue(carFormId,"maxBannersInPage") == "")
+			pageObj.setFieldValue (carFormId, "maxBannersInPage", "1");
+
+		pageObj.changeMandatory (carFormId, "maxBannersInPage", true);
+	}
+	else
+	{
+		pageObj.changeMandatory (carFormId, "bannerWidth",  false);
+		pageObj.changeMandatory (carFormId, "bannerHeight", false);
+
+		pageObj.setFieldValue   (carFormId, "bannerWidth",  "");
+		pageObj.setFieldValue   (carFormId, "bannerHeight", "");
+
+		pageObj.setFieldValue   (carFormId, "maxBannersInPage", "0");
+
+		pageObj.changeMandatory (carFormId, "maxBannersInPage", false);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createCarFormButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createCarFormButtons (type)
+{
+	if (type == "addCar")
+	   	btnType = "add";
+	else 
+		btnType = "update";
+		
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + formId + ")"}
+
+	btn3	= {type			: btnType,
+			   action		: "submitCarForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3));
+
+	if (carFormButtonsId == -1)
+		carFormButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (carFormButtonsId, btnsGroups, pageObj.getFormWidth(carFormId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitCarForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function submitCarForm (type)
+{
+	global_submitType = type;
+
+	if (!pageObj.validateForm(carFormId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(carFormId));
+
+	serverObj.sendRequest("cars." + type, undefined, "submitCarForm_continue");
+}
+
+function submitCarForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		globalCars = undefined;
+
+		serverOptions_getCars(true, "after_reloadCars");
+	}
+	return true;
+}
+
+function after_reloadCars (options)
+{
+	type	= global_submitType;
+
+	globalCars = options;
+
+	if (type != "delete")
+	{
+		handleDisplay	("report");
+	}
+
+	if (type == "delete")
+	{
+		var currCar = globalCars[0].value;
+	}
+	else
+	{
+		var currCar = pageObj.getFieldValue (searchFormId, carIdCol.xmlTag);
+	}
+
+	pageObj.setFieldOptions (searchFormId, carIdCol.xmlTag, globalCars);
+	pageObj.setFieldValue   (searchFormId, carIdCol.xmlTag, currCar);
+
+	if (type == "delete")
+	{
+		doRefresh ();
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteCar																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteCar () 
+{
+    if (pageObj.getFieldValue (searchFormId, carIdCol.xmlTag) == "") 
+	{
+		commonMsgBox ("info", "יש לבחור לוח");
+		return false;
+	}
+
+	confirm("מחיקת הלוח ומודעותיו", "delete cars tablet", "deleteCar_confirm");
+}
+
+function deleteCar_confirm ()
+{
+	serverObj.cleanTags ();
+	serverObj.setXml	   (pageObj.getFormXml(searchFormId));
+	
+	serverObj.sendRequest("cars.deleteCar", undefined, "deleteCar_continue");
+}
+
+function deleteCar_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		globalCars = undefined;
+
+		global_submitType = "delete";
+
+		serverOptions_getCars (true, "after_reloadCars");
+
+	}
+	return true;
+}
+
+var oneStatusOptions = new selectOptionsObj();
+oneStatusOptions.addOption ("new", 	  "חדשה", 	"");
+oneStatusOptions.addOption ("approved",  "אושרה", 	"");
+oneStatusOptions.addOption ("rejected",  "נדחתה", 	"");
+oneStatusOptions.addOption ("deleted",   "נמחקה", 	"");
+
+var genderOptions = new selectOptionsObj();
+genderOptions.addOption	("",		 "",		"");
+genderOptions.addOption ("f",		 "נקבה",	"");
+genderOptions.addOption ("m",		 "זכר",		"");
+
+var boldLevels = new selectOptionsObj();
+boldLevels.addOption ("0",	"ללא הדגשה",	"");
+boldLevels.addOption ("1",	"רמה נמוכה",		"");
+boldLevels.addOption ("2",	"רמה בינונית",		"");
+boldLevels.addOption ("3",	"רמה גבוהה",		"");
+
+var currencyOptions = new selectOptionsObj();
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditForm (type)
+{
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var carId     = pageObj.getFieldValue (searchFormId, carIdCol.xmlTag);
+
+	if (type == "update" || type == "duplicate")
+	{
+		var id = pageObj.getSelectedValueOf (tableId, itemIdCol.xmlTag);
+			
+		pageObj.setFormXml (formId, globalDetailsXml);
+
+		if (type == "update")
+		{
+			var url		 = commonGetGlobalData("siteUrl") + "/index2.php?id=" + carId + "&lang=" + langArray[0] + "&itemId=" + id;
+
+			showPage = "<div style='float:left'><a href='"+url+"' target='_blank' style='text-decoration:none;color:#7F9621'>הצגת המודעה</a></div>";
+
+			pageObj.updatePageTitle (updateTitleId, showPage + "עדכון מודעה " + id);
+		}
+	}
+	
+	// -----------------------------------------------------------------------------------------------------------
+
+	fieldsWidths = {HEB : new Array(180,180,180,180),
+					ENG : new Array(180,180,180,180)}
+
+	var fieldWidth  = 160;
+	var fieldWidth2 = 520;
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	var frameId = pageObj.addFormFrame (formId, "זיהוי", ""); 
+
+	hidden	 = {type		: "hidden",						dataFld		 : itemIdCol.xmlTag};
+
+	hidden2  = {type		: "hidden",		
+		  	 	dataFld		: carIdCol.xmlTag, 				defaultValue : carId};
+			
+	field1   = {type		: "select",						textHEB		 : statusCol.textHEB,
+			  	spanData  	: 1,							textENG 	 : statusCol.textENG,
+			 	dataFld		: statusCol.xmlTag,				width		 : fieldWidth,
+			  	options		: oneStatusOptions.getOptions(),defaultValue : "approved"}
+
+	field2 = {type			: "yesNoSelect",				textHEB		 : "מודעה נבחרת",
+			  spanData		: 1,							textENG		 : "",
+			  dataFld		: "isSelected",					width	 	 : fieldWidth,
+			  mandatory	 	: false,						defaultValue : "0"}
+
+	field3 = {type			: "select",						textHEB		 : "הדגשה",
+			  spanData		: 1,							textENG		 : "",
+			  dataFld		: "boldLevel",					width	 	 : fieldWidth,
+			  mandatory	 	: false,						defaultValue : "0",
+			  options		: boldLevels.getOptions()}
+
+  	field4   = {type		: "text",						textHEB		 : "קוד לקוח",
+		  		spanData	: 1,							textENG		 : "",
+		 		dataFld		: "code",						width	 	 : fieldWidth,
+		 		maxLength 	: "50"}
+
+	field5 = {type			: "date",						textHEB		 : "תאריך הוספה",
+			  spanData		: 1,							textENG		 : "",
+			  dataFld		: "insertTime",					width	 	 : fieldWidth,
+			  defaultValue	: today()}
+
+	if (type == "update")
+	{
+		field5.type = "span";
+	}
+
+	fields = new Array(hidden, hidden2, field1, field2, field3, field4, field5);
+
+	if (type == "update")
+	{
+		field6 = {type			: "date",					textHEB		 : "תאריך עדכון",
+				  spanData		: 1,						textENG		 : "",
+				  dataFld		: "updateTime",				width	 	 : fieldWidth,
+				  defaultValue	: today()}
+
+		if (commonGetInnerData(globalDetailsXml, "status") == "deleted")
+		{
+			fields.push (field6);
+
+			field1 = {type			: "span",				textHEB		 : "תאריך מחיקה",
+					  spanData		: 1,					textENG		 : "",
+					  dataFld		: "deleteTime",			width	 	 : fieldWidth,
+				  	  defaultValue	: today()}
+
+			fields.push (field1);
+
+			field1 = "";
+			deleteReason = commonGetInnerData(globalCarDetails, "deleteReason");
+
+			if (deleteReason == 0)
+			{
+				field1 = {type		: "text",					textHEB		: "סיבה למחיקה",
+						  spanData	: 1,						textENG		: "",
+						  dataFld	: "deleteReason",			width		: fieldWidth}
+			}
+			else
+			{
+				if (deleteReason != -1)
+				{
+					field1 = {type		: "select",				textHEB		: "סיבה למחיקה",
+							  spanData	: 1,					textENG		: "",
+							  dataFld	: "deleteReason",		width		: fieldWidth,
+							  options	: getEnumOptions(deleteReason)}
+				}
+			}
+			if (field1 != "")
+				fields.push (field1);
+
+			field1	 = {type		: "number",					textHEB		: "מחיר מכירה/השכרה",
+					    spanData	: 1,						textENG		: "",
+					    dataFld		: "salePrice",				width		: fieldWidth,
+						maxLength	: "8"}			
+
+			field2	 = {type		: "select",					textHEB		: "מטבע מכירה",
+					    spanData	: 1,						textENG		: "",
+					    dataFld		: "saleCurrency",			width		: fieldWidth,
+						options		: currencyOptions.getOptionsOf("currency")}
+
+			field3	 = {type		: "text",					textHEB		: "משרד תווך",
+					    spanData	: 1,						textENG		: "",
+						dataFld		: "saleByBroker",			width		: fieldWidth,
+						maxLength	: "100"}
+
+			fields.push (field1, field2, field3);
+		}
+		else
+		{
+			fields.push (field6);
+		}
+	}
+
+	field1 	 = {type		: "date",						textHEB		 : "תאריך אחרון",
+			    spanData	: 1,							textENG		 : "",
+			    dataFld		: "expireTime",					width	 	 : fieldWidth,
+			    defaultValue: today()}
+
+	field2  = {type			: "yesNoSelect",				textHEB		 : "יש הערכת שמאי",
+			   spanData		: 1,							textENG		 : "",
+			   dataFld		: "hasAssessment",				width	 	 : fieldWidth,
+			   mandatory 	: false,						defaultValue : "0"}
+
+	field3	 = {type		: "number",						textHEB		: "הערכת שמאי",
+			    spanData	: 1,							textENG		: "",
+			    dataFld		: "assessmentPrice",			width		: fieldWidth,
+				maxLength	: "8"}			
+
+	fields.push (field1, field2, field3);
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	var frameId = pageObj.addFormFrame (formId, "פרטים", ""); 
+
+	fields = new Array();
+
+	checks = new Array(new Array("carType", 			"סוג רכב"),
+					   new Array("manufacturer",		"יצרן"),
+					   new Array("model",				"מודל"),
+					   new Array("modelText",			"תיאור מודל"),
+					   new Array("engineVolume",		"נפח מנוע"),
+					   new Array("carYear",				"שנת ייצור"),
+					   new Array("price",				"מחיר"),
+					   new Array("currency",			"מטבע")
+					  );
+
+	for (var i=0; i<checks.length; i++)
+	{	
+		switch (checks[i][0])
+		{
+			case "carType"	:
+				
+				field	 = {type		: "select",				textHEB		: checks[i][1],
+						    spanData	: 1,					textENG		: "",
+						    dataFld		: checks[i][0],			width		: fieldWidth,
+							options		: globalCarTypes,		action		: "getManufacturers()"}
+				fields.push (field);
+				break;
+
+			case "manufacturer"	:
+				
+				field	 = {type		: "select",				textHEB		: checks[i][1],
+						    spanData	: 1,					textENG		: "",
+						    dataFld		: checks[i][0],			width		: fieldWidth,
+							options		: globalManufacturers,	action		: "getModels()"}
+				fields.push (field);
+				break;
+
+			case "model"	:
+				
+				field	 = {type		: "select",				textHEB		: checks[i][1],
+						    spanData	: 1,					textENG		: "",
+						    dataFld		: checks[i][0],			width		: fieldWidth,
+							options		: globalModels}
+				fields.push (field);
+				break;
+
+			case "modelText" :
+				field	 = {type		: "text",				textHEB		: checks[i][1],
+					 	   spanData	    : 1,						textENG		: "",
+							dataFld		: checks[i][0],		width		: fieldWidth,
+							maxLength	: "100"}
+				fields.push (field);
+				break;
+
+			case "currency"	:
+				
+				field	 = {type		: "select",				textHEB		: checks[i][1],
+						    spanData	: 1,					textENG		: "",
+						    dataFld		: checks[i][0],			width		: fieldWidth,
+							options		: currencyOptions.getOptionsOf("currency")}
+				fields.push (field);
+				break;
+
+			case "price"			: 
+				field	 = {type		: "number",				textHEB		: checks[i][1],
+						    spanData	: 1,					textENG		: "",
+						    dataFld		: checks[i][0],			width		: fieldWidth,
+							maxLength	: "8"}			
+				fields.push (field);
+
+				break;
+
+			default	:
+				var show = commonGetInnerData(globalCarDetails, checks[i][0]);
+				if (show != -1)
+				{
+					field	 = {type		: "text",				textHEB		: checks[i][1],
+							    spanData	: 1,					textENG		: "",
+							    dataFld		: checks[i][0],			width		: fieldWidth,
+								maxLength	: "100"}
+
+					if (show != 0)
+					{
+						field.type 		= "select";
+
+						if (checks[i][0] == "model")
+							field.options = globalModels;
+						else
+							field.options = getEnumOptions(show);
+					}
+
+					if (checks[i][0] == "manufacturer")
+						field.action = "onSelectManufacturer()";
+
+					fields.push (field);
+				}
+
+				break;
+		}
+	}
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths2 = {HEB : new Array(70,650),
+				 	 ENG : new Array(70,650)}
+
+	fieldWidth3  = 535;
+
+	var frameId = pageObj.addFormFrame (formId, "תיאור", ""); 
+
+	field1 = {type			: "xstandard",				textHEB			: "תיאור",
+			  spanData		: 1,						textENG		 	: "",
+			  dataFld		: "description",			width	 	 	: 630,
+			  height  		: 220}
+
+	field2 = {type			: "textarea",				textHEB		 	: "הערות",
+			  spanData		: 1,						textENG		 	: "",
+			  dataFld		: "remarks",				width	 	 	: 640,
+			  rows  		: 5}
+
+  	fields = new Array(field1, field2);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths2, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "התקשרות", ""); 
+
+	field1 = {type			: "select",						textHEB		 : "בחירה מספר טלפונים",
+		      spanData		: 3,							textENG		 : "",
+			  dataFld		: "contactFromBook",			width		 : fieldWidth,
+			  options		: globalPhoneRecords}
+
+  	field2   = {type		: "text",						textHEB		 : "שם איש קשר",
+		  		spanData	: 3,							textENG		 : "",
+		 		dataFld		: "contactName",				width	 	 : fieldWidth,
+		 		maxLength 	: "50"}
+
+  	field3   = {type		: "phone",						textHEB		 : "טלפון 1",
+		  		spanData	: 1,							textENG		 : "",
+		  		dataFld		: "contactPhone1",				width	 	 : fieldWidth,
+		  		maxLength 	: "20"}
+
+  	field4   = {type		: "phone",						textHEB		 : "טלפון 2",
+		  		spanData	: 1,							textENG		 : "",
+		  		dataFld		: "contactPhone2",				width	 	 : fieldWidth,
+		  		maxLength 	: "20"}
+
+  	field5 	= {type			: "email",						textHEB		 : "אימייל",
+		  	   spanData		: 1,							textENG		 : "",
+			   dataFld		: "contactEmail",				width	 	 : fieldWidth,
+		  	   maxLength 	: "200"}
+
+	field6  = {type			: "yesNoSelect",				textHEB		 : "הסתרת האימייל",
+			   spanData		: 1,							textENG		 : "",
+			   dataFld		: "hideEmail",					width	 	 : fieldWidth,
+			   mandatory 	: false,						defaultValue : "0"}
+
+	field7  = {type			: "yesNoSelect",				textHEB		 : "להתקשר בשבת?",
+			   spanData		: 1,							textENG		 : "",
+			   dataFld		: "saturdayContact",			width	 	 : fieldWidth,
+			   mandatory 	: false,						defaultValue : "0"}
+
+	field8	 = {type		: "select",						textHEB		 : "עיר",
+			    spanData	: 1,							textENG		 : "",
+			    dataFld		: "contactCityId",				width		 : fieldWidth,
+				options		: globalCities}
+
+  	field9   = {type		: "textarea",					textHEB		 : "כתובת",
+		  		spanData	: 3,							textENG		 : "",
+		 		dataFld		: "contactAddress",				width	 	 : fieldWidth3,
+		 		maxLength 	: "200",						rows	 	 : 5}
+
+  	field10  = {type		: "textEng",					textHEB		 : "אתר",
+		  		spanData	: 3,							textENG		 : "",
+		 		dataFld		: "contactSiteUrl",				width	 	 : fieldWidth3,
+		 		maxLength 	: "200"}
+
+   	fields = new Array(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	pageObj.generateForm  (formId);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* getEnumOptions																			*/
+/* ---------------------------------------------------------------------------------------- */
+function getEnumOptions (enumId, withEmpty)
+{
+	if (withEmpty == undefined) withEmpty = true;
+
+	var selectOptions 	= new selectOptionsObj();
+
+	if (withEmpty)
+		selectOptions.addOption ("", "" ,"");
+
+	var itemsNode = globalEnumValuesXml.getElementsByTagName("items" + enumId).item(0);
+
+	for (i=0; i < itemsNode.childNodes.length; i++)
+	{
+		var currNode    = itemsNode.childNodes[i];
+
+		var id  	= commonGetInnerData (currNode, "valueId");
+		var name 	= commonGetInnerData (currNode, "text");
+
+		var optionText = id + " - " + name;
+
+		selectOptions.addOption (id, optionText, optionText);
+	}
+
+	return selectOptions.getOptions ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* getCarTypes																				*/
+/* ---------------------------------------------------------------------------------------- */
+function getCarTypes (afterFunction)
+{
+	if (afterFunction == undefined) afterFunction = "";
+
+	serverObj.addDummyTag ("afterFunction", afterFunction);
+
+	serverObj.sendRequest("cars.getTypes", undefined, "after_getCarTypes");
+}
+
+function after_getCarTypes (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+	
+	var selectOptions 	= new selectOptionsObj();
+
+	selectOptions.addOption ("", "" ,"");
+
+	if (responseXml != null)
+	{
+		itemsNode = responseXml.getElementsByTagName("items").item(0);
+
+		for (i=0; i < itemsNode.childNodes.length; i++)
+		{
+			var currNode= itemsNode.childNodes[i];
+
+			var text 	= commonGetInnerData (currNode, "type");
+	
+			selectOptions.addOption (text, text, text);
+		}	
+	}
+
+	globalCarTypes = selectOptions.getOptions ();
+
+	var afterFunction = commonGetDummyData (responseXml, "afterFunction");
+
+	if (afterFunction != "")
+		window[afterFunction]();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* getManufacturers																			*/
+/* ---------------------------------------------------------------------------------------- */
+function getManufacturers (forCarType, afterFunction)
+{
+	if (forCarType == undefined)
+		forCarType = pageObj.getFieldValue (formId, carTypeCol.xmlTag);
+
+	if (afterFunction == undefined) afterFunction = "";
+
+	serverObj.cleanRequest ();
+	serverObj.addTag (carTypeCol.xmlTag, forCarType);
+	serverObj.addDummyTag ("afterFunction", afterFunction);
+
+    serverObj.sendRequest("cars.getManufacturers", undefined, "after_getManufacturers");
+}
+
+function after_getManufacturers (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	var selectOptions 	= new selectOptionsObj();
+
+	selectOptions.addOption ("", "" ,"");
+	if (responseXml != null)
+	{
+		itemsNode = responseXml.getElementsByTagName("items").item(0);
+
+		for (i=0; i < itemsNode.childNodes.length; i++)
+		{
+			var currNode = itemsNode.childNodes[i];
+
+			var text 	 = commonGetInnerData (currNode, "manufacturer");
+	
+			selectOptions.addOption (text, text, text);
+		}	
+	}
+
+	globalManufacturers = selectOptions.getOptions ();
+
+	var afterFunction = commonGetDummyData (responseXml, "afterFunction");
+
+	if (afterFunction != "")
+	{
+		window[afterFunction]();
+	}
+	else
+	{
+		pageObj.setFieldOptions (formId, manufacturerCol.xmlTag, globalManufacturers);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* getModels																				*/
+/* ---------------------------------------------------------------------------------------- */
+function getModels (forManufacturer, afterFunction)
+{
+	if (forManufacturer == undefined)
+		forManufacturer = pageObj.getFieldValue (formId, manufacturerCol.xmlTag);
+
+	if (afterFunction == undefined) afterFunction = "";
+
+	serverObj.cleanRequest ();
+	serverObj.addTag 	   (manufacturerCol.xmlTag, forManufacturer);
+	serverObj.addDummyTag  ("afterFunction", afterFunction);
+
+    serverObj.sendRequest("cars.getModels", undefined, "after_getModels");
+}
+
+function after_getModels (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	var selectOptions 	= new selectOptionsObj();
+
+	selectOptions.addOption ("", "" ,"");
+
+	if (responseXml != null)
+	{
+		itemsNode = responseXml.getElementsByTagName("items").item(0);
+
+		for (i=0; i < itemsNode.childNodes.length; i++)
+		{
+			var currNode = itemsNode.childNodes[i];
+
+			var text 	 = commonGetInnerData (currNode, "model");
+	
+			selectOptions.addOption (text, text, text);
+		}	
+	}
+
+	globalModels = selectOptions.getOptions ();
+
+	var afterFunction = commonGetDummyData (responseXml, "afterFunction");
+
+	if (afterFunction != "")
+	{
+		window[afterFunction]();
+	}
+	else
+	{
+		pageObj.setFieldOptions (formId, modelCol.xmlTag, globalModels);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	actionType = type;
+	if (type == "duplicate")
+		actionType = "add"
+
+	btn2	= {type			: "save",
+			   action		: "submitForm('" + actionType + "Save')"}
+
+	btn3	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2, btn3));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	global_submitType = type;
+
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	command = type + "CarItem";
+
+	if (type == "addSave")
+	{
+		command = "addCarItem";
+	}
+		
+	if (type == "updateSave")
+	{
+		command = "updateCarItem";
+	}
+		
+	serverObj.sendRequest("cars." + command, undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var type = global_submitType;
+
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		if (type != "addSave" && type != "updateSave")
+		{
+			handleDisplay	("report");
+			doRefresh 		();
+		}
+		else
+		{
+			doRefresh 		();
+			commonMsgBox ("info", "נתוני המודעה נשמרו בהצלחה", "Item details has been saved successfully");
+		}
+
+		if (type == "addSave")
+		{
+			pageObj.hideComponent (formId);
+			pageObj.hideComponent (formButtonsId);
+			
+			var id = commonGetInnerData (responseXml, itemIdCol.xmlTag);
+
+			pageObj.setSelectedRow (tableId, itemIdCol.xmlTag, id);
+
+			pageObj.hideComponent (addTitleId);
+			pageObj.hideComponent (duplicateTitleId);
+			pageObj.showComponent (updateTitleId);
+			
+			openForm ("update", id);
+		}
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteItem																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteItem() 
+{
+    if (!pageObj.isRowSelected(tableId) && !pageObj.areRowsSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור מודעה");
+		return false;
+	}
+
+	var ids = pageObj.getSelectedValuesOf(tableId,itemIdCol.xmlTag);
+	
+	if (ids.length == 1)
+	{
+		confirmMsg 	  = "מחיקת המודעה";
+		confirmMsgEng = "delete selected row";
+	}
+	else
+	{
+		confirmMsg 	  = "מחיקת " + ids.length + " המודעות המסומנות";
+		confirmMsgEng = "delete " + ids.length + " selected rows";
+	}
+
+	confirm(confirmMsg, confirmMsgEng, "deleteItem_confirm");
+}
+
+function deleteItem_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	(itemIdCol.xmlTag, pageObj.getSelectedValuesOf(tableId,itemIdCol.xmlTag));
+	
+	serverObj.sendRequest("cars.deleteCarItem", undefined, "deleteItem_continue");
+}
+
+function deleteItem_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showItem																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function showItem() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור מודעה");
+		return false;
+	}
+
+	var selectedCar 	= pageObj.getFieldValue(searchFormId, carIdCol.xmlTag);
+	var id 				= pageObj.getSelectedValueOf(tableId,itemIdCol.xmlTag);
+	
+	window.open (commonGetGlobalData("siteUrl") + "/index2.php?id=" + selectedCar + "&lang=" + langArray[0] + "&itemId=" + id);
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetTable (tableId);
+	loadData();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createCarTypesTable																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createCarTypesTable ()
+{
+	carTypesTableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (carTypesTableId, "loadCarTypes");
+
+	// ------------------------------------------------------------------------------------
+	column1		=  {textHEB		: "קוד",					widthHEB : 70,
+			   		textENG		: "",						widthENG : 70,
+			   		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: "id"}
+
+	column2		=  {textHEB		: "סוג",					widthHEB : 100,
+			   		textENG		: "",						widthENG : 100,
+			   		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: "type"}
+
+	column3		=  {textHEB		: "יצרן",					widthHEB : 150,
+			   		textENG		: "",						widthENG : 150,
+			   		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: "manufacturer"}
+
+	column4		=  {textHEB		: "מודל",					widthHEB : 150,
+			   		textENG		: "",						widthENG : 150,
+			   		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: "model"}
+
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4);
+
+	pageObj.setTableColumns (carTypesTableId, columns);
+	pageObj.setTableHeight	(carTypesTableId, 350, 270);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createCarTypesTableButtons																*/
+/* ---------------------------------------------------------------------------------------- */
+function createCarTypesTableButtons ()
+{
+	btn1	= {type			: "",
+			   textHEB		: "טעינת נתונים",
+			   action		: "showUploadForm()"}
+
+	btn2	= {type			: "print",
+			   action		: "pageObj.printTable (" + carTypesTableId + "," + carTypesTitleId + ")"}
+
+	btn3	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3));
+
+	if (carTypesButtonsId == -1)
+		carTypesButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (carTypesButtonsId, btnsGroups, pageObj.getTableWidth(carTypesTableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadCarTypes																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadCarTypes () 
+{
+	serverObj.sendRequest("cars.getCarTypes", pageObj.getTablePaging(carTypesTableId), "loadCarTypes_continue"); 
+}
+
+function loadCarTypes_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (carTypesTableId, responseXml);
+		pageObj.setTablePaging (carTypesTableId, responseXml);
+
+		pageObj.generateTable (carTypesTableId);
+
+		handleDisplay ("carTypes")
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showUploadForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function showUploadForm ()
+{
+	createUploadForm 		();
+	createUploadFormButtons ();
+	handleDisplay 			("uploadFile");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createUploadForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createUploadForm ()
+{
+	if (uploadFormId == -1)
+		uploadFormId   = pageObj.addForm ();
+	
+	pageObj.resetForm (uploadFormId);
+
+	fieldsWidths = {HEB : new Array (100,400),
+					ENG : new Array (100,400)};
+	
+	fieldWidth = 390;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (uploadFormId, "טעינת קובץ חדש", ""); 
+
+	fields = new Array();
+
+	field1 = {type			: "onlineUpload",			textHEB		 : "קובץ", 
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "file",					width		 : fieldWidth,
+			  mandatory		: true}
+
+	fields.push (field1); 
+	
+	pageObj.addFormFields (uploadFormId, frameId, fieldsWidths, fields);
+
+	pageObj.generateForm  (uploadFormId);
+
+	multiUploadStart(undefined, uploadFormId);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createUploadFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createUploadFormButtons ()
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('carTypes')"}
+
+	btn2	= {type			: "load",
+			   action		: "submitUploadForm()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (uploadFormButtonsId == -1)
+		uploadFormButtonsId = pageObj.addRowOfButtons 	 ();
+
+	pageObj.generateRowOfButtons (uploadFormButtonsId, btnsGroups, pageObj.getFormWidth(uploadFormId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitUploadForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function submitUploadForm ()
+{
+	if (!pageObj.validateForm(uploadFormId)) return false;
+	
+	serverObj.cleanRequest ();
+
+	var file = uploadGetFileName();
+	if (file != ERROR_WAIT_LOADING)
+	{
+		serverObj.addTag ("file",  file);
+	}
+
+	serverObj.sendRequest("cars.uploadCarTypesFile", undefined, "submitUploadForm_continue");
+}
+
+function submitUploadForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		loadCarTypes ();
+		handleDisplay ("carTypes");
+	}
+}
+
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

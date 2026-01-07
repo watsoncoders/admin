@@ -1,0 +1,971 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/tabletsFiles.js"></script>
+<script language="JavaScript" src="../../javascript2/multiUpload.js"></script>
+
+<script language="JavaScript">
+
+var langArray			= commonGetGlobalData ("langArray");
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var addTitleId			= -1;
+var updateTitleId		= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+
+var tabletCol			= {textHEB	: "לוח", 			textENG	: "",   xmlTag	: "tabletId"	}
+var idCol				= {textHEB	: "קוד", 			textENG	: "",   xmlTag	: "itemId"		}
+var titleCol			= {textHEB	: "כותרת המודעה",  	textENG	: "",   xmlTag	: "title"		}
+var insertTimeCol		= {textHEB	: "תאריך ושעה",   	textENG	: "",   xmlTag	: "insertTime"	}
+var statusCol	    	= {textHEB	: "סטטוס",  	 	textENG	: "",   xmlTag	: "status"		}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    			();
+	tabletsFiles_createSpanFile 	();
+	addSearchSection    			();
+	tabletsFiles_createTable		();
+	tabletsFiles_createTableButtons	();
+	createDataTable     			();
+	createTableButtons  			();
+	createSearchSection 			();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	 = pageObj.addPageTitle 	("ניהול מודעות", 		"");
+	addTitleId		 = pageObj.addPageSubTitle	("הוספת מודעה",			"");
+	updateTitleId	 = pageObj.addPageSubTitle 	("עדכון פרטי מודעה",	"");
+
+	tabletsFiles_createTitles ();
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,			widthHEB 	: 70,
+				   textENG	: idCol.textENG,			widthENG 	: 70,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: "מודעה",					widthHEB 	: 380,
+				   textENG	: "",						widthENG 	: 380,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : titleCol.xmlTag}
+		   
+	column3		= {textHEB	: insertTimeCol.textHEB,	widthHEB 	: 150,
+				   textENG	: insertTimeCol.textENG,	widthENG 	: 150,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag	: insertTimeCol.xmlTag}
+
+	column4		= {textHEB	: statusCol.textHEB,		widthHEB 	: 80,
+				   textENG	: statusCol.textENG,		widthENG 	: 80,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : statusCol.xmlTag}
+		   
+	columns = new Array ();
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 350, 250);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+var globalTablets;
+
+var statusOptions = new selectOptionsObj();
+statusOptions.addOption ("" , 	  	  "", 	   	 		"");
+statusOptions.addOption ("new", 	  "מודעות חדשות",  	"");
+statusOptions.addOption ("approved",  "מודעות שאושרו", 	"");
+statusOptions.addOption ("rejected",  "מודעות שנדחו", 	"");
+
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	if (globalTablets == undefined)
+		serverOptions_getTablets (false, "after_loadTablets");
+
+	createSearchSection_continue ();
+}
+
+function after_loadTablets (options)
+{
+	globalTablets = options;
+
+	createSearchSection_continue ();
+}
+
+function createSearchSection_continue ()
+{
+	if (globalTablets == undefined) return;
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	field1 = {type      : "select",					textHEB		 : tabletCol.textHEB,
+			  spanData  : 1,						textENG		 : tabletCol.textENG,
+			  dataFld   : tabletCol.xmlTag,			width		 : 150,
+			  mandatory : false,					defaultValue : commonGetGlobalData("globalTabletId"),
+			  options	: globalTablets}
+
+	field2 = {type      : "select",					textHEB		 : statusCol.textHEB,
+			  spanData  : 1,						textENG		 : statusCol.textENG,
+			  dataFld   : statusCol.xmlTag,			width   	 : 150,
+			  mandatory : false,				 	defaultValue : "",
+			  options	: statusOptions.getOptions()}
+
+	field3 = {type      : "text",					textHEB		 : idCol.textHEB,
+			  spanData  : 1,						textENG		 : idCol.textENG,
+			  dataFld   : idCol.xmlTag,				width		 : 50,
+			  minLength : "1",						maxLength 	 : "10"}
+
+  	fields.push (field1, field2, field3);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(30,180,50,180,30,width),
+					ENG : new Array(30,180,50,180,30,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+
+	loadData ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteTabletItem()"}
+
+	btn4	= {type			: "",
+			   textHEB		: "הקפצת מודעה",
+			   action		: "jumpTabletItem()"}
+
+	btn5	= {type			: "",
+			   textHEB		: "קבצי מודעה",
+			   action		: "tabletsFiles_showPage()"}
+
+	btn6	= {type			: "",
+			   textHEB		: "חזרה ללוחות",
+			   action		: "top.mainFrame.location.replace('handleTablets.html')",
+			   inPopup		: false}
+
+	btn7	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4), new Array(btn5), new Array(btn6), new Array(btn7));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// files
+		pageObj.hideComponent (filesTitleId);
+		pageObj.hideComponent (filesTableId);
+		pageObj.hideComponent (filesRowButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		pageObj.showComponent (eval(type + "TitleId"));
+
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+
+	if (type == "files")
+	{
+		// hide edit files form
+		pageObj.hideComponent (addFilesTitleId);
+		pageObj.hideComponent (updateFileTitleId);
+		pageObj.hideComponent (showTitleId);
+		pageObj.hideComponent (filesFormId);
+		pageObj.hideComponent (filesFormButtonsId);
+		pageObj.hideComponent (spanFileId);
+		pageObj.hideComponent (showButtonsId);
+
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show files table
+		pageObj.showComponent (filesTitleId);
+		pageObj.showComponent (filesTableId);
+		pageObj.showComponent (filesRowButtonsId);
+	}
+
+	if (type == "addFiles" || type == "updateFile" || type == "show")
+	{
+		// hide files table
+		pageObj.hideComponent (filesTitleId);
+		pageObj.hideComponent (filesTableId);
+		pageObj.hideComponent (filesRowButtonsId);
+
+		// show file form
+		pageObj.showComponent (eval(type + "TitleId"));
+
+		if (type == "show")
+		{
+			pageObj.showComponent (showTitleId);
+			pageObj.showComponent (showButtonsId);
+		}
+		else
+		{
+			pageObj.showComponent (filesFormId);
+			pageObj.showComponent (filesFormButtonsId);
+		}
+	}
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	serverObj.setXml (pageObj.getFormXml(searchFormId));
+
+	serverObj.sendRequest("tablets.getTabletItems", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay ("report");
+	
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+var globalExtraDataNamesXml;
+var globalAreas;
+var globalCities;
+var globalDetailsXml;
+
+var globalType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type, id)
+{
+	globalType = type;
+
+	if (type == "update" && id == undefined)
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור מודעה");
+			return false;
+		}
+
+		id = pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+	}
+
+	if (globalExtraDataNamesXml == undefined)
+		serverObj.sendRequest("tablets.getExtraDataNames", undefined, "after_loadExtraData");
+
+	if (globalAreas == undefined)
+		serverOptions_getAreas("noAll", undefined, "after_loadAreas")
+
+	if (type == "update")
+	{
+		globalDetailsXml	= undefined;
+
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (idCol.xmlTag, id);
+		serverObj.sendRequest ("tablets.getTabletItemDetails", undefined, "after_loadDetails");
+	}
+	else
+	{
+		globalCities = "";
+	}
+
+
+
+	openForm_continue ();
+}
+
+var oneStatusOptions = new selectOptionsObj();
+oneStatusOptions.addOption ("new", 	  	 "חדשה", 	"");
+oneStatusOptions.addOption ("approved",  "מאושרת", 	"");
+oneStatusOptions.addOption ("rejected",  "דחויה", 	"");
+
+// ---------------------------------------------------------------------------------------- 
+
+var globalEnumValues1;
+var globalEnumValues2;
+var globalEnumValues3;
+var globalEnumValues4;
+var globalEnumValues5;
+var globalEnumValues6;
+var globalEnumValues7;
+var globalEnumValues8;
+var globalEnumValues9;
+var globalEnumValues10;
+
+function after_loadExtraData (i)
+{
+	globalExtraDataNamesXml = asyncResponseXml.getResponseXml (i);
+
+	for (var i=1; i<=10; i++)
+	{
+		var enumId = commonGetInnerData(globalExtraDataNamesXml, "enumId" + i);
+
+		if (enumId == 0)
+		{
+			setTimeout ("globalEnumValues" + i + " = \"\";", 0);
+		}
+		else
+		{
+			serverOptions_getEnumValues(enumId, true, false, "", "after_loadEnumValues" + i);
+		}
+	}
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadAreas (options)
+{
+	globalAreas = new Object(options);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadCities (options)
+{
+	globalCities = new Object(options);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	serverOptions_getCitiesByArea(true, undefined, commonGetInnerData(globalDetailsXml, "areaId"), "after_loadCities")
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadEnumValues1  (options) { globalEnumValues1  = options; openForm_continue (); }
+function after_loadEnumValues2  (options) { globalEnumValues2  = options; openForm_continue (); }
+function after_loadEnumValues3  (options) { globalEnumValues3  = options; openForm_continue (); }
+function after_loadEnumValues4  (options) { globalEnumValues4  = options; openForm_continue (); }
+function after_loadEnumValues5  (options) { globalEnumValues5  = options; openForm_continue (); }
+function after_loadEnumValues6  (options) { globalEnumValues6  = options; openForm_continue (); }
+function after_loadEnumValues7  (options) { globalEnumValues7  = options; openForm_continue (); }
+function after_loadEnumValues8  (options) { globalEnumValues8  = options; openForm_continue (); }
+function after_loadEnumValues9  (options) { globalEnumValues9  = options; openForm_continue (); }
+function after_loadEnumValues10 (options) { globalEnumValues10 = options; openForm_continue (); }
+
+// ---------------------------------------------------------------------------------------- 
+
+function openForm_continue ()
+{
+	type = globalType;
+
+	if (globalExtraDataNamesXml == undefined || globalAreas == undefined || 
+	   globalEnumValues1 == undefined || globalEnumValues2 == undefined || globalEnumValues3 == undefined ||
+	   globalEnumValues4 == undefined || globalEnumValues5 == undefined || globalEnumValues6 == undefined ||
+	   globalEnumValues7 == undefined || globalEnumValues8 == undefined || globalEnumValues9 == undefined || globalEnumValues9 == undefined ||
+		(type == "update" && (globalDetailsXml == undefined || globalCities == undefined))) return;
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+
+	pageObj.resetForm (formId);
+
+	// get extraData names & enums of this tablet
+	// ------------------------------------------------------------------------------------ 
+	var tabletId = pageObj.getFieldValue (searchFormId, tabletCol.xmlTag);
+
+	var extraData1Name  = commonGetInnerData(globalExtraDataNamesXml, "extraData1");
+	var extraData2Name  = commonGetInnerData(globalExtraDataNamesXml, "extraData2");
+	var extraData3Name  = commonGetInnerData(globalExtraDataNamesXml, "extraData3");
+	var extraData4Name  = commonGetInnerData(globalExtraDataNamesXml, "extraData4");
+	var extraData5Name  = commonGetInnerData(globalExtraDataNamesXml, "extraData5");
+	var extraData6Name  = commonGetInnerData(globalExtraDataNamesXml, "extraData6");
+	var extraData7Name  = commonGetInnerData(globalExtraDataNamesXml, "extraData7");
+	var extraData8Name  = commonGetInnerData(globalExtraDataNamesXml, "extraData8");
+	var extraData9Name  = commonGetInnerData(globalExtraDataNamesXml, "extraData9");
+	var extraData10Name = commonGetInnerData(globalExtraDataNamesXml, "extraData10");
+
+	var enumId1		    = commonGetInnerData(globalExtraDataNamesXml, "enumId1");
+	var enumId2		    = commonGetInnerData(globalExtraDataNamesXml, "enumId2");
+	var enumId3		    = commonGetInnerData(globalExtraDataNamesXml, "enumId3");
+	var enumId4		    = commonGetInnerData(globalExtraDataNamesXml, "enumId4");
+	var enumId5		    = commonGetInnerData(globalExtraDataNamesXml, "enumId5");
+	var enumId6		    = commonGetInnerData(globalExtraDataNamesXml, "enumId6");
+	var enumId7		    = commonGetInnerData(globalExtraDataNamesXml, "enumId7");
+	var enumId8		    = commonGetInnerData(globalExtraDataNamesXml, "enumId8");
+	var enumId9		    = commonGetInnerData(globalExtraDataNamesXml, "enumId9");
+	var enumId10	    = commonGetInnerData(globalExtraDataNamesXml, "enumId10");
+
+	var enumName1	    = commonGetInnerData(globalExtraDataNamesXml, "enumName1");
+	var enumName2	    = commonGetInnerData(globalExtraDataNamesXml, "enumName2");
+	var enumName3	    = commonGetInnerData(globalExtraDataNamesXml, "enumName3");
+	var enumName4	    = commonGetInnerData(globalExtraDataNamesXml, "enumName4");
+	var enumName5	    = commonGetInnerData(globalExtraDataNamesXml, "enumName5");
+	var enumName6	    = commonGetInnerData(globalExtraDataNamesXml, "enumName6");
+	var enumName7	    = commonGetInnerData(globalExtraDataNamesXml, "enumName7");
+	var enumName8	    = commonGetInnerData(globalExtraDataNamesXml, "enumName8");
+	var enumName9	    = commonGetInnerData(globalExtraDataNamesXml, "enumName9");
+	var enumName10	    = commonGetInnerData(globalExtraDataNamesXml, "enumName10");
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(150,200,150,200),
+					ENG : new Array(150,200,150,200)}
+
+	var fieldWidth   = 180;
+	var fieldWidth2  = 530;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "זיהוי", ""); 
+
+	fields = new Array();
+	
+	if (type == "update")
+	{
+		pageObj.setFormXml (formId, globalDetailsXml);
+
+		hidden	= {type		: "hidden",					dataFld	: idCol.xmlTag}
+
+		fields.push (hidden);
+	}
+
+	hidden = {type      	: "hidden",					
+			  dataFld   	: tabletCol.xmlTag,			defaultValue : tabletId}
+
+	fields.push (hidden);
+
+	field1 = {type      	: "span",					textHEB		 : tabletCol.textHEB,
+			  spanData  	: 1,						textENG		 : tabletCol.textENG,
+			  dataFld   	: "tabletName",				width		 : fieldWidth,
+			  mandatory 	: false,					defaultValue : pageObj.getOptionValueText(searchFormId, tabletCol.xmlTag, tabletId)}
+
+	field2 = {type			: "select",					textHEB		 : statusCol.textHEB,
+			  spanData		: 1,						textENG		 : statusCol.textENG,
+			  dataFld		: statusCol.xmlTag,			width	 	 : fieldWidth,
+			  options		: oneStatusOptions.getOptions(),
+			  mandatory	 	: true,						defaultValue : "new"}
+
+	field3 = {type			: "yesNoSelect",			textHEB		 : "מודעה נבחרת",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "isSelected",				width	 	 : fieldWidth,
+			  mandatory	 	: false,					defaultValue : "0"}
+
+  	field4 = {type			: "text",					textHEB		 : "קוד מודעה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "code",					width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "50"}
+
+	field5 = {type			: "date",					textHEB		 : "תאריך התחלה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "startPublishDate",		width	 	 : fieldWidth,
+			  defaultValue	: today()}
+
+	field6 = {type			: "date",					textHEB		 : "תאריך סיום",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "endPublishDate",			width	 	 : fieldWidth}
+
+	field7 = {type			: "number",					textHEB		 : "ימים לתפוגה",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "expireDays",				width	 	 : fieldWidth,
+			  minValue		: "1",						maxLength	 : "2"}
+
+    fields.push (field1, field2, field3, field4, field5, field6, field7);
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "פרטי התקשרות", ""); 
+
+	fields = new Array();
+	
+  	field1 = {type			: "select",					textHEB		 : "אזור",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "areaId",					mandatory	 : false,
+			  width			: fieldWidth,				defaultValue : "",
+			  options   	: globalAreas,
+	  		  action		: "onSelectArea()"}
+	
+  	field2 = {type			: "select",					textHEB		 : "עיר",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "cityId",					mandatory	 : false,
+			  width			: fieldWidth,				defaultValue : "",
+			  options   	: globalCities}
+	
+	field3 = {type			: "text",					textHEB		 : "כתובת",
+			  spanData		: 3,						textENG		 : "",
+			  dataFld		: "address",				mandatory	 : false,
+			  maxLength		: "200",					width		 : fieldWidth2,
+	  		  lang	    	: langArray}
+
+	field4 = {type			: "textEng",				textHEB		 : "E-Mail",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "contactEmail",			width     	 : fieldWidth,
+			  maxLength		: "200"}	
+
+	field5 = {type			: "textEng",				textHEB		 : "אתר אינטרנט",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "siteUrl",				width     	 : fieldWidth,
+			  maxLength		: "200"}	
+
+	field6 = {type			: "phone",					textHEB		 : "טלפון",
+			  spanData  	: 1,						textENG		 : "",
+			  dataFld   	: "contactPhone1",			mandatory	 : false,
+			  width 		: fieldWidth}
+
+	field7 = {type			: "phone",					textHEB		 : "טלפון 2",
+			  spanData  	: 1,						textENG		 : "",
+			  dataFld   	: "contactPhone2",			mandatory	 : false,
+			  width 		: fieldWidth}
+	  
+	field8 = {type			: "phone",					textHEB		 : "פקס",
+			  spanData  	: 1,						textENG		 : "",
+			  dataFld   	: "fax",					mandatory	 : false,
+			  width 		: fieldWidth}
+	  
+	field9 = {type			: "text",					textHEB		 : "שם",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "contactName",			mandatory	 : false,
+			  maxLength		: "200",					width		 : fieldWidth,
+	  		  lang	    	: langArray}
+
+    fields.push (field1, field2, field3, field4, field5, field6, field7, field8, field9);
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(100,710),
+				 	ENG : new Array(100,710)}
+
+	fieldWidth  = 690;
+
+	var frameId = pageObj.addFormFrame (formId, "תוכן", ""); 
+
+	field1 = {type			: "text",					textHEB		 	: "כותרת",
+			  spanData		: 1,						textENG		 	: "",
+			  dataFld		: titleCol.xmlTag,			width	 	 	: fieldWidth,
+			  rows  		: 5,						lang		 	: langArray}
+
+	field2 = {type			: "xstandard",				textHEB			: "תוכן",
+			  spanData		: 1,						textENG		 	: "",
+			  dataFld		: "txt",					width	 	 	: 680,
+			  height  		: 220,						lang		 	: langArray}
+
+	field3 = {type			: "textarea",				textHEB		 	: "הערות",
+			  spanData		: 1,						textENG		 	: "",
+			  dataFld		: "remarks",				width	 	 	: fieldWidth,
+			  rows  		: 5,						lang		 	: langArray}
+
+  	fields = new Array(field1, field2, field3);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(150,470),
+				 	ENG : new Array(150,470)}
+
+	fieldWidth = 460;
+
+	var frameId = pageObj.addFormFrame (formId, "פרטים נוספים", ""); 
+
+	fields = new Array();
+	
+	field1 = {type			: "text",					textHEB		 : "תפקיד",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "role",					mandatory	 : false,
+			  maxLength		: "200",					width		 : fieldWidth,
+	  		  lang	    	: langArray}
+
+	field2 = {type			: "text",					textHEB		 : "מחיר",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "price",					mandatory	 : false,
+			  maxLength		: "200",					width		 : fieldWidth,
+	  		  lang	    	: langArray}
+
+	fields.push (field1, field2);
+
+	if (extraData1Name != "" || enumId1 != "")
+	{
+		for (var i=1; i<=10; i++)
+		{
+			fieldName = eval("extraData" + i + "Name");
+			if (fieldName != "")
+			{
+	  			field = {type		: "text",				textHEB		 : fieldName,
+					 	 spanData	: 1,					textENG		 : "",
+						 dataFld	: "extraData" + i,		width	 	 : fieldWidth,
+						 maxLength	: "100",				lang		 : langArray}
+
+				fields.push (field);
+			}
+
+			enumId = eval("enumId" + i);
+			if (enumId == 0) continue;
+
+			enumName = eval("enumName" + i);
+
+			hidden = {type		: "hidden",	
+					  dataFld	: "enumId" + i,			defaultValue : enumId}
+
+			field  = {type		: "select",				textHEB		 : enumName,
+				 	  spanData	: 1,					textENG		 : "",
+				 	  dataFld	: "enumValue" + i,		width		 : fieldWidth,
+					  options	: eval("globalEnumValues" + i)}
+
+			fields.push (hidden, field);
+		}
+	}
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId, true);
+
+	createEditFormButtons (type);
+
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectArea																				*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectArea ()
+{
+	var currArea = pageObj.getFieldValue (formId, "areaId");
+
+	if (currArea == "")
+	{
+		pageObj.setFieldOptions (formId, "cityId", serverOptions_getCites(true));
+	}
+	else
+	{
+		serverOptions_getCitiesByArea (true, undefined, currArea, "after_getCities");
+	}
+}
+
+function after_getCities (options)
+{
+	pageObj.setFieldOptions (formId, "cityId", options);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + formId + ")"}
+
+	btn3	= {type			: "save",
+			   action		: "submitForm('" + type + "Save')"}
+
+	btn4	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3,btn4));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+var global_submitType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	global_submitType = type;
+
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	command = type + "TabletItem";
+	
+	if (type == "addSave")
+		command = "addTabletItem";
+
+	if (type == "updateSave")
+		command = "updateTabletItem";
+
+	serverObj.sendRequest("tablets." + command, undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	type = global_submitType;
+
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh 		();
+
+		if (type != "addSave" && type != "updateSave")
+		{
+			handleDisplay	("report");
+		}
+		else
+		{
+			commonMsgBox ("info", "נתוני המודעה נשמרו בהצלחה");
+		}
+
+		if (type == "addSave")
+		{
+			pageObj.hideComponent (formId);
+			pageObj.hideComponent (formButtonsId);
+			
+			var id = commonGetInnerData (responseXml,idCol.xmlTag);
+
+			pageObj.setSelectedRow (tableId, idCol.xmlTag, id);
+
+			pageObj.hideComponent (addTitleId);
+			pageObj.showComponent (updateTitleId);
+			
+			openForm ("update", id);
+		}
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteTabletItem																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteTabletItem() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור מודעה");
+		return false;
+	}
+
+	confirm("מחיקת המודעה", "delete tablet item", "deleteTabletItem_confirm");
+}
+
+function deleteTabletItem_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+
+	serverObj.sendRequest("tablets.deleteTabletItem", undefined, "deleteTabletItem_continue");
+}
+
+function deleteTabletItem_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* jumpTabletItem																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function jumpTabletItem() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור מודעה");
+		return false;
+	}
+
+	confirm("הקפצת המודעה", "jump tablet item", "jumpTabletItem_confirm");
+}
+
+function jumpTabletItem_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	   (idCol.xmlTag, pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+	
+	serverObj.sendRequest("tablets.jumpTabletItem", undefined, "jumpTabletItem_continue");
+}
+
+function jumpTabletItem_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetTable (tableId);
+	loadData		   ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>
+

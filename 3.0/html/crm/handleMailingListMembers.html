@@ -1,0 +1,429 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var parentTitleId	= -1;
+var pageTitleId		= -1;
+var addTitleId		= -1;
+var searchFormId	= -1;
+var searchButtonsId	= -1;
+var tableId			= -1;
+var rowButtonsId	= -1;
+var formId			= -1;
+var formButtonsId	= -1;
+
+var idCol			= {textHEB	: "קוד",		textENG	: "Id",	   			xmlTag	: "id"			}
+var statusCol		= {textHEB	: "סטטוס",	   	textENG	: "Status",	   		xmlTag	: "status"		}
+var usernameCol		= {textHEB	: "שם משתמש",   textENG	: "User name",	   	xmlTag	: "username"	}
+var firstnameCol	= {textHEB	: "שם פרטי",   	textENG	: "First name",	   	xmlTag	: "firstname"	}
+var lastnameCol		= {textHEB	: "שם משפחה",   textENG	: "Last name",	   	xmlTag	: "lastname"	}
+var emailCol		= {textHEB	: "אימייל",	   	textENG	: "E-Mail",	   		xmlTag	: "email"		}
+var joinTimeCol		= {textHEB	: "הצטרפות",   	textENG	: "Join time",	   	xmlTag	: "joinTime"	}
+
+
+var globalMailingListId = commonGetGlobalData ("globalMailingListId");
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (globalMailingListId == undefined)
+		window.location.replace ("handleClubMailingLists.html");
+
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage 	  ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    	();	
+	createDataTable     	();	
+	createTableButtons  	();
+	loadData				();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	parentTitleId  	= pageObj.addPageTitle 	  ("ניהול רשימות תפוצה","Mailing lists management");
+	pageTitleId   	= pageObj.addPageSubTitle ("גולשי רשימת תפוצה " + globalMailingListId, "Mailing list " + globalMailingListId + " members",	"");
+	addTitleId		= pageObj.addPageSubTitle ("הוספת גולש לרשימה",	"Add a member to mailing list");
+
+	pageObj.showComponent (parentTitleId);
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	pageObj.tableIsMultiSelection (tableId);
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		=  {textHEB		: idCol.textHEB,			widthHEB : 70,
+			   		textENG		: idCol.textENG,			widthENG : 70,
+			   		sortType	: "number",					sortDir  : "ascending",
+			   		xmlTag   	: idCol.xmlTag}
+		   
+	column2		=  {textHEB		: usernameCol.textHEB,		widthHEB : 200,
+			   		textENG		: usernameCol.textENG,		widthENG : 200,
+			 	    sortType	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: usernameCol.xmlTag}
+		   
+	column3		= {textHEB		: firstnameCol.textHEB,		widthHEB : 120,
+			   	   textENG		: firstnameCol.textENG,		widthENG : 120,
+			 	   sortType		: "text",					sortDir  : "ascending",
+			 	   xmlTag   	: firstnameCol.xmlTag}
+		   
+	column4		= {textHEB		: lastnameCol.textHEB,		widthHEB : 120,
+			   	   textENG		: lastnameCol.textENG,		widthENG : 120,
+			   	   sortType 	: "text",					sortDir  : "ascending",
+			 	   xmlTag   	: lastnameCol.xmlTag}
+		 	  
+	column5		= {textHEB		: emailCol.textHEB,			widthHEB : 140,
+				   textENG		: emailCol.textENG,			widthENG : 140,
+				   sortType 	: "text",					sortDir  : "ascending",
+				   xmlTag   	: emailCol.xmlTag,			className: "styleLink",
+	   			   onclick		: "sendEmail(this)",		dir 	 : "ltr"}
+		   
+	column6		= {textHEB		: joinTimeCol.textHEB,		widthHEB : 120,
+				   textENG		: joinTimeCol.textENG,		widthENG : 120,
+				   sortType 	: "text",					sortDir  : "ascending",
+				   xmlTag   	: joinTimeCol.xmlTag}
+
+	column7		= {textHEB		: statusCol.textHEB,		widthHEB : 80,
+				   textENG		: statusCol.textENG,		widthENG : 80,
+				   sortType 	: "text",					sortDir  : "ascending",
+				   xmlTag   	: statusCol.xmlTag}
+
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5, column6, column7);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 350, 270);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* sendEmail																			    */
+/* ---------------------------------------------------------------------------------------- */
+function sendEmail(col)
+{
+	rowIndex = col.parentNode.rowIndex;
+
+	window.open ("mailto:" + pageObj.getRowValueOf(tableId,rowIndex, emailCol.xmlTag),"_new");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm()"}
+
+	btn2	= {type			: "delete",
+			   action		: "removeMember()"}
+
+	btn3	= {type			: "",
+			   textHEB		: "ייצוא לאקסל",
+			   textENG		: "Export to Excel",
+			   action		: "excelExport()"}
+
+    btn4	= {type			: "back",
+			   action		: "top.mainFrame.location.replace('handleClubMailingLists.html')"}
+
+	btn5	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2), new Array(btn3), new Array(btn4), new Array(btn5));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add")
+	{
+		// hide table
+		pageObj.hideComponent (pageTitleId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (addTitleId);
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag       ("mailingListId",	globalMailingListId);
+	serverObj.sendRequest("club.getMailingListMembers", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay ("report");
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag       ("mailingListId",	globalMailingListId);
+	serverObj.sendRequest("club.getRestMembers", undefined, "openForm_continue");
+}
+
+function openForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	var selectOptions 	= new selectOptionsObj();
+
+	if (responseXml != null)
+	{
+		itemsNode = responseXml.getElementsByTagName("items").item(0);
+
+		if (itemsNode == null || itemsNode.childNodes.length == 0)
+		{
+			selectOptions.addOption ("", "אין גולשים רשומים נוספים", "No other members");
+		} 
+		else
+		{
+			for (i=0; i < itemsNode.childNodes.length; i++)
+			{
+				var currNode  		= itemsNode.childNodes[i];
+
+				var id  			= commonGetInnerData (currNode, "id");
+				var memberDetails 	= commonGetInnerData (currNode, "memberDetails");
+
+				selectOptions.addOption (id, memberDetails, memberDetails);
+			}
+		}
+	}
+
+	var restMembers = selectOptions.getOptions ();
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(110,520),
+					ENG : new Array(110,520)}
+
+	var frameId = pageObj.addFormFrame (formId, "בחירת גולש", "Choose a member"); 
+
+	field1 = {type		: "multiSelect",		textHEB	: "גולש רשום",
+			  spanData  : 3,					textENG : "Registered member",
+			  dataFld	: idCol.xmlTag,			width	: 500,
+			  options	: restMembers,			height	: 200}
+
+	fields = new Array(field1);
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// -----------------------------------------------------------------------------------------------------------
+	
+	pageObj.generateForm  (formId, false);
+	createEditFormButtons ();
+
+	handleDisplay 		  ("add");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons ()
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: "add",
+			   action		: "submitForm()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm ()
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+	serverObj.addTag       ("mailingListId",	globalMailingListId);
+
+	serverObj.sendRequest("club.addMemberToMailingList", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+		doRefresh 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* removeMember																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function removeMember() 
+{
+    if (!pageObj.isRowSelected(tableId) && !pageObj.areRowsSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור גולש רשום", "Choose a registered member");
+		return false;
+	}
+
+	var ids 	= pageObj.getSelectedValuesOf(tableId,idCol.xmlTag);
+	
+	if (ids.length == 1)
+		confirmMsg = "מחיקת הגולש הרשום מרשימת התפוצה";
+	else
+		confirmMsg = "מחיקת " + ids.length + " הגולשים הרשומים המסומנים מרשימת התפוצה";
+
+	confirm(confirmMsg, "delete registered member from mailing list", "removeMember_confirm");
+}
+
+function removeMember_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTags	   (idCol.xmlTag, pageObj.getSelectedValuesOf(tableId,idCol.xmlTag));
+	serverObj.addTag       ("mailingListId",	globalMailingListId);
+	
+	serverObj.sendRequest("club.removeMemberFromMailingList", undefined, "removeMember_continue");
+}
+
+function removeMember_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* excelExport																				*/
+/*  ---------------------------------------------------------------------------------------- */
+function excelExport ()
+{
+	serverObj.cleanRequest 	();
+	serverObj.addTag 		("mailingListId", globalMailingListId);
+	serverObj.sendRequest	("club.excelExport", undefined, "excelExport_continue");
+}
+
+function excelExport_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		window.open ("http://www.i-bos.co.il/3.0/tempExcels/" + commonGetInnerData (responseXml, "excelFileName"),"_new");
+	}
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

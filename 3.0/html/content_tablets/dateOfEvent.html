@@ -1,0 +1,187 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var pageTitleId		= -1;
+var formId			= -1;
+var formButtonsId	= -1;
+
+var formTableObj	= commonGetGlobalData ("formTableObj");
+var action			= commonGetGlobalData ("action");
+var eventId			= commonGetGlobalData ("eventId");
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (action == undefined) return;	// dummy load
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage 	();
+
+	createPageTitle     ();		
+
+	openForm			(action);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitle																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitle ()
+{
+	if (action == "add")
+		pageTitleId	 = pageObj.addPageSubTitle ("הוספת תאריך",		"Add a date");
+	else
+		pageTitleId	 = pageObj.addPageSubTitle ("עדכון תאריך",		"Update a date");
+
+	pageObj.showComponent (pageTitleId);
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(80,200),
+					ENG : new Array(80,200)}
+
+	var fieldWidth   = 190;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "פרטים", "Details"); 
+
+	fields = new Array();
+	
+	if (type == "update")
+	{
+		pageObj.setFormXml (formId, pageObj.getSelectedRowAsXml(formTableObj));
+
+		field1	= {type		: "span",				textHEB		 : "תאריך",
+				   spanData : 1,					textENG		 : "Date",
+				   dataFld	: "date",				width	 	 : fieldWidth}
+	}
+	else
+	{
+		field1	= {type		: "date",				textHEB		 : "תאריך",
+				   spanData : 1,					textENG		 : "Date",
+				   dataFld	: "date",				width	 	 : fieldWidth}
+	}
+
+	field2	= {type		: "time",					textHEB		 : "משעה",
+			   spanData : 1,						textENG		 : "From",
+			   dataFld	: "fromTime",				width	 	 : fieldWidth}
+
+	field3	= {type		: "time",					textHEB		 : "עד שעה",
+			   spanData : 1,						textENG		 : "To",
+			   dataFld	: "toTime",					width	 	 : fieldWidth}
+	
+	fields.push (field1,field2, field3);
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId, false);
+
+	pageObj.showComponent (formId);
+
+	createEditFormButtons (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "close",
+			   action		: "closeDialog()"}
+
+	btn2	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+	pageObj.showComponent (formButtonsId);
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.cleanRequest ();
+	if (type == "add")
+		serverObj.addTag ("date", pageObj.getFieldValue (formId, "date"));
+	else
+		serverObj.addTag ("date", pageObj.getSelectedValueOf(formTableObj,"date"));
+
+	serverObj.addTag ("eventId",	eventId);
+	serverObj.addTag ("fromTime",  	pageObj.getFieldValue (formId, "fromTime"));
+	serverObj.addTag ("toTime",  	pageObj.getFieldValue (formId, "toTime"));
+
+	serverObj.sendRequest("events." + type + "EventDate", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		parent.loadEventDates();
+		closeDialog ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* closeDialog																				*/
+/* ---------------------------------------------------------------------------------------- */
+function closeDialog ()
+{
+	parent.$("#eventDates").dialog("close");
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()" style="margin-right:25px;margin-left:25px;height:230px">
+</body>
+
+</html>
+

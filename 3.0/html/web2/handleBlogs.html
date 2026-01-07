@@ -1,0 +1,724 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/categories.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var addTitleId			= -1;
+var updateTitleId		= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+var formTableObj		= -1;
+
+var idCol				= {textHEB : "מזהה",			textENG	: "Id",				xmlTag : "blogId"			}
+var blogNameCol			= {textHEB : "שם הבלוג",		textENG : "Name",			xmlTag : "name"				}
+var languageCol			= {textHEB : "שפה",				textENG : "Language",		xmlTag : "blogLang"			}
+var bloggersCol			= {textHEB : "בלוגרים", 		textENG	: "Bloggers", 		xmlTag : "bloggers"			}
+var bloggersNamesCol	= {textHEB : "בלוגרים", 		textENG	: "Bloggers", 		xmlTag : "bloggersNames"	}
+var numPostsInPageCol	= {textHEB : "מספר רשומות בדף",	textENG : "Posts per page",	xmlTag : "numPostsInPage"	}
+var archiveTypeCol		= {textHEB : "סוג ארכיון",		textENG : "Archive type",	xmlTag : "archiveType"		}
+var archiveByCol		= {textHEB : "ארכיון ברמה",		textENG : "Archive level",	xmlTag : "archiveBy"		}
+var statusCol			= {textHEB : "סטטוס",			textENG : "Status",			xmlTag : "status"			}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();	
+	addSearchSection    ();
+	createDataTable     ();
+	createTableButtons  ();
+	createSearchSection ();
+	loadData			();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	 = pageObj.addPageTitle    ("ניהול בלוגים", 	"Blogs management");
+	addTitleId		 = pageObj.addPageSubTitle ("הוספת בלוג",		"Add a blog");
+	updateTitleId	 = pageObj.addPageSubTitle ("עדכון בלוג",		"Update a blog");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	var queryXml = commonGetGlobalData ("blogsQueryXml");
+
+	if (queryXml != undefined)
+		pageObj.setFormXml (searchFormId, queryXml);
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	field1 = {type      : "text",					textHEB		 : blogNameCol.textHEB,
+			  spanData  : 1,						textENG		 : blogNameCol.textENG,
+			  dataFld   : blogNameCol.xmlTag,		width   	 : 140}
+
+  	fields.push (field1);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(80,width),
+					ENG : new Array(80,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,			widthHEB 	: 70,
+				   textENG	: idCol.textENG,			widthENG 	: 70,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: blogNameCol.textHEB,		widthHEB 	: 200,
+				   textENG	: blogNameCol.textENG,		widthENG 	: 200,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : blogNameCol.xmlTag}
+		   
+	column3		= {textHEB	: bloggersNamesCol.textHEB,	widthHEB 	: 200,
+				   textENG	: bloggersNamesCol.textENG,	widthENG 	: 200,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : bloggersNamesCol.xmlTag}
+		   
+	column4		= {textHEB	: layoutCol.textHEB,		widthHEB 	: 130,
+				   textENG	: layoutCol.textENG,		widthENG 	: 130,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : "layoutName"}
+		   
+	column5		= {textHEB	: statusCol.textHEB,		widthHEB 	: 80,
+				   textENG	: statusCol.textENG,		widthENG 	: 80,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : statusCol.xmlTag+"Text"}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 400, 300);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteBlog()"}
+
+	btn4	= {type			: "",
+			   textHEB		: "רשומות הבלוג",
+			   textENG		: "Blog posts",
+			   action		: "showBlogPostsPage()"}
+
+	btn5	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4), new Array(btn5));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("blogsQueryXml", queryXml);
+
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("blogs.getBlogs", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+ 
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay 	("report");
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+statusOptions = new selectOptionsObj();
+statusOptions.addOption ("active", 	 "פעיל",    "Active");
+statusOptions.addOption ("inactive", "לא פעיל", "Inactive");
+
+langsOptions = new selectOptionsObj();
+langsOptions.addOption ("HEB",	"עברית",	"Hebrew");
+langsOptions.addOption ("ENG",  "אנגלית",	"English");
+
+archiveOptions = new selectOptionsObj();
+archiveOptions.addOption ("hierarchy",  "היררכי", "Hierarchic");
+archiveOptions.addOption ("flat",		"רשימה שטוחה", "Flat list");
+archiveOptions.addOption ("select",		"רשימת בחירה", "Choose list");
+
+archiveByOptions = new selectOptionsObj();
+archiveByOptions.addOption ("month", "חודשית",	"Monthly");
+archiveByOptions.addOption ("week",  "שבועית",	"Weekly");
+archiveByOptions.addOption ("day",   "יומית",	"Daily");
+
+var globalBloggers;
+var globalLayouts;
+var globalDetailsXml;
+
+var globalType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type, id)
+{
+	globalType = type;
+
+	if (type == "update" && id == undefined)
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור בלוג", "Choose a blog");
+			return false;
+		}
+
+		id = pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+	}
+
+	if (globalBloggers == undefined)
+		serverOptions_getBloggers(false, "after_getBloggers");
+
+	if (globalLayouts == undefined)
+		serverOptions_getLayoutsByType ("page", "after_getLayouts");
+
+	if (type == "update")
+	{
+		globalDetailsXml = undefined;
+
+		serverObj.cleanRequest ();
+		serverObj.addTag(idCol.xmlTag, id);
+		serverObj.sendRequest("blogs.getBlogDetails", undefined, "after_getDetails");
+	}
+
+	openForm_continue ();
+
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getBloggers (options)
+{
+	globalBloggers = options;
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getLayouts (options)
+{
+	globalLayouts = options;
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function openForm_continue ()
+{
+	var type = globalType;
+
+	if (globalBloggers == undefined || globalLayouts == undefined || (type == "update" && globalDetailsXml == undefined)) return;
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(150,170,150,170),
+					ENG : new Array(150,170,150,170)}
+
+	var fieldWidth   = 160;
+	var fieldWidth3  = 450;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "פרטים", "Details"); 
+
+	fields = new Array();
+	
+	var id = "0";
+	if (type == "update")
+	{
+		pageObj.setFormXml (formId, globalDetailsXml);
+
+		field1	= {type		: "hidden", dataFld	: idCol.xmlTag}
+
+		fields.push (field1);
+
+		id = commonGetInnerData (globalDetailsXml,idCol.xmlTag);
+
+		titleAction = "generalSetWinTitle(\"name\", \"update\", formId, false)";
+	}
+	else
+		titleAction = "generalSetWinTitle(\"name\", \"add\", formId, false)";
+	
+  	field1 = {type			: "text",					textHEB		 : blogNameCol.textHEB,
+			  spanData		: 3,						textENG		 : blogNameCol.textENG,
+			  dataFld		: blogNameCol.xmlTag,		width	 	 : fieldWidth3,
+			  maxLength		: "50",						mandatory	 : true,
+			  action		: titleAction}
+
+	field2 = {type			: "multiSelect",			textHEB	 	 : bloggersCol.textHEB,
+			  spanData  	: 3,						textENG	 	 : bloggersCol.textENG,
+			  dataFld   	: bloggersCol.xmlTag,		mandatory  	 : true,
+			  width     	: fieldWidth3,				height	  	 : 150,
+			  options		: globalBloggers}	
+
+	field3 = {type			: "select",					textHEB		 : layoutCol.textHEB,
+			  spanData		: 1,						textENG		 : layoutCol.textENG,
+			  dataFld		: layoutCol.xmlTag,			width	 	 : fieldWidth,
+			  options		: globalLayouts,
+			  mandatory	    : true}
+
+    field4 = {type			: "select",					textHEB		 : statusCol.textHEB,
+			  spanData		: 1,						textENG		 : statusCol.textENG,
+			  dataFld		: statusCol.xmlTag,			width		 : fieldWidth-30,
+			  mandatory		: true,						defaultValue : "active",
+			  options		: statusOptions.getOptions()}
+
+  	field5 = {type			: "select",					textHEB		 : languageCol.textHEB,
+			  spanData		: 1,						textENG		 : languageCol.textENG,
+			  dataFld		: languageCol.xmlTag,		width	 	 : fieldWidth,
+			  options		: langsOptions.getOptions(),defaultValue : "HEB"}
+
+  	field6 = {type			: "number",					textHEB		 : numPostsInPageCol.textHEB,
+			  spanData		: 1,						textENG		 : numPostsInPageCol.textENG,
+			  dataFld		: numPostsInPageCol.xmlTag,	width	 	 : fieldWidth-30,
+			  maxLength		: "3",						mandatory	 : false,
+			  minValue		: "1"}
+
+	field7 = {type			: "yesNoSelect",			textHEB		 : "לגולשים רשומים בלבד",
+			  spanData		: 1,						textENG		 : "Members only",
+			  dataFld		: "membersOnly",			width		 : fieldWidth,
+			  mandatory		: false,					defaultValue : "0"}
+
+    fields.push (field1, field2, field3, field4, field5, field6, field7);
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "ארכיון", "Archive"); 
+
+	fields = new Array();
+	
+  	field1 = {type			: "select",					textHEB		 : archiveTypeCol.textHEB,
+			  spanData		: 1,						textENG		 : archiveTypeCol.textENG,
+			  dataFld		: archiveTypeCol.xmlTag,	width	 	 : fieldWidth,
+			  options		: archiveOptions.getOptions(),
+			  defaultValue  : "hierarchy"}
+
+  	field2 = {type			: "select",					textHEB		 : archiveByCol.textHEB,
+			  spanData		: 1,						textENG		 : archiveByCol.textENG,
+			  dataFld		: archiveByCol.xmlTag,		width	 	 : fieldWidth,
+			  options		: archiveByOptions.getOptions(),
+			  defaultValue : "month"}
+
+	field3 = {type			: "yesNoSelect",			textHEB		 : "הצגת כותרת רשומות",
+			  spanData		: 1,						textENG		 : "Show Post Titles",
+			  dataFld		: "postTitleInArchive",		width		 : fieldWidth,
+			  mandatory		: false,					defaultValue : "0"}
+
+    fields.push (field1, field2, field3);
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	commonAddSeoFrame (formId, undefined, false);
+
+	// ------------------------------------------------------------------------------------ 
+
+	categories_addFormFrame (formId, type, "קישור לקטגוריות", "Categories", fieldsWidths, id, "blog", "after_createCategoriesFrame")
+}
+
+function after_createCategoriesFrame ()
+{
+	var type = globalType;
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId, true);
+
+	formTableObj = new Object(pageObj.getFormTableId (formId, 4));	// 4 is the frame index
+
+	commonSetGlobalData ("formTableObj", formTableObj);	// save it for categoryOfItem iframe
+
+	createEditFormButtons (type);
+
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: "save",
+			   action		: "submitForm('" + type + "Save')"}
+
+	btn3	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2,btn3));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+var global_submitType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	global_submitType = type;
+
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	command = type + "Blog";
+	
+	if (type == "addSave")
+		command = "addBlog";
+
+	if (type == "updateSave")
+		command = "updateBlog";
+
+	serverObj.sendRequest("blogs." + command, undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var type = global_submitType;
+
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh 		();
+
+		if (type != "addSave" && type != "updateSave")
+		{
+			handleDisplay	("report");
+		}
+		else
+		{
+			commonMsgBox ("info", "נתוני הבלוג נשמרו בהצלחה", "Blog save successfully");
+		}
+
+		if (type == "addSave")
+		{
+			pageObj.hideComponent (formId);
+			pageObj.hideComponent (formButtonsId);
+			
+			pageObj.hideComponent (addTitleId);
+			pageObj.showComponent (updateTitleId);
+			
+			openForm ("update", commonGetInnerData (responseXml,idCol.xmlTag));
+		}
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* addCategory																				*/
+/* ---------------------------------------------------------------------------------------- */
+function addCategory (type)
+{
+	if (type == "add")
+	{
+		commonMsgBox ("info", "יש לבצע שמירה של הבלוג לפני קישור לקטגוריות", "Save new blog before adding categories");
+		return false;
+	}
+	
+	commonSetGlobalData ("action", "add");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (formId, idCol.xmlTag));
+	commonSetGlobalData ("catType", "blog");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* updateCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function updateCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור שורה", "Choose a row")
+		return false;
+	}
+
+	commonSetGlobalData ("action", "update");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (formId, idCol.xmlTag));
+	commonSetGlobalData ("catType", "blog");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function deleteCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור שורה", "Choose a row")
+		return false;
+	}
+
+	var itemId 		= pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+	var categoryId 	= pageObj.getSelectedValueOf (formTableObj, "id");
+	
+	categories_deleteCategory (formId, formTableObj, itemId, categoryId, "blog");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadItemCategories																		*/
+/* ---------------------------------------------------------------------------------------- */
+function loadItemCategories ()
+{
+	var itemId 		= pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+
+	categories_loadItemCategories (formId, formTableObj, itemId, "blog");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteBlog																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteBlog() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור בלוג", "Choose a blog");
+		return false;
+	}
+
+	confirm("מחיקת הבלוג", "delete the blog", "deleteBlog_confirm");
+}
+
+function deleteBlog_confirm ()
+{
+	var blogId = pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, blogId);
+	
+	serverObj.sendRequest("blogs.deleteBlog", undefined, "deleteBlog_continue");
+}
+
+function deleteBlog_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showBlogPostsPage																		*/ 
+/* ---------------------------------------------------------------------------------------- */
+function showBlogPostsPage() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור בלוג", "Choose a blog");
+		return false;
+	}
+
+	var blogId = pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+
+	commonSetGlobalData ("globalBlogId", blogId);
+	window.location.replace ("handleBlogsPosts.html");
+}
+	
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

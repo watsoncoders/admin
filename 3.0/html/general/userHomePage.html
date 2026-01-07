@@ -1,0 +1,50 @@
+<html>
+<head>
+
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	var serverObj 	 	= new serverInterfaceObj();
+	serverObj.setServer	 ("../../php/server.php");
+	serverObj.sendRequest("css.getStyles", undefined, "onLoad_afterStyles");
+}
+
+function onLoad_afterStyles (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+		commonSetGlobalData("stylesXml", responseXml);
+}
+
+</script>
+
+</head>
+
+<body onload="onLoad()">
+	<div id="homepageMsgs" class="homepageNewsBox"> 
+		<table id="newsTbl">
+		<tr id="newsTbl_row1">
+			<td class="newsTbl_col1"><div></div></td>
+			<td class="newsTbl_col2"><div class="newsTitle"><div>הודעות ועדכונים</div></div></td>
+		</tr>
+		<tr id="newsTbl_row2">
+			<td class="newsTbl_col1"></td>
+			<td class="newsTbl_col2">
+				<div class="news_in"><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/><br/></div>
+			</td>
+		</tr>
+		</table>
+	</div>
+		
+</body>
+
+</html>

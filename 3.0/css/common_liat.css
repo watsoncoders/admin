@@ -1,0 +1,363 @@
+/* -- data tables -----------------------------------------------------------------------------------------------------------------	*/
+
+td.first
+{
+	border-right: 0px !important;
+}
+
+td.last
+{
+	border-left: 0px !important;
+}
+
+table.dataTbl_header
+{
+	border-top-right-radius: 5px;
+	border-top-left-radius: 5px;
+}
+
+table.formFrameTbl table.dataTbl_header
+{
+	border-radius: 0px;
+}
+
+table.dataTbl_header td.headerCol
+{
+	border-left: 0px;
+}
+
+table.dataTbl_header, table.dataTbl_footer
+{
+	background-color: #BBC2CA;
+	color: white;
+}
+
+table.dataTbl_header td.headerCol
+{
+	border: 1px solid #E7E7E7;
+	border-bottom: 0px;
+	height: 27px;
+}
+
+table.dataTbl_header div.headerText
+{
+	padding-left: 10px;
+	padding-right: 10px;
+	font-weight: bold;
+}
+
+.dataScroll 
+{
+	overflow:scroll; 
+	overflow-x:visible;
+	clip:auto; 
+	direction:ltr;
+	background-color: #FFFFFF;
+	cursor: default;
+}
+
+table.dataTbl
+{
+	table-layout: fixed;
+}
+
+table.dataTbl tr.dataTbl_row
+{
+    background-color: #FFFFFF;
+}
+
+table.dataTbl tr.dataTbl_row td.dataTbl_col
+{
+	vertical-align: top;
+	border: 1px solid #E7E7E7;
+}
+
+table.dataTbl tr.dataTbl_row td.dataTbl_col div.data
+{
+	overflow: hidden;
+	padding: 4px 10px;
+}
+
+table.dataTbl_footer
+{
+	color: white;
+	border-bottom-right-radius: 5px;
+	border-bottom-left-radius: 5px;
+}
+
+table.dataTbl_footer tr
+{
+	height: 27px;
+}
+
+table.dataTbl_footer table.pagingIconsTbl
+{
+	margin-left: 15px;
+	margin-right: 15px;
+}
+
+table.dataTbl_footer table.pagingIconsTbl input.pagingIcon
+{
+	border:none;
+	cursor:pointer;
+	width: 17px;
+	height: 16px;
+	margin-top: 6px;
+}
+	
+table.dataTbl_footer table.pagingIconsTbl div.pagingInputs
+{
+	padding-top: 5px;
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+table.dataTbl_footer table.pagingIconsTbl input.pagingInput
+{
+	background-color: white;
+	border: 0px;
+	height: 16px;
+	width: 35px;
+	margin-left: 2px;
+	margin-right: 2px;
+	padding-right: 2px;
+	padding-left: 2px;
+}
+
+table.dataTbl_footer div.dataTbl_footer_totalText
+{
+	color: white;
+	font-weight: bold;
+}
+
+table.moreDataTbl
+{
+	margin-top: 15px;
+	background-color: #BBC2CA;
+	width: 100%;
+	border-radius: 5px;
+}
+
+table.moreDataTbl td.moreDataTbl_textCol
+{
+	border-left: 1px solid #E7E7E7;
+}
+
+table.moreDataTbl td.moreDataTbl_textCol div
+{
+	padding: 5px 10px 5px 0px;
+	color: white;
+	font-weight: bold;
+}
+
+table.moreDataTbl td.moreDataTbl_dataCol div
+{
+	padding: 5px;
+	color: white;
+}
+
+/* -- forms -----------------------------------------------------------------------------------------------------------------------	*/
+
+td.formTabs
+{
+	border-bottom: 32px solid #ABB0B6;
+}
+
+td.formTab, td.formTab_selected
+{
+	height: 32px;
+	border: 1px solid #E7E7E7;
+	color: white;
+	cursor: pointer;
+	border-top-left-radius: 5px;
+	border-top-right-radius: 5px;
+}
+
+td.formTab_selected
+{
+	border-bottom: 1px solid #ABB0B6;
+}
+
+td.formTab
+{
+	background-color: #AFD135;
+}
+
+td.formTab_selected
+{
+	background-color: #ACB1B7;
+}
+
+td.formTab div, td.formTab_selected div
+{
+	padding: 5px 15px;
+}
+
+table.formTbl
+{
+	margin-top: 8px;
+}
+
+table.formFrameTbl
+{
+	background-color: white;
+	border-bottom-left-radius: 5px;
+	border-bottom-right-radius: 5px;
+}
+
+table.formFrameTbl td.styleTdText, 
+table.formFrameTbl td.styleTdTextDisabled,
+table.formFrameTbl td.styleTdTextError
+{
+	border-bottom: 1px solid #E7E7E7;
+	color: #6C6C6C;
+	vertical-align: top;
+}
+
+table.formFrameTbl td.styleTdTextDisabled
+{
+	color:gray;
+}
+
+table.formFrameTbl td.styleTdTextError
+{
+	color:red;
+}
+
+table.formFrameTbl td.styleTdText div, 
+table.formFrameTbl td.styleTdTextDisabled div,
+table.formFrameTbl td.styleTdTextError div
+{
+	padding: 10px 15px 0px 0px;
+}
+
+table.formFrameTbl td.styleTdField
+{
+	border-left: 1px solid #E7E7E7;
+	border-bottom: 1px solid #E7E7E7;
+	border-top: 0px;
+}
+
+table.formFrameTbl .styleInput,
+table.noTabsTbl .styleInput,
+table.formFrameTbl .styleTextarea
+{
+	border: 1px solid #CBD0D4 !important;
+
+    -webkit-appearance: none;  /*Removes default chrome and safari style*/
+    -moz-appearance: none; /* Removes Default Firefox style*/
+    text-indent: 0.01px; /* Removes default arrow from firefox*/
+    text-overflow: "";  /*Removes default arrow from firefox*/
+
+	font-size: 14px;
+	color: #6C6C6C;
+	
+	margin-top: 8px;
+	margin-bottom: 8px;
+}
+
+table.formFrameTbl .styleInput
+{
+	height: 23px !important;
+}
+
+.styleColorPicker
+{
+	width: 21px;
+	height: 21px;
+	border: 1px solid #BBC2CA;
+	cursor:pointer;
+	font-size: 18px;
+	display: block;
+	text-align: center;
+	margin-right: 7px;
+}
+
+
+div.inFormLinks
+{
+	float: left;
+	font-size: 14px;
+	padding-left: 5px;
+	font-weight: normal;
+}
+
+/* -- tables ----------------------------------------------------------------------------------------------------------------------	*/
+
+table.noTabsTbl .styleInput
+{
+	border: 0px !important;
+	height: 22px !important;
+}
+
+table.formFrameTbl select.styleInput
+{
+    background: url('../designFiles/iconSelect.png') no-repeat #FFFFFF; 
+    background-position: 6px 8px;
+}
+
+table.noTabsTbl select.styleInput
+{
+    background: url('../designFiles/iconSelect.png') no-repeat #FFFFFF; 
+    background-position: 5px 10px;
+}
+
+div.tableInForm_btns
+{
+	height: 30px;
+	background-color: #ABB0B6;
+	border-top-left-radius: 5px;
+}
+
+div.tableInForm_btns td img
+{
+	margin-top: 6px;
+	margin-right: 5px;
+	margin-left: 5px;
+}
+
+div.fieldCounter
+{
+	font-size: 12px;
+	padding-right: 5px;
+	padding-bottom: 5px;
+}
+
+table.noTabsTbl.close
+{
+	margin-bottom: 10px;
+}
+
+table.noTabsTbl_formTitle
+{
+	background: url(../designFiles/mainMenu_bg.png) repeat-x bottom;
+	height: 28px;
+}
+
+td.noTabsTbl_title div
+{
+	font-weight: bold;
+}
+
+td.noTabsTbl_title img
+{
+	vertical-align: middle;
+	margin-right: 15px;
+	cursor: pointer;
+}
+
+table.noTabs_dataTbl
+{
+	background: url(../designFiles/mainMenu_bg.png) repeat-x bottom;
+}
+
+tr.noTabsTbl_row
+{
+	height: 52px;
+}
+
+/* --  ----------------------------------------------------------------------------------------------------------------------------	*/
+/* --  ----------------------------------------------------------------------------------------------------------------------------	*/
+/* --  ----------------------------------------------------------------------------------------------------------------------------	*/
+/* --  ----------------------------------------------------------------------------------------------------------------------------	*/
+/* --  ----------------------------------------------------------------------------------------------------------------------------	*/

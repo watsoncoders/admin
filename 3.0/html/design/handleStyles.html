@@ -1,0 +1,525 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var pageTitleId		= -1;
+var addTitleId		= -1;
+var updateTitleId	= -1
+var tableId			= -1;
+var rowButtonsId	= -1;
+var formId			= -1;
+var formButtonsId	= -1;
+
+var	nameCol		= {textHEB	: "שם סגנון", 		textENG	: "Name", 			xmlTag	: "styleName"		}
+var	descCol		= {textHEB	: "תיאור", 			textENG	: "Description", 	xmlTag	: "styleDescription"}
+var	fontCol		= {textHEB	: "גופן", 			textENG	: "Font", 			xmlTag	: "fontFamily"		}
+var	sizeCol		= {textHEB	: "גודל", 			textENG	: "Size", 			xmlTag	: "fontSize"		}
+var	colorCol	= {textHEB	: "צבע", 			textENG	: "Color", 			xmlTag	: "color"			}
+var	bgCol		= {textHEB	: "רקע", 			textENG	: "Bg", 			xmlTag	: "backgroundColor"	}
+var	cursorCol	= {textHEB	: "סמן", 			textENG	: "Cursor", 		xmlTag	: "cursor"			}
+var idCol		= {textHEB	: "סוג הסגנונות", 	textENG	: "Type", 			xmlTag	: "id"				}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage 	();
+
+	createPageTitles    ();
+	createDataTable     ();
+	createTableButtons  ();
+	loadData			();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	= pageObj.addPageTitle 		("ניהול סגנונות", 		"Styles management"		);
+	addTitleId		= pageObj.addPageSubTitle 	("הוספת סגנון חדש", 	"Add a new style"		);
+	updateTitleId	= pageObj.addPageSubTitle 	("עדכון פרטי סגנון", 	"Update style details"	);
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	columns = new Array ();
+
+	column1		= {textHEB	: nameCol.textHEB,			widthHEB : 180,
+				   textENG	: nameCol.textENG,			widthENG : 180,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : nameCol.xmlTag,			dir		 : "ltr"}
+
+   	column2		= {textHEB	: descCol.textHEB,			widthHEB : 190,
+				   textENG	: descCol.textENG,			widthENG : 190,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : descCol.xmlTag}
+		   
+   	column3		= {textHEB	: fontCol.textHEB,			widthHEB : 120,
+				   textENG	: fontCol.textENG,			widthENG : 120,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : fontCol.xmlTag,			dir		 : "ltr"}
+		   
+   	column4		= {textHEB	: sizeCol.textHEB,			widthHEB : 70,
+				   textENG	: sizeCol.textENG,			widthENG : 70,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : sizeCol.xmlTag,			dir		 : "ltr"}
+		   
+   	column5		= {textHEB	: colorCol.textHEB,			widthHEB : 100,
+				   textENG	: colorCol.textENG,			widthENG : 100,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : colorCol.xmlTag,			dir		 : "ltr"}
+		   
+   	column6		= {textHEB	: "תצוגה",					widthHEB : 120,
+				   textENG	: "Display",				widthENG : 120,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : "fontDisplay"}
+		   
+   	column7		= {textHEB	: cursorCol.textHEB,		widthHEB : 120,
+				   textENG	: cursorCol.textENG,		widthENG : 120,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : cursorCol.xmlTag,			dir		 : "ltr"}
+		   
+   	column8		= {textHEB	: bgCol.textHEB,			widthHEB : 100,
+				   textENG	: bgCol.textENG,			widthENG : 100,
+				   sortType : "text",					sortDir  : "ascending",
+				   xmlTag   : bgCol.xmlTag,				dir		 : "ltr"}
+		   
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5, column6, column8);	// column7
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 350, 280);
+
+	// ------------------------------------------------------------------------------------
+
+	data1   	= {textHEB  : "פרטים נוספים",       xmlTag   : "moreForTable",
+				   textENG  : "More Details",		spanData : 1}
+
+	moreDataCols = new Array(data1);
+
+   	moreDataWidths = {HEB : new Array (110,"*"),
+    				  ENG : new Array (110,"*")};
+	
+	pageObj.addTableExtension (tableId, moreDataWidths, moreDataCols);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteStyle()"}
+
+	btn4	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	serverObj.sendRequest("css.getStyles", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i) 
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+	}
+
+	if (global_firstTime)
+	{
+		handleDisplay 		("report");
+		global_firstTime = false;
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	if (type == "update")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור שורת סגנון", "Choose a style row");
+			return false;
+		}
+	}
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(100,200,100,200),
+					ENG : new Array(100,200,100,200)}
+
+	var fieldWidth  = 190;
+
+	var frameId = pageObj.addFormFrame (formId, "פרטי סגנון", "Style Details"); 
+
+	if (type == "update")
+	{
+		field1 = {type		: "span",					textHEB		 : nameCol.textHEB,
+				  spanData	: 1,						textENG		 : nameCol.textENG,
+				  dataFld	: nameCol.xmlTag,			width	 	 : fieldWidth}				
+	}
+	else
+	{
+		field1 = {type		: "textEng",				textHEB		 : nameCol.textHEB,
+				  spanData	: 1,						textENG		 : nameCol.textENG,
+				  dataFld	: nameCol.xmlTag,			width	 	 : fieldWidth,
+	  			  minLength	: 1,						mandatory	 : true,
+				  maxLength	: 40}
+	}
+
+	field2 = {type			: "text",					textHEB		 : descCol.textHEB,
+			  spanData		: 1,						textENG		 : descCol.textENG,
+			  dataFld		: descCol.xmlTag,			width	 	 : fieldWidth,
+	  		  minLength		: 1,						mandatory	 : true,
+	  		  maxLength		: 50}
+
+  	field4 = {type			: "yesNoSelect",			textHEB		 : "האם להציג שם",
+			  spanData		: 1,						textENG		 : "Show name?",
+			  dataFld		: "showName",				width		 : fieldWidth,
+			  mandatory		: true,						defaultValue : "0"}
+
+  	fields = new Array(field1, field2);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "הגדרות סגנון", "Style Definitinos"); 
+
+	var optionsObj = new selectOptionsObj();
+	optionsObj.addOption ("", "", "");
+	optionsObj.addOption ("Arial", 			"Arial", 		"Arial");
+	optionsObj.addOption ("Tahoma", 		"Tahoma", 		"Tahoma");
+	optionsObj.addOption ("David", 			"David", 		"David");
+	optionsObj.addOption ("Times", 			"Times",  		"Times");
+	optionsObj.addOption ("Western", 		"Western",    	"Western");
+	optionsObj.addOption ("Courier", 		"Courier",    	"Courier");
+	optionsObj.addOption ("serif", 			"serif",    	"serif");
+	optionsObj.addOption ("Verdana", 		"Verdana", 		"Verdana");
+	optionsObj.addOption ("cursive", 		"cursive", 	 	"cursive");
+	optionsObj.addOption ("Trebuchet MS", 	"Trebuchet MS", "Trebuchet MS");
+	optionsObj.addOption ("Ubuntu", 		"Ubuntu", 		"Ubuntu");
+
+	field1 = {type			: "select",					textHEB		 : fontCol.textHEB,
+			  spanData		: 1,						textENG		 : fontCol.textENG,
+			  dataFld		: fontCol.xmlTag,			width	 	 : fieldWidth,
+			  options		: optionsObj.getOptions(),	mandatory	 : false,
+	  		  defaultValue	: ""}
+	  
+	field2 = {type			: "number",					textHEB		 : sizeCol.textHEB,
+			  spanData		: 1,						textENG		 : sizeCol.textENG,
+			  dataFld		: sizeCol.xmlTag,			width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "2"}
+
+	field3 = {type			: "color",					textHEB		 : colorCol.textHEB,
+			  spanData		: 1,						textENG		 : colorCol.textENG,
+			  dataFld		: colorCol.xmlTag,			width	 	 : fieldWidth,
+			  minLength		: "4",						mandatory	 : false,
+			  maxLength		: "15"}
+
+	field4 = {type			: "color",					textHEB		 : bgCol.textHEB,
+			  spanData		: 1,						textENG		 : bgCol.textENG,
+			  dataFld		: bgCol.xmlTag,				width	 	 : fieldWidth,
+			  minLength		: "4",						mandatory	 : false,
+			  maxLength		: "15"}
+
+	var optionsObj = new selectOptionsObj();
+	optionsObj.addOption ("", "", "");
+	optionsObj.addOption ("R", "רגיל", 			"Normal");
+	optionsObj.addOption ("B", "מודגש", 		"Bold");
+	optionsObj.addOption ("I", "נטוי", 			"Italic");
+	optionsObj.addOption ("BI", "נטוי ומודגש",  "Italic Bold");
+	
+	field5 = {type			: "select",					textHEB		 : "סגנון",
+			  spanData		: 1,						textENG		 : "Style",
+			  dataFld		: "fontStyle",				width	 	 : fieldWidth,
+			  options		: optionsObj.getOptions(),	mandatory	 : false,
+	  		  defaultValue	: ""}
+	  
+	var optionsObj = new selectOptionsObj();
+	optionsObj.addOption ("", "", "");
+	optionsObj.addOption ("none", 			"ללא", 		"None");
+	optionsObj.addOption ("underline", 		"קו תחתון", "Underline");
+	optionsObj.addOption ("line-through", 	"קו חוצה", 	"Linethrough");
+	optionsObj.addOption ("overline", 		"קו מעל", 	"Overline");
+
+  	field6 = {type			: "select",					textHEB		 : "עיטור",
+			  spanData		: 1,						textENG		 : "Decoration",
+			  dataFld		: "underline",				width		 : fieldWidth,
+			  mandatory		: false,					defaultValue : "",
+			  options		: optionsObj.getOptions()}
+
+	var optionsObj = new selectOptionsObj();
+	optionsObj.addOption ("", "", "");
+	optionsObj.addOption ("help", 	 "help", 	"help");
+	optionsObj.addOption ("pointer", "pointer", "pointer");
+
+	field7 = {type			: "select",					textHEB		 : cursorCol.textHEB,
+			  spanData		: 1,						textENG		 : cursorCol.textENG,
+			  dataFld		: cursorCol.xmlTag,			width	 	 : fieldWidth,
+			  options		: optionsObj.getOptions(),	mandatory	 : false}
+
+  	fields = new Array(field1, field2, field7, field6, field5, field4, field3);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "הגדרות נוספות", "More Definitions"); 
+
+	field1 = {type			: "textarea",				textHEB		 : "קוד CSS",
+			  spanData		: 3,						textENG		 : "CSS code",
+			  dataFld		: "more",					width	 	 : 470,
+			  rows  		: 12,						mandatory	 : false,
+			  dir			: "ltr"}
+
+  	fields = new Array(field1);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+	if (type == "update")
+	{
+		pageObj.setFormXml (formId, pageObj.getSelectedRowAsXml(tableId));
+	}
+	
+	pageObj.generateForm  (formId);
+
+	createFormButtons 	(type);
+	handleDisplay 		(type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createFormButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createFormButtons (type)
+{
+	btnsGroups = new Array ();
+
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btnsGroups.push (new Array(btn1))
+
+	btn2	= {type			: type,
+	  		   action		: "submitForm('" + type + "')"}
+	
+	if (type == "update")
+	{
+		btn1= {type			: "save",
+			   action		: "submitForm('updateSave')"}
+
+		btnsGroups.push (new Array(btn1,btn2));
+	}
+	else
+	{
+		btnsGroups.push (new Array(btn2));
+	}
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+var global_submitType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	global_submitType	 = type;
+	submitCommand = type + "Style";
+	
+	if (type == "updateSave")
+	{
+		submitCommand = "updateStyle";
+	}
+
+	serverObj.sendRequest("css." + submitCommand, undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	var type = global_submitType;
+
+	if (responseXml != null)
+	{
+		if (type != "updateSave")
+		{
+			handleDisplay	("report");
+		}
+		else
+		{
+			commonMsgBox ("info", "נתוני הסגנון נשמרו בהצלחה", "Style details saved");
+		}
+		
+		doRefresh 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteStyle																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteStyle () 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור שורת סגנון", "Choose a style row");
+		return false;
+	}
+
+	canDelete 	= pageObj.getSelectedValueOf(tableId,"canDelete");
+	
+	if (canDelete == "0")
+	{
+		commonMsgBox ("info", "לא ניתן למחוק סגנון זה", "This style cannot be deleted");
+		return false;
+	}
+	
+	confirm("מחיקת הסגנון", "delete this style", "deleteStyle_confirm");
+}
+
+function deleteStyle_confirm ()
+{
+	var styleName = pageObj.getSelectedValueOf(tableId,"styleName");
+	
+	serverObj.cleanRequest ();
+	serverObj.addTag	("styleName",styleName);
+	
+	serverObj.sendRequest("css.deleteStyle", undefined, "deleteStyle_continue");
+}
+
+function deleteStyle_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

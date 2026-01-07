@@ -1,0 +1,169 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var pageTitleId		= -1;
+var pageSpanId		= -1;
+var urlSpanId		= -1;
+var urlButtonsId	= -1;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();	
+
+	loadPage			();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	= pageObj.addPageTitle ("סטטיסטיקה", "");
+	pageObj.showComponent (pageTitleId);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadPage																					*/
+/* ---------------------------------------------------------------------------------------- */
+function loadPage ()
+{
+	serverObj.sendRequest ("stats.getStatsDetails", undefined, "loadPage_continue");
+}
+
+function loadPage_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		var urlPrefix = commonGetInnerData (responseXml, "urlPrefix");
+		var awsPrefix = commonGetInnerData (responseXml, "awsPrefix");
+		var anzPrefix = commonGetInnerData (responseXml, "anzPrefix");
+
+		createPageSpan			(urlPrefix, awsPrefix, anzPrefix);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showUrl																					*/
+/* ---------------------------------------------------------------------------------------- */
+function showUrl (url)
+{
+	if (urlSpanId == -1)
+		urlSpanId	= pageObj.addSpan ();
+
+	if (urlButtonsId == -1)
+	{
+		btn1	= {type			: "back",
+		 		   action		: "goBack()"}
+
+		btnsGroups = new Array ();
+
+		btnsGroups.push (new Array(btn1));
+
+		urlButtonsId = pageObj.addRowOfButtons ();
+		pageObj.generateRowOfButtons (urlButtonsId, btnsGroups, 400);
+	}
+
+	textHtml = "<iframe frameborder='0' width='100%' height='410' src='" + url + "'></iframe>";
+
+	pageObj.initSpan 		(urlSpanId, textHtml);
+
+	pageObj.hideComponent 	(pageSpanId);
+	pageObj.showComponent 	(urlSpanId);
+	pageObj.showComponent 	(urlButtonsId);
+}
+
+
+/* ---------------------------------------------------------------------------------------- */
+/* goBack																					*/
+/* ---------------------------------------------------------------------------------------- */
+function goBack ()
+{
+	pageObj.showComponent 	(pageSpanId);
+	pageObj.hideComponent 	(urlSpanId);
+	pageObj.hideComponent 	(urlButtonsId);
+}
+
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageSpan																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageSpan (urlPrefix, awsPrefix, anzPrefix)
+{
+	if (pageSpanId == -1)
+		pageSpanId	= pageObj.addSpan ();
+
+		textHtml = "כלי הסטטיסטיקה המומלץ: <a href='http://www.google.com/analytics/' target='_new'>Google Analytics</a><br /><BR><table><tr><td align=right width=600><span class=styleBigText><a href=\"" + awsPrefix + "\" target=\"_blank\">לחץ כאן כדי לקבל דוח סטטיסטי מפורט מתוכנת AwStats</a><br />" +
+			//<span class='styleBigLink' onclick='showUrl(\"" + awsPrefix + "\")'>"	+
+			//	"AwStats Stats </span> - "							+
+			"הדוח הסטטיסטי ייפתח בחלון חדש.<br />" +
+		   	"יהיה עליך להכניס את השם והסיסמא הראשוניים ששימשו אותך לכניסה למערכת הניהול.<br />" +
+			"על מנת לראות בעברית את מילות החיפוש דרכם הגיעו גולשים אל אתר יש לעבור לקידוד UTF-8." +
+			"</span><BR><BR>" +
+		/*
+			    "<span class=styleBigText>2. <span class='styleBigLink' onclick='showUrl(\"" + anzPrefix + "\")'>" +
+				"	Webalizer Web Stats"																	+
+				"</span> - "										+
+				"תוכנה סטטיסטית מקיפה, הכוללת מידע מפולח על התנועה לאתר הדפים המבוקשים ביותר, דפי הכניסה והיציאה," +
+				"מידע על המפנים לאתר, מקום הגולשים, מילות החיפוש הפופולריות ועוד."							+
+				"</span><BR><BR>" + 
+		<span class=styleBigText>3. <span class='styleBigLink' onclick='showUrl(\"" + urlPrefix + "stats/webalizerftp.html\")'>"	+
+				"	Webalizer Ftp Stats"																	+
+				"</span> - "							+
+				"כמו Webalizer Web Stats רק לתנועת ה-FTP של האתר." +
+				"</span><BR><BR><span class=styleBigText>4. <span class='styleBigLink' onclick='showUrl(\"" + urlPrefix + "stats/analog.html\")'>"	+
+				"	Analog Stats"																	+
+				"</span> - "							+
+				"הצגת המידע על התנועה באתר בצורה גולמית." +
+				"</span><BR><BR><span class=styleBigText>5. <span class='styleBigLink' onclick='showUrl(\"" + urlPrefix + "stats/lastvistors.html\")'>"	+
+				"	Latest Visitors"																+
+				"</span> - "					+
+				"הצגה גולמית ומפורטת של תנועת 60 הגולשים האחרונים באתר יחסית." +
+				"</span><BR><BR><span class=styleBigText>6. <span class='styleBigLink' onclick='showUrl(\"" + urlPrefix + "stats/bandwidth.html\")'>"	+
+				"	Bandwidth"																		+
+				"</span> - "					+
+				"תיאור גרפי של נפח התעבורה שיצר האתר." +
+				"</span><BR><BR><span class=styleBigText>7. <span class='styleBigLink' onclick='showUrl(\"" + urlPrefix + "stats/errlog.html\")'>"	+
+				"	Error Log"																	+
+				"</span> - "					+
+				"הצגת 300 הודעות השגיאה האחרונות שיצר האתר, בעיקר בשל דפים שלא נמצאו." +
+				"</span>" +
+	*/
+				"</td></tr></table>";
+	pageObj.initSpan 		(pageSpanId, textHtml);
+	pageObj.showComponent 	(pageSpanId);
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>
+

@@ -1,0 +1,1519 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/categories.js"></script>
+<script language="JavaScript" src="../../javascript2/multiUpload.js"></script>
+
+<script language="JavaScript">
+
+var langArray				= commonGetGlobalData ("langArray");
+
+var guiLang					= commonGetGlobalData ("guiLang");
+var pageObj					= new dynamicPageObj(guiLang);	
+var serverObj				= new serverInterfaceObj(guiLang);
+
+var pageTitleId				= -1;
+var addTitleId				= -1;
+var updateTitleId			= -1;
+var showTitleId				= -1;
+var multiTitleId			= -1;
+var searchFormId			= -1;
+var searchButtonsId			= -1;
+var tableId					= -1;
+var rowButtonsId			= -1;
+var formId					= -1;
+var formButtonsId			= -1;
+var showButtonsId			= -1;
+
+var formTableObj			= -1;
+
+var addAlbumTitleId			= -1;
+var updateAlbumTitleId		= -1;
+var duplicateAlbumTitleId	= -1;
+var albumFormId				= -1;
+var albumFormButtonsId		= -1;
+
+var albumIdCol				= {textHEB	: "קוד",				textENG : "Id",			xmlTag	: "albumId"		}
+var albumNameCol			= {textHEB	: "שם האלבום",			textENG : "Name",		xmlTag	: "title"		}
+
+var	imageIdCol				= {textHEB	: "קוד",				textENG	: "Id",			xmlTag	: "imageId"		}
+var	posCol					= {textHEB	: "מיקום",			   	textENG	: "Position",   xmlTag	: "pos"			}
+var titleCol				= {textHEB	: "כותרת",				textENG : "Title",		xmlTag	: "title"		}
+var fileCol					= {textHEB	: "קובץ",				textENG : "Source",		xmlTag	: "sourceFile"	}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage 	  ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    			();
+	createSpanFile					();
+	addSearchSection    			();
+	createDataTable     			();	
+	createTableButtons  			();	
+	createSearchSection 			();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   			= pageObj.addPageTitle 		("ניהול אלבומים",			"Albums management");
+
+	addTitleId				= pageObj.addPageSubTitle 	("הוספת תמונה/וידאו/אודיו",	"Add a Picture/Movie");
+	updateTitleId			= pageObj.addPageSubTitle 	("עדכון פרטים",				"Update Definitions");
+
+	showTitleId		 		= pageObj.addPageSubTitle 	("הצגת תמונה/וידאו/אודיו",  "Show a Picture/Movie");
+
+	multiTitleId			= pageObj.addPageSubTitle 	("טעינת קבצים",  			"Upload files");
+
+	addAlbumTitleId			= pageObj.addPageSubTitle 	("הוספת אלבום",				"Add an Album");
+	updateAlbumTitleId		= pageObj.addPageSubTitle 	("עדכון פרטי האלבום",		"Update an Album");
+	duplicateAlbumTitleId	= pageObj.addPageSubTitle 	("שכפול אלבום",				"Duplicate an Album");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createSpanFile																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createSpanFile ()
+{
+	spanFileId = pageObj.addSpan	();
+}
+	
+var globalCats;
+var globalAlbums;
+
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	serverOptions_getAlbums(true, "after_getAlbums");
+
+	serverOptions_getCategories("choose", "album", undefined, undefined, "after_loadCats");
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getAlbums (options)
+{
+	globalAlbums = options;
+
+	createSearchSection_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadCats (options)
+{
+	globalCats = new Object(options);
+
+	createSearchSection_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function createSearchSection_continue ()
+{
+	if (globalAlbums == undefined || globalCats == undefined) return;
+
+	var queryXml = commonGetGlobalData ("albumsQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (searchFormId, queryXml);
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	defaultAlbum = "";
+	if (globalAlbums.length > 0)
+		defaultAlbum = globalAlbums[0].value;
+
+
+	field1 = {type      : "select",					textHEB		 : "אלבום",
+			  spanData  : 1,						textENG		 : "Album",
+			  dataFld   : albumIdCol.xmlTag,		width   	 : 250,
+			  options	: globalAlbums,				defaultValue : defaultAlbum,
+			  action	: "onChangeQuery()"}
+
+	field2 = {type		: "select",					textHEB		 : categoryCol.textHEB,
+			  spanData	: 1,						textENG		 : categoryCol.textENG,
+			  dataFld	: categoryCol.xmlTag,		width	 	 : 165,
+			  options	: globalCats,				action		 : "onSelectCat()"}
+
+  	fields.push (field1, field2);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(50,300,60,width),
+					ENG : new Array(50,300,60,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "",
+			   textHEB		: "הצגת אלבום",
+			   textENG		: "View Album",
+			   action		: "viewAlbum()"}
+
+	btn3	= {type			: "",
+			   textHEB		: "הוספת אלבום",
+			   textENG		: "Add Album",
+			   action		: "openForm('addAlbum')"}
+
+	btn4	= {type			: "",
+			   textHEB		: "הגדרות אלבום",
+			   textENG		: "Definitions",
+			   action		: "openForm('updateAlbum')"}
+
+	btn5	= {type			: "",
+			   textHEB		: "שכפול אלבום",
+			   textENG		: "Duplicate",
+			   action		: "openForm('duplicateAlbum')"}
+
+	btn6	= {type			: "",
+			   textHEB		: "מחיקת אלבום",
+			   textENG		: "Delete",
+			   action		: "deleteAlbum()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2,btn3, btn4, btn5, btn6));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+
+	loadData ();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectCat																				*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectCat ()
+{
+	var selectedCat = pageObj.getFieldValue (searchFormId, categoryCol.xmlTag);
+
+	serverObj.cleanRequest ();
+	serverObj.addTag (categoryCol.xmlTag, selectedCat);
+	
+    serverObj.sendRequest("albums.getAlbums", undefined, "after_getAlbumsByCat");
+}
+
+function after_getAlbumsByCat (i)
+{
+	var selectOptions 	= new selectOptionsObj();
+
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		itemsNode = responseXml.getElementsByTagName("items").item(0);
+
+		if (itemsNode == null)
+		{
+			selectOptions.addOption ("", "אין אלבומים", "No Albums");
+		} 
+		else
+		{
+			selectOptions.addOption ("", "", "");
+
+			for (i=0; i < itemsNode.childNodes.length; i++)
+			{
+				var currNode    = itemsNode.childNodes[i];
+
+				var id  	= commonGetInnerData (currNode, "id");
+				var name 	= commonGetInnerData (currNode, "title");
+
+				var optionText = id + " - " + name;
+
+				selectOptions.addOption (id, optionText, optionText);
+			}
+		}
+	}
+
+	globalAlbums = selectOptions.getOptions ();
+	pageObj.setFieldOptions (searchFormId, albumIdCol.xmlTag, globalAlbums, ""); 
+
+	albumId = "";
+	if (globalAlbums.length > 1)
+		albumId = globalAlbums[1].value;
+
+	setTimeout ("loadAlbum (" + albumId + ")", 500);
+}
+
+function loadAlbum (albumId)
+{
+	pageObj.setFieldValue (searchFormId, albumIdCol.xmlTag, albumId);
+
+	doRefresh	    ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onChangeQuery																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onChangeQuery ()
+{
+	setTimeout ("doRefresh();", 100);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	pageObj.tableIsMultiSelection (tableId);
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// ------------------------------------------------------------------------------------
+	column1		=  {textHEB		: imageIdCol.textHEB,		widthHEB : 70,
+			   		textENG		: imageIdCol.textENG,		widthENG : 70,
+			   		sortType	: "number",					sortDir  : "ascending",
+				   	xmlTag   	: imageIdCol.xmlTag}
+		   
+	column2		=  {textHEB		: posCol.textHEB,			widthHEB : 70,
+			  		textENG		: posCol.textENG,			widthENG : 70,
+			   		sortType	: "text",					sortDir  : "ascending",
+			  		xmlTag   	: posCol.xmlTag}
+		   
+	column3		=  {textHEB		: titleCol.textHEB,			widthHEB : 250,
+			   		textENG		: titleCol.textENG,			widthENG : 250,
+			  	 	sortType 	: "text",					sortDir  : "ascending",
+			  		xmlTag   	: titleCol.xmlTag}
+		   
+	column4		=  {textHEB		: fileCol.textHEB,			widthHEB : 250,
+			   		textENG		: fileCol.textENG,			widthENG : 250,
+			  	 	sortType 	: "text",					sortDir  : "ascending",
+			  		xmlTag   	: fileCol.xmlTag,			dir		 : "ltr"}
+		   
+	column5		= {textHEB		: "הצגת תמונה",				widthHEB : 100,
+				   textENG		: "",						widthENG : 100,
+				   sortType 	: "number",					sortDir  : "ascending",
+				   xmlTag   	: "showPic"}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 350, 270);
+}
+
+function hidePic ()
+{
+	$.fancybox.close ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteImage()",
+			   isMulti		: true}
+
+	btn4	= {type			: "show",
+			   action		: "showImage()"}
+
+	btn5	= {type			: "",
+			   textHEB		: "טעינה מרובה",
+			   action		: "openForm('multi')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3, btn4), new Array(btn5));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	hidePic();
+
+	if (type == "report")
+	{
+		if (albumFormId != -1)
+			pageObj.resetForm (albumFormId);
+
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+		pageObj.hideComponent (addAlbumTitleId);
+		pageObj.hideComponent (duplicateAlbumTitleId);
+		pageObj.hideComponent (updateAlbumTitleId);
+		pageObj.hideComponent (albumFormId);
+		pageObj.hideComponent (albumFormButtonsId);
+	
+		// hide show
+		pageObj.hideComponent (showTitleId);
+		pageObj.hideComponent (showButtonsId);
+		pageObj.hideComponent (spanFileId);
+		
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update" || type == "show" || type == "multi")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		if (type == "show")
+		{
+			pageObj.showComponent (showTitleId);
+			pageObj.showComponent (showButtonsId);
+		}
+		else
+		{
+			pageObj.showComponent (eval(type + "TitleId"));
+			pageObj.showComponent (formId);
+			pageObj.showComponent (formButtonsId);
+		}
+	}
+
+	if (type == "addAlbum" || type == "updateAlbum" || type == "duplicateAlbum")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (albumFormId);
+		pageObj.showComponent (albumFormButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	hidePic();
+
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("albumsQueryXml", queryXml);
+
+	serverObj.cleanRequest ();
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("albums.getAlbumImages", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay 			("report");	
+	
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* viewAlbum																				*/
+/* ---------------------------------------------------------------------------------------- */
+function viewAlbum ()
+{
+	selectedAlbum = pageObj.getFieldValue(searchFormId, albumIdCol.xmlTag);
+
+	if (selectedAlbum == "")
+	{
+			commonMsgBox ("info", "יש לבחור אלבום מהרשימה", "Choose an album from the list");
+			return false;
+	}
+
+	var pageUrl	 = commonGetGlobalData("siteUrl") + "/index2.php?id=" + selectedAlbum + "&lang=" + langArray[0];
+
+	window.open (pageUrl);
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	globalType = type;
+
+	if (type == "update")	// update album image
+	{
+		if (pageObj.areRowsSelected(tableId))
+		{
+			commonMsgBox ("info", "יש לבחור תמונה אחת בלבד", "Choose only one picture");
+			return false;
+		}
+
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור שורה");
+			return false;
+		}
+	}
+
+	selectedAlbum = pageObj.getFieldValue(searchFormId, albumIdCol.xmlTag);
+
+	if (type == "addAlbum" || type == "updateAlbum" || type == "duplicateAlbum")
+	{
+		if ((type == "updateAlbum" || type == "duplicateAlbum") && selectedAlbum == "")
+		{
+			commonMsgBox ("info", "יש לבחור אלבום מהרשימה", "Choose an album from the list");
+			return false;
+		}
+
+		if (type == "addAlbum")
+		{
+			createAlbumForm  	   ();
+		}
+		else
+		{
+			serverObj.cleanRequest ();
+			serverObj.addTag	   (albumIdCol.xmlTag, pageObj.getFieldValue (searchFormId, albumIdCol.xmlTag));	
+			serverObj.addTag	   ("action", type);
+
+			serverObj.sendRequest ("albums.getAlbumDetails", undefined, "after_getAlbumDetails");
+		}
+	}
+	
+	if (type == "add" || type == "update" || type == "multi")
+	{
+		if ((type == "add" || type == "multi") &&  selectedAlbum == "")
+		{
+			commonMsgBox ("info", "יש לבחור אלבום מהרשימה", "Choose an album from the list");
+			return false;
+		}
+
+		if (type == "add")
+		{
+			createEditForm  	  ();
+		}
+		else if (type == "multi")
+		{
+			createMultiForm			();
+		}
+		else
+		{
+			globalDetailsXml = undefined;
+
+			serverObj.cleanRequest ();
+			serverObj.addTag	   (imageIdCol.xmlTag, pageObj.getSelectedValueOf (tableId, imageIdCol.xmlTag));
+			serverObj.sendRequest  ("albums.getAlbumImageDetails", undefined, "after_getAlbumImageDetails");
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getAlbumDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	createAlbumForm ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getAlbumImageDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	createEditForm ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+var displayTypes = new selectOptionsObj();
+displayTypes.addOption	("smallPics", 	 "הגדלת תמונות מוקטנות", "Click to enlarge pictures");
+displayTypes.addOption	("bigAndSmalls", "תמונה גדולה ותמונות מוקטנות", "Click to replace large picture");
+
+var sizes		 = new selectOptionsObj();
+sizes.addOption			("",			 "",						"");
+sizes.addOption			("r",			 "מימין לתמונה הגדולה",		"Right");
+sizes.addOption			("l",			 "משמאל לתמונה הגדולה",		"Left");
+sizes.addOption			("t",			 "מעל התמונה הגדולה",		"Above");
+sizes.addOption			("b",			 "מתחת לתמונה הגדולה",		"Below");
+
+var globalDimensions = undefined;
+var globalAllPages	 = undefined;
+var globalLayouts	 = undefined;
+
+var globalDetailsXml = undefined;
+
+var globalType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* createAlbumForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createAlbumForm ()
+{
+	type = globalType;
+
+	if (globalDimensions == undefined)
+		serverOptions_getDimensions			(true, "after_loadDimensions");
+
+	if (globalAllPages == undefined)
+		serverOptions_getPagesNames			(undefined, "after_loadAllPages");
+
+	if (globalLayouts == undefined)
+		serverOptions_getLayoutsByType		("page", "after_loadLayouts");
+
+	createAlbumForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadDimensions (options)
+{
+	globalDimensions = new Object(options);
+
+	createAlbumForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadAllPages (options)
+{
+	globalAllPages = new Object(options);
+
+	createAlbumForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_loadLayouts (options)
+{
+	globalLayouts = new Object(options);
+
+	createAlbumForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getGalleryDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	createAlbumForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function createAlbumForm_continue  ()
+{
+	type = globalType;
+
+	if (globalDimensions == undefined || globalAllPages == undefined || globalLayouts == undefined || 
+	    (type != "addAlbum" && globalDetailsXml == undefined)) return;
+
+
+	if (albumFormId == -1)
+		albumFormId   = pageObj.addForm ();
+	
+	pageObj.resetForm (albumFormId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(200,180,200,180),
+					ENG : new Array(200,180,200,180)}
+
+	var fieldWidth   = 160;
+	var fieldWidth3  = 542;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (albumFormId, "זיהוי", "Identification"); 
+
+	fields = new Array();
+	
+	if (type == "updateAlbum" || type == "duplicateAlbum")
+	{
+		pageObj.setFormXml (albumFormId, globalDetailsXml);
+	}
+
+	if (type == "updateAlbum")
+	{
+		titleAction = "generalSetWinTitle(\"title\", \"update\", albumFormId)";
+
+		var id 		= pageObj.getFieldValue (searchFormId, albumIdCol.xmlTag);
+		var url		= commonGetInnerData (globalDetailsXml, "siteUrl") + "?id=" + id;
+
+		showPage    = "<div style='float:left'><a href ='" + url + "' target='_blank'>הצגת האלבום</a></div>";
+		showPageEng = "<div style='float:right'><a href='" + url + "' target='_blank'>Show Album</a></div>";
+
+		pageObj.updatePageTitle (updateAlbumTitleId, showPage + "עדכון פרטי אלבום " + id, showPageEng + "Update album " + id);
+	}
+	else
+	{
+		titleAction = "generalSetWinTitle(\"title\", \"add\", albumFormId)";
+	}
+
+	hidden	= {type		: "hidden",	
+			  dataFld	: albumIdCol.xmlTag,			defaultValue : id}
+
+	fields.push (hidden);
+	
+  	field1 = {type			: "text",					textHEB		 : albumNameCol.textHEB,
+			  spanData		: 3,						textENG		 : albumNameCol.textENG,
+			  dataFld		: albumNameCol.xmlTag,		width	 	 : fieldWidth3,
+			  minLength		: "1",						mandatory	 : true,
+			  maxLength		: "200",					lang		 : langArray,
+			  action		: titleAction}
+
+  	field2 = {type			: "text",					textHEB		 : "תיאור קצר",
+			  spanData		: 3,						textENG		 : "Short Description",
+			  dataFld		: "shortDesc",				width	 	 : fieldWidth3,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "200",					lang		 : langArray}
+
+  	field3 = {type			: "date",					textHEB		 : "תאריך",
+			  spanData		: 3,						textENG		 : "Date",
+			  dataFld		: "albumDate",				width	 	 : fieldWidth}
+
+	field4 = {type			: "yesNoSelect",			textHEB		 : "הצגת האלבום באתר",
+			  spanData		: 1,						textENG		 : "Page Ready",
+			  dataFld		: "isReady",				width		 : fieldWidth,
+			  mandatory		: true,						defaultValue : "1",
+	  		  											lang		 : langArray}
+
+	field5 = {type			: "select",					textHEB		 : layoutCol.textHEB,
+			  spanData		: 1,						textENG		 : layoutCol.textENG,
+			  dataFld		: layoutCol.xmlTag,			width	 	 : fieldWidth,
+			  options		: globalLayouts,
+			  mandatory	    : false}
+
+	field6 = {type			: "text",					textHEB		 : "כותרת לסרגל ניווט",
+			  spanData		: 1,						textENG		 : "Navigation title",
+			  dataFld		: "navTitle",				width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "50",						lang		 : langArray}
+
+	field7 = {type			: "select",					textHEB		 : "קישור אב בסרגל ניווט",
+			  spanData		: 1,						textENG		 : "Navigation parent",
+			  dataFld		: "navParentId",			width		 : fieldWidth,
+			  mandatory		: false,					defaultValue : "1",
+			  options		: globalAllPages}
+
+    fields.push (field1, field2, field3, field4, field5, field6, field7);
+
+	if (type == "addAlbum" || type == "duplicateAlbum")
+	{
+		field1 = {type			: "select",				textHEB		 : "בחירת קטגוריה",
+				  spanData		: 3,					textENG		 : "Choose category",
+				  dataFld		: "categoryId",			width	 	 : fieldWidth,
+				  options		: globalCats}
+
+		fields.push(field1);
+
+		field1 = {type		: "hidden",					
+				  dataFld   : "sourceFile"}
+	}
+	else
+	{
+		field1 = {type		: "span",					textHEB		 : "קובץ מקור",
+				  spanData  : 3,						textENG		 : "Source",
+				  dataFld	: "formSourceFile",			width   	 : fieldWidth3}
+
+		hidden = {type		: "hidden",					
+			 	   dataFld   : "sourceFile"}
+
+		fields.push (hidden);
+	}
+
+	field2 = {type			: "onlineUpload",			textHEB		 : "קובץ", 
+			  spanData		: 3,						textENG		 : "File",
+			  dataFld		: "picFile",				width		 : fieldWidth3}
+
+	field3 = {type      	: "select",					textHEB 	 : "גודל",
+			  spanData  	: 1,						textENG      : "Size",
+			  dataFld   	: "dimensionId",			width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+    fields.push (field1, field2, field3);
+
+    pageObj.addFormFields (albumFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (albumFormId, "תצוגה", "Display"); 
+
+	fields = new Array();
+
+	field1 = {type			: "select",					textHEB		 : "אופן תצוגה",
+			  spanData		: 3,						textENG		 : "Display type",
+			  dataFld		: "displayType",			width	 	 : fieldWidth,
+			  options		: displayTypes.getOptions()}
+	
+	field2 = {type			: "number",					textHEB		 : "מספר שורות",
+			  spanData		: 1,						textENG		 : "Rows #",
+			  dataFld		: "numRows",				width	 	 : fieldWidth,
+			  mandatory	    : false}
+
+	field3 = {type			: "number",					textHEB		 : "מספר עמודות",
+			  spanData		: 1,						textENG		 : "Columns #",
+			  dataFld		: "numCols",				width	 	 : fieldWidth,
+			  mandatory	    : false}
+
+  	field4 = {type			: "yesNoSelect",			textHEB		 : "הצגת רכיב דפדוף",
+			  spanData		: 1,						textENG		 : "Navigation",
+			  dataFld		: "withPaging",				width		 : fieldWidth,
+			  mandatory		: true,						defaultValue : "0"}
+
+  	field5 = {type			: "number",					textHEB		 : "מספר דפים מוצגים",
+			  spanData		: 1,						textENG		 : "Pages #",
+			  dataFld		: "numPages",				width	 	 : fieldWidth,
+			  mandatory	    : false}
+
+  	field6 = {type			: "number",					textHEB		 : "החלפה אוטומטית (שניות)",
+			  spanData		: 1,						textENG		 : "Auto swap",
+			  dataFld		: "autoSwitch",				width	 	 : fieldWidth,
+			  mandatory	    : false}
+
+	field7 = {type			: "select",					textHEB		 : "מיקום התמונות הקטנות",
+			  spanData		: 1,						textENG		 : "Navigation location",
+			  dataFld		: "smallPicsSide",			width	 	 : fieldWidth,
+			  options		: sizes.getOptions()}
+
+	field8 = {type			: "color",					textHEB		 : "צבע רקע לתמונות",
+			  spanData		: 1,						textENG		 : "Background color",
+			  dataFld		: "bgColor",				width		 : fieldWidth,
+			  mandatory		: false,					maxLength	 : "7",
+			  minLength		: "7"}
+
+  	field9 = {type			: "number",					textHEB		 : "איכות תמונה מוקטנת",
+			  spanData		: 1,						textENG		 : "Reduced quality",
+			  dataFld		: "quality",				width	 	 : fieldWidth,
+			  mandatory	    : false}
+
+    fields.push (field1, field2, field3, field4, field5, field6, field7, field8, field9);
+
+    pageObj.addFormFields (albumFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (albumFormId, "הגדרת תמונה באלבום", "Definitions"); 
+
+	fields = new Array();
+
+	field1 = {type      	: "select",					textHEB 	 : "גודל תמונה מוקטנת מאונכת",
+			  spanData  	: 1,						textENG      : "Vertical reduced picture",
+			  dataFld   	: "vSmallPicDimension",		width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	field2 = {type      	: "select",					textHEB 	 : "גודל תמונה מוקטנת מאוזנת",
+			  spanData  	: 1,						textENG      : "Horizontal reduced picture",
+			  dataFld   	: "hSmallPicDimension",		width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	field3 = {type      	: "select",					textHEB 	 : "גודל תמונה מאונכת",
+			  spanData  	: 1,						textENG      : "Vertical picture",
+			  dataFld   	: "vPicDimension",			width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	field4 = {type      	: "select",					textHEB 	 : "גודל תמונה מאוזנת",
+			  spanData  	: 1,						textENG      : "Horizontal picture",
+			  dataFld   	: "hPicDimension",			width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+  	field5 = {type			: "number",					textHEB		 : "רוחב תמונה מוקטנת מאונכת",
+			  spanData		: 1,						textENG		 : "Vertical reduced picture width",
+			  dataFld		: "vSmallPicWidth",			width	 	 : fieldWidth}
+
+  	field6 = {type			: "number",					textHEB		 : "גובה תמונה מוקטנת מאונכת",
+			  spanData		: 1,						textENG		 : "Vertical reduced picture height",
+			  dataFld		: "vSmallPicHeight",		width	 	 : fieldWidth}
+
+  	field7 = {type			: "number",					textHEB		 : "רוחב תמונה מוקטנת מאוזנת",
+			  spanData		: 1,						textENG		 : "Horizontal reduced picture width",
+			  dataFld		: "hSmallPicWidth",			width	 	 : fieldWidth}
+
+  	field8 = {type			: "number",					textHEB		 : "גובה תמונה מוקטנת מאוזנת",
+			  spanData		: 1,						textENG		 : "Horizontal reduced picture height",
+			  dataFld		: "hSmallPicHeight",		width	 	 : fieldWidth}
+
+  	field9 = {type			: "number",					textHEB		 : "רוחב תמונה מאונכת",
+			  spanData		: 1,						textENG		 : "Vertical picture width",
+			  dataFld		: "vPicWidth",				width	 	 : fieldWidth}
+
+  	field10= {type			: "number",					textHEB		 : "גובה תמונה מאונכת",
+			  spanData		: 1,						textENG		 : "Vertical picture height",
+			  dataFld		: "vPicHeight",				width	 	 : fieldWidth}
+
+  	field11= {type			: "number",					textHEB		 : "רוחב תמונה מאוזנת",
+			  spanData		: 1,						textENG		 : "Horizontal picture width",
+			  dataFld		: "hPicWidth",				width	 	 : fieldWidth}
+
+  	field12= {type			: "number",					textHEB		 : "גובה תמונה מאוזנת",
+			  spanData		: 1,						textENG		 : "Horizontal picture height",
+			  dataFld		: "hPicHeight",				width	 	 : fieldWidth}
+
+	fields.push (field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12);
+
+    pageObj.addFormFields (albumFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths2 = {HEB : new Array(0,760),
+					 ENG : new Array(0,760)}
+
+	var frameId = pageObj.addFormFrame (albumFormId, "תיאור", "Description"); 
+
+	field1 = {type			: "xstandard",				textHEB		 : "",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "txt",					width	 	 : 740,
+			  height  		: 280,						mandatory	 : false,
+			  lang		 	: langArray}
+
+  	fields = new Array(field1);
+	
+	pageObj.addFormFields (albumFormId, frameId, fieldsWidths2, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	commonAddSeoFrame (albumFormId, 600);
+
+	// ------------------------------------------------------------------------------------ 
+
+	if (type == "updateAlbum")
+		sendType = "update";
+	else
+		sendType = "add";
+
+	categories_addFormFrame (albumFormId, sendType, "קטגוריות האלבום", "Categories", fieldsWidths, id, "album", "createAlbumForm_finish")
+}
+
+function createAlbumForm_finish ()
+{
+	type = globalType;
+
+	pageObj.generateForm  (albumFormId, true);
+
+	formTableObj = new Object(pageObj.getFormTableId (albumFormId, 6));	// 6 is the frame index
+
+	commonSetGlobalData ("formTableObj",  formTableObj);	// save it for categoryOfItem iframe
+
+	if (multiUploadStart(undefined, albumFormId))
+	{
+		createAlbumFormButtons (type);	
+		handleDisplay 		   (type);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createAlbumFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createAlbumFormButtons (type)
+{
+	if (type == "updateAlbum")
+		btnType = "update";
+	else
+		btnType = "add";
+
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + albumFormId + ")"}
+
+	btn3	= {type			: btnType,
+			   action		: "submitAlbumForm('" + btnType + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3));
+
+	if (albumFormButtonsId == -1)
+		albumFormButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (albumFormButtonsId, btnsGroups, pageObj.getFormWidth(albumFormId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* addCategory																				*/
+/* ---------------------------------------------------------------------------------------- */
+function addCategory (type)
+{
+	if (type == "add")
+	{
+		commonMsgBox ("info", "יש לבצע הוספה של האלבום לפני קישור לקטגוריות", "Save new album before adding categories");
+		return false;
+	}
+	
+	commonSetGlobalData ("action", "add");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (albumFormId, albumIdCol.xmlTag));
+	commonSetGlobalData ("catType", "album");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* updateCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function updateCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור שורה", "Choose a row")
+		return false;
+	}
+
+	commonSetGlobalData ("action", "update");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (albumFormId, albumIdCol.xmlTag));
+	commonSetGlobalData ("catType", "album");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function deleteCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור שורה", "Choose a row")
+		return false;
+	}
+
+	var itemId 		= pageObj.getFieldValue(searchFormId, albumIdCol.xmlTag);
+	var categoryId 	= pageObj.getSelectedValueOf (formTableObj, "id");
+	
+	categories_deleteCategory (albumFormId, formTableObj, itemId, categoryId, "album");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadItemCategories																		*/
+/* ---------------------------------------------------------------------------------------- */
+function loadItemCategories ()
+{
+	var itemId 		= pageObj.getFieldValue(searchFormId, albumIdCol.xmlTag);
+
+	categories_loadItemCategories (albumFormId, formTableObj, itemId, "album");
+}
+
+var global_submitType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitAlbumForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function submitAlbumForm (type)
+{
+	global_submitType = type;
+
+	if (!pageObj.validateForm(albumFormId)) return false;
+
+	serverObj.setXml (pageObj.getFormXml(albumFormId));
+
+	var picFile = uploadGetFileName();
+	if (picFile != ERROR_WAIT_LOADING)
+	{
+		serverObj.addTag ("picSource",   picFile);
+	}
+	else
+	{
+		return false;
+	}
+
+	serverObj.sendRequest("albums." + type + "Album", undefined, "submitAlbumForm_continue");
+}
+
+var global_lastAlbum;
+
+function submitAlbumForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		globalAlbums = undefined;
+
+		global_lastAlbum = commonGetInnerData(responseXml, albumIdCol.xmlTag);
+
+		serverOptions_getAlbums(true, "after_reloadAlbums");
+	}
+}
+
+function after_reloadAlbums (options)
+{
+	var type = global_submitType;
+
+	globalAlbums = options;
+
+	if (type == "delete")
+	{
+		var currAlbum = globalAlbums[0].value;
+	}
+	else
+	{
+		var currAlbum = global_lastAlbum;
+	}
+
+	pageObj.setFieldOptions (searchFormId, albumIdCol.xmlTag, globalAlbums);
+	pageObj.setFieldValue   (searchFormId, albumIdCol.xmlTag, currAlbum);
+
+	doRefresh ();
+	handleDisplay ("report");
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteAlbum																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteAlbum () 
+{
+    if (pageObj.getFieldValue (searchFormId, albumIdCol.xmlTag) == "") 
+	{
+		commonMsgBox ("info", "יש לבחור אלבום", "Choose an album");
+		return false;
+	}
+
+	confirm("מחיקת האלבום ותמונותיו", "delete this album and its pictures", "deleteAlbum_confirm");
+}
+
+function deleteAlbum_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	   (albumIdCol.xmlTag, pageObj.getFieldValue(searchFormId, albumIdCol.xmlTag));
+	
+	serverObj.sendRequest("albums.deleteAlbum", undefined, "deleteAlbum_continue");
+}
+
+function deleteAlbum_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		globalAlbums = undefined;
+
+		global_submitType = "delete";
+
+		serverOptions_getAlbums (true, "after_reloadAlbums");
+	}
+
+	return true;
+}
+
+var typeOptions = new selectOptionsObj();
+typeOptions.addOption ("pic" , 	  "תמונה", 			 	"Picture");
+typeOptions.addOption ("video" ,   "וידאו/אודיו",	 	"Movie");
+typeOptions.addOption ("embed" ,   "סרטון Embed",		"Embed Movie");
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditForm ()
+{
+	var type = globalType;
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(140,300),
+					ENG : new Array(140,300)}
+
+	var fieldWidth  = 290;
+
+	var fields = new Array();
+
+	var frameId = pageObj.addFormFrame (formId, "הגדרות הקובץ", "Definitions"); 
+
+	field1 = {type			: "select",					textHEB		 : "סוג הקובץ",
+			  spanData		: 1,						textENG		 : "File type",
+			  dataFld		: "fileType",				width		 : fieldWidth,
+			  mandatory		: false,					defaultValue : "pic",
+			  options		: typeOptions.getOptions()}
+
+  	field2 = {type			: "onlineUpload",			textHEB		 : "שם הקובץ",
+			  spanData		: 1,						textENG		 : "File name",
+			  dataFld		: "filename",				width	 	 : fieldWidth,
+			  defaultValue	: "",						mandatory	 : true}
+
+  	field3 = {type			: "text",					textHEB		 : titleCol.textHEB,
+			  spanData		: 1,						textENG		 : titleCol.textENG,
+			  dataFld		: titleCol.xmlTag,			width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "255",					lang		 : langArray}
+
+  	field4 = {type			: "textEng",				textHEB		 : "קישור Embed",
+			  spanData		: 1,						textENG		 : "Embed Url",
+			  dataFld		: "embedUrl",				width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "250"}
+
+  	field5 = {type			: "text",					textHEB		 : posCol.textHEB,
+			  spanData		: 1,						textENG		 : posCol.textENG,
+			  dataFld		: posCol.xmlTag,			width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "50"}
+
+  	field6 = {type			: "onlineUpload",			textHEB		 : "תמונה לוידאו/אודיו",
+			  spanData		: 1,						textENG		 : "Movie Picture",
+			  dataFld		: "filename2",				width	 	 : fieldWidth,
+			  defaultValue	: "",						mandatory	 : false}
+
+	hidden = {type			: "hidden",					dataFld	 	 : "albumId",
+			  defaultValue	: pageObj.getFieldValue (searchFormId, albumIdCol.xmlTag)}
+
+	hidden2 = {type			: "hidden",					dataFld   	 : "sourceFile"}
+
+	hidden3 = {type			: "hidden",					dataFld   	 : "sourceFile2"}
+
+	hidden4 = {type			: "hidden",					dataFld      : imageIdCol.xmlTag}
+
+	if (type == "update")
+	{
+		field = {type		: "span",					textHEB		 : "קובץ מקור",
+				  spanData  : 1,						textENG		 : "Source file",
+				  dataFld	: "formSourceFile",			width   	 : fieldWidth}
+
+		fields.push (field);
+
+		field2.mandatory = false;
+	}
+
+	fields.push (field1, field2, field3, field4, field5, field6, hidden, hidden2, hidden3, hidden4);
+
+	if (type == "update")
+	{
+		field = {type		: "span",					textHEB		 : "קובץ מקור",
+				  spanData  : 1,						textENG		 : "Source file",
+				  dataFld	: "formSourceFile2",		width   	 : fieldWidth}
+
+		fields.push (field);
+	}
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	if (type == "update")
+	{
+		pageObj.setFormXml (formId, globalDetailsXml);
+	}
+	
+	pageObj.generateForm  (formId, false);
+
+	multiUploadStart (undefined, formId);
+
+	createEditFormButtons (type);
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createMultiForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createMultiForm ()
+{
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	fieldsWidths = {HEB : new Array(10,500),
+					ENG : new Array(10,500)}
+
+	fieldWidth  = 490;
+
+	var frameId = pageObj.addFormFrame (formId, "בחירת קבצים", "Choose files"); 
+
+	field1 = {type			: "multiUpload",			textHEB		 	: "",
+			  spanData		: 1,						textENG			: "",
+			  dataFld		: "files",					width			: fieldWidth,
+			  x				: 130,						y				: 85}
+
+  	fields = new Array(field1);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	pageObj.generateForm  (formId, false);
+
+	var albumId = pageObj.getFieldValue(searchFormId,albumIdCol.xmlTag);
+
+	multiUploadStart("https://www.i-bos.co.il/3.0/php/uploadAlbumFiles.php?albumId=" + albumId, formId);
+
+	createEditFormButtons ("multi");
+	handleDisplay 		  ("multi");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btnsGroups = new Array ();
+
+	if (type == "multi")
+	{
+		btn1	= {type			: "back",
+				   action		: "loadData();handleDisplay('report')"}
+
+		btnsGroups.push (new Array(btn1));
+	}
+	else
+	{
+		btn1	= {type			: "back",
+				   action		: "handleDisplay('report')"}
+
+		btn2 	= {type			: "lang",
+				   lang			: langArray,
+				   action		: "commonChangeFormLang(" + formId + ")"}
+
+		btn3	= {type			: type,
+				   action		: "submitForm('" + type + "')"}
+
+		btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3));
+	}
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	if (!pageObj.validateForm(formId)) return false;
+
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	var picFile = uploadGetFileName(0);
+	if (picFile == ERROR_WAIT_LOADING)
+		return false;
+
+	serverObj.addTag ("sourceFile",   picFile);
+
+	var picFile = uploadGetFileName(1);
+	if (picFile == ERROR_WAIT_LOADING)
+		return false;
+
+	serverObj.addTag ("sourceFile2",   picFile);
+
+	serverObj.sendRequest("albums." + type + "AlbumImage", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh 		();
+		handleDisplay	("report");
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showImage																				*/
+/* ---------------------------------------------------------------------------------------- */
+function showImage ()
+{
+	if (pageObj.areRowsSelected(tableId))
+	{
+		commonMsgBox ("info", "יש לבחור שורה אחת בלבד", "Choose one picture");
+		return false;
+	}
+
+	if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור שורה", "Choose a picture");
+		return false;
+	}
+
+	createShowPage    	();
+
+	createShowButtons 	();
+
+	handleDisplay 		("show");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createShowPage																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createShowPage ()
+{
+	fileHtml = "<iframe frameborder='0' width='100%' height='420' style='background-color:#f8f8f8' src='" + 
+						pageObj.getSelectedValueOf(tableId, "fullFilePath") + "'" +
+			   "</iframe>";
+
+	pageObj.initSpan      (spanFileId, fileHtml);
+
+	pageObj.showComponent (spanFileId); 
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createShowButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createShowButtons ()
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1));
+
+	if (showButtonsId == -1)
+		showButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (showButtonsId, btnsGroups, 10);
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteImage																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteImage() 
+{
+    if (!pageObj.isRowSelected(tableId) && !pageObj.areRowsSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור שורה", "Choose a picture");
+		return false;
+	}
+
+	ids = pageObj.getSelectedValuesOf(tableId,imageIdCol.xmlTag);
+	
+	if (ids.length == 1)
+	{
+		confirmMsg 	  = "מחיקת השורה";
+		confirmMsgEng = "delete the picture";
+	} 
+	else 
+	{
+		confirmMsg 	  = "מחיקת " + ids.length + " התמונות המסומנות";
+		confirmMsgEng = "delete the " + ids.length + " marked pictures";
+	}
+
+	confirm (confirmMsg, confirmMsgEng, "deleteImage_confirm");
+}
+
+function deleteImage_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTags	(imageIdCol.xmlTag, pageObj.getSelectedValuesOf(tableId,imageIdCol.xmlTag));
+	
+	serverObj.sendRequest("albums.deleteAlbumImage", undefined, "deleteImage_continue");
+}
+
+function deleteImage_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetTable  (tableId);
+	loadData			();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()" onclick="hidePic()">
+</body>
+
+</html>
+

@@ -1,0 +1,653 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray			= commonGetGlobalData ("langArray");
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var addTitleId			= -1;
+var updateTitleId		= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+
+var idCol				= {textHEB	: "קוד", 			textENG	: "", 	xmlTag	: "id"				}
+var typeCol				= {textHEB	: "סוג", 			textENG	: "", 	xmlTag	: "type"			}
+var codeCol				= {textHEB	: "קוד קופון", 		textENG	: "", 	xmlTag	: "code"			}
+var nameCol				= {textHEB	: "שם הקופון", 		textENG	: "", 	xmlTag	: "name"			}
+var valueCol	 		= {textHEB	: "ערך", 			textENG	: "", 	xmlTag	: "value"			}
+var expireCol			= {textHEB	: "תוקף", 			textENG	: "", 	xmlTag	: "expireDate"		}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();
+	addSearchSection    ();
+	createDataTable     ();	
+	createTableButtons  ();	
+	createSearchSection ();
+	loadData			();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   		= pageObj.addPageTitle    ("ניהול קופונים",  	"");
+	addTitleId			= pageObj.addPageSubTitle ("הוספת קופון",		"");
+	updateTitleId		= pageObj.addPageSubTitle ("עדכון פרטי קופון",	"");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+var types  = new selectOptionsObj();
+types.addOption ("",				"",						"");
+types.addOption ("amount",			"הנחת סכום",			"");
+types.addOption ("percent",			"הנחת אחוזים",			"");
+types.addOption ("percentCount",	"הנחת אחוזים לכמות",	"");
+
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	var queryXml = commonGetGlobalData ("shopCouponsQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (searchFormId, queryXml);
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	fieldWidth	= 140;
+
+	field1 = {type		: "select",						textHEB		 : typeCol.textHEB,
+			  spanData	: 1,							textENG		 : typeCol.textENG,
+			  dataFld	: typeCol.xmlTag,				width	 	 : fieldWidth,
+			  options 	: types.getOptions()}
+
+	field2 = {type		: "text",						textHEB		 : codeCol.textHEB,
+			  spanData  : 1,							textENG		 : codeCol.textENG,
+			  dataFld   : codeCol.xmlTag,				width        : fieldWidth}
+
+  	fields.push (field1, field2);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(40,180,60,width),
+					ENG : new Array(40,180,60,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,			widthHEB : 70,
+			 	   textENG	: idCol.textENG,			widthENG : 70,
+			   	   sortType	: "number",					sortDir  : "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: nameCol.textHEB,			widthHEB : 200,
+				   textENG	: nameCol.textENG,			widthENG : 200,
+				   sortType	: "text",					sortDir  : "ascending",
+				   xmlTag   : nameCol.xmlTag}
+		   
+	column3		= {textHEB	: codeCol.textHEB,			widthHEB : 120,
+				   textENG	: codeCol.textENG,			widthENG : 120,
+				   sortType	: "text",					sortDir  : "ascending",
+				   xmlTag   : codeCol.xmlTag}
+		   
+	column4		= {textHEB	: typeCol.textHEB,			widthHEB : 150,
+				   textENG	: typeCol.textENG,			widthENG : 150,
+				   sortType	: "text",					sortDir  : "ascending",
+				   xmlTag   : typeCol.xmlTag}
+		   
+	column5		= {textHEB	: valueCol.textHEB,			widthHEB : 100,
+				   textENG	: valueCol.textENG,			widthENG : 100,
+				   sortType	: "text",					sortDir  : "ascending",
+				   xmlTag   : valueCol.xmlTag}
+		   
+	column6		= {textHEB	: "כמות קופונים",			widthHEB : 110,
+				   textENG	: "",						widthENG : 110,
+				   sortType	: "text",					sortDir  : "ascending",
+				   xmlTag   : "quantity"}
+		   
+	column7		= {textHEB	: expireCol.textHEB,		widthHEB : 100,
+				   textENG	: expireCol.textENG,		widthENG : 100,
+				   sortType	: "text",					sortDir  : "ascending",
+				   xmlTag   : expireCol.xmlTag}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5, column6, column7);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 350, 270);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteCoupon()"}
+
+	btn4	= {type			: "",
+			   textHEB		: "הדפסת קופון",
+			   action		: "printCoupon()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+
+		if (!pageObj.isCollapse (searchFormId))
+			pageObj.showComponent (searchButtonsId);
+	}
+
+	if (type == "add" || type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		if (type == "add" || type == "update")
+		{
+			// show from
+			pageObj.showComponent (eval(type + "TitleId"));
+			pageObj.showComponent (formId);
+			pageObj.showComponent (formButtonsId);
+		}
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("shopCouponsQueryXml", queryXml);
+
+	serverObj.cleanRequest ();
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("shopCoupons.getCoupons", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay 		("report");
+	
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+var globalDetailsXml;
+var globalProducts;
+
+var globalType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type, couponType)
+{
+	globalType = type;
+
+	if (type == "update")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור קופון");
+			return false;
+		}
+
+		globalDetailsXml = undefined;
+
+		serverObj.cleanRequest ();
+		serverObj.addTag(idCol.xmlTag, pageObj.getSelectedValueOf (tableId, idCol.xmlTag));
+		serverObj.sendRequest("shopCoupons.getCouponDetails", undefined, "after_getDetails");
+	}
+
+	if (globalProducts == undefined)
+		products	= serverOptions_getShopProducts ("empty", "after_getProducts");
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_getProducts (options)
+{
+	globalProducts = options;
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+function openForm_continue ()
+{
+	var type = globalType;
+
+	if (globalProducts == undefined || (type == "update" && globalDetailsXml == undefined)) return;
+
+	if (formId == -1)
+		formId   	= pageObj.addForm ();
+
+	pageObj.resetForm (formId);
+
+	if (type == "update")
+		pageObj.setFormXml (formId, globalDetailsXml);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	fieldsWidths = {HEB : new Array(160,180,160,180),
+					ENG : new Array(160,180,160,180)}
+
+	var fieldWidth  = 170;
+	var fieldWidth2 = 510;
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	fields = new Array();
+
+	var frameId = pageObj.addFormFrame (formId, "פרטים", ""); 
+
+	codeField 	= {type			: "span",							textHEB		 : codeCol.textHEB,
+				   spanData		: 1,								textENG		 : codeCol.textENG,
+				   dataFld		: codeCol.xmlTag,					width	 	 : fieldWidth}
+
+	typeField 	= {type			: "select",							textHEB		 : typeCol.textHEB,
+			 	   spanData		: 1,								textENG		 : typeCol.textENG,
+				   dataFld		: typeCol.xmlTag,					width	 	 : fieldWidth,
+				   options 		: types.getOptions(),				mandatory	 : true,
+		   		   defaultValue	: "amount",							action		 : "onSelectType()"}
+
+	valueField 	= {type			: "number",							textHEB		 : valueCol.textHEB,
+				   spanData		: 1,								textENG		 : valueCol.textENG,
+				   dataFld		: valueCol.xmlTag,					width	 	 : fieldWidth,
+				   mandatory	: true}
+
+	daysField	= {type			: "number",							textHEB		 : "תוקף בימים",
+				   spanData		: 1,								textENG		 : "",
+				   dataFld		: "expireDays",						width	 	 : fieldWidth,
+				   minValue  	: 1,								defaultValue : 14,
+				   mandatory	: true}
+
+	minField 	= {type			: "number",							textHEB		 : "כמות מוצרים מינימלית",
+				   spanData		: 1,								textENG		 : "",
+				   dataFld		: "minCount",						width	 	 : fieldWidth,
+		   		   state		: "lock"}
+
+	maxField 	= {type			: "number",							textHEB		 : "כמות מוצרים מקסימלית",
+				   spanData		: 1,								textENG		 : "",
+				   dataFld		: "maxCount",						width	 	 : fieldWidth,
+		   		   state		: "lock"}
+
+	sQntField 	= {type			: "number",							textHEB		 : "כמות קופונים",
+				   spanData		: 1,								textENG		 : "",
+				   dataFld		: "startQuantity",					width	 	 : fieldWidth,
+				   minValue  	: 1,								mandatory	 : true,
+		   		   defaultValue	: "1"}
+
+	lQntField 	= {type			: "span",							textHEB		 : "כמות נותרת",
+				   spanData		: 1,								textENG		 : "",
+				   dataFld		: "leftQuantity",					width	 	 : fieldWidth}
+
+	renewField	= {type			: "yesNoSelect",					textHEB		 : "תקף בחידוש",
+			 	   spanData		: 3,								textENG		 : "",
+				   dataFld		: "validOnRenew",					width	 	 : fieldWidth,
+		   		   defaultValue : "0"}
+ 
+	productField= {type			: "select",							textHEB		 : "בחירת מוצר",
+			 	   spanData		: 3,								textENG		 : "",
+				   dataFld		: "productId",						width	 	 : fieldWidth2,
+				   options 		: globalProducts,					mandatory	 : false}
+
+	remarksField= {type			: "textarea",						textHEB	 	: "הערות",
+				   spanData		: 3,								textENG	 	: "",
+				   dataFld		: "remarks",						width	  	: fieldWidth2,
+				   rows  		: 5}
+	
+	nameField	= {type			: "text",							textHEB	 	: nameCol.textHEB,
+				   spanData		: 3,								textENG	 	: nameCol.textENG,
+				   dataFld		: nameCol.xmlTag,					width	  	: fieldWidth2,
+				   maxLength 	: 50}
+	
+  	expireField = {type			: "date",							textHEB		 : "תוקף",
+				   spanData		: 1,								textENG		 : "",
+				   dataFld		: "expireDate",	 					width	 	 : fieldWidth}
+
+   	if (type == "add")
+	{
+		codeField.type = "text";
+
+		fields.push (typeField, valueField, daysField, sQntField, minField, maxField, renewField, productField, nameField, remarksField, codeField);
+	}
+	else
+	{
+		typeField.type 			= "span";
+		valueField.type			= "span";
+
+		minField.type			= "span";
+		maxField.type			= "span";
+
+		typeField.mandatory 	= false;
+		valueField.mandatory 	= false;
+
+		fields.push (codeField, expireField, typeField, valueField, minField, maxField, renewField, productField, sQntField, lQntField, nameField, 
+					 remarksField);
+
+		hidden = {type		: "hidden",							dataFld   	 : idCol.xmlTag}
+
+
+		fields.push (hidden);
+	}
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// -----------------------------------------------------------------------------------------------------------
+
+	pageObj.generateForm  (formId, false);
+
+	createEditFormButtons (type);
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	if (type == "update")
+	{
+		var start	= pageObj.getFieldValue (formId, "startQuantity");
+		var left	= pageObj.getFieldValue (formId, "leftQuantity");
+
+		if (start < (start-left))
+		{
+			commonMsgBox ("info", "הכמות הבנחרת חייבת להיות גדולה מהכמות שכבר נוצלה");
+			return false;
+		}
+	}
+
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	serverObj.sendRequest("shopCoupons." + type + "Coupon", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+		doRefresh 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectType																				*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectType ()
+{
+	var type = pageObj.getFieldValue (formId, typeCol.xmlTag);
+
+	if (type == "percentCount")
+	{
+		pageObj.setFieldState (formId, "minCount", "unlock");
+		pageObj.setFieldState (formId, "maxCount", "unlock");
+
+		pageObj.setFieldState (formId, "productId", "lock");
+	}
+	else
+	{
+		pageObj.setFieldState (formId, "minCount", "lock");
+		pageObj.setFieldState (formId, "maxCount", "lock");
+
+		pageObj.setFieldState (formId, "productId", "unlock");
+	}
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteCoupon																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteCoupon() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור קופון");
+		return false;
+	}
+
+	var id 	= pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	
+	confirm("מחיקת קופון " + id, "delete coupon " + id, "deleteCoupon_confirm");
+}
+
+function deleteCoupon_confirm ()
+{
+	serverObj.cleanTags ();
+	serverObj.addTag	(idCol.xmlTag, pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+	
+	serverObj.sendRequest("shopCoupons.deleteCoupon", undefined, "deleteCoupon_continue");
+}
+
+function deleteCoupon_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* printCoupon																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function printCoupon() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור קופון");
+		return false;
+	}
+
+	var id 	= pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	
+	serverObj.cleanTags ();
+	serverObj.addTag	(idCol.xmlTag, id);
+	
+	serverObj.sendRequest("shopCoupons.getPrintCoupon", undefined, "printCoupon_continue");
+}
+
+function printCoupon_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		window.open (commonGetInnerData(responseXml, "fileName"), "_blank");
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	loadData ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

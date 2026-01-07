@@ -1,0 +1,155 @@
+<html>
+<head>
+<title>Relogin</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+<!--
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var serverObj		= new serverInterfaceObj(guiLang);	
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (guiLang == "ENG")
+	{
+		document.getElementById("mainTbl").style.direction = "ltr";
+
+		document.getElementById("passwd_spn").innerHTML				= "Password:";
+		document.getElementById("reloginBtn").innerHTML				= "Relogin";
+		document.getElementById("logoutBtn").innerHTML				= "Logout";
+		document.getElementById("theMessage_spn").innerHTML			= "The system disconnected due to lack of use.";
+		document.getElementById("theMessage2_spn").innerHTML		= "You may retype your password or continue to logout:";
+	}
+	else
+	{
+		document.getElementById("mainTbl").style.direction 			= "rtl";
+
+		document.getElementById("passwd_spn").innerHTML				= "סיסמא:";
+		document.getElementById("reloginBtn").innerHTML				= "התחבר";
+		document.getElementById("logoutBtn").innerHTML				= "התנתק";
+		document.getElementById("theMessage_spn").innerHTML			= "כוון שלא נעשה שימוש במערכת, תתבצע התנתקות אוטומטית וההעברה למסך הכניסה. ";
+		document.getElementById("theMessage2_spn").innerHTML		= "באפשרותך להזין שוב את סיסמתך:";
+	}
+
+	document.getElementById("theForm").passwd.value = "";
+	document.getElementById("theForm").reloginBtnPasswd.focus();
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* reloginClick																				*/
+/* ---------------------------------------------------------------------------------------- */
+function reloginClick (logout)
+{
+	var oForm = document.getElementById("theForm");
+
+	// relogin
+	if (logout == 0)
+	{
+		// checking that the password was entered at all
+		if (oForm.passwd.value=="")
+		{
+			commonMsgBox("info", "אנא הקלד סיסמא", "Please enter the password!");
+			oForm.passwd.focus();
+		}
+		else
+		{	
+			serverObj.cleanRequest ();
+			serverObj.addTag ("password", oForm.passwd.value);
+	
+			serverObj.sendRequest ("user.relogin", undefined, "after_relogin");
+		}
+	}
+
+	// logout
+	if (logout == 1)
+	{
+		closeDialog ();
+		top.location.replace("../../../index.php");
+	}
+}
+
+function after_relogin (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	var oForm = document.getElementById("theForm");
+
+	if (responseXml != null)
+	{
+		closeDialog();
+
+		// resend the request
+		parent.serverObj.cleanRequest ();
+
+		parent.serverObj.setXml	   	  (commonGetGlobalData ("resendXml"));
+		parent.serverObj.sendRequest  (commonGetGlobalData("resendCommand"), undefined, commonGetGlobalData("resendFunction"));
+	}
+	else
+	{
+		oForm.passwd.focus();
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* closeDialog																				*/
+/* ---------------------------------------------------------------------------------------- */
+function closeDialog ()
+{
+	parent.$("#reloginDialog").dialog("close");
+}
+
+//-->
+</script>
+
+</head>
+
+<body style="margin:15px;" onload="onLoad()">
+
+<form id="theForm" name="theForm" onsubmit="return (false);" style="display:inline">
+<table id="mainTbl" class="formFrameTbl" style="margin-top: 15px;background-color:#E7E7E7">
+<tr>
+	<td height="20" colspan="3">
+		<span id="theMessage_spn"></span>
+		<br/><br/>
+		<div id="theMessage2_spn" style="padding-bottom: 5px;"></div>
+	</td>
+</tr>	
+<tr id="reloginMsgTr">
+	<td class="styleTdText" width="50">
+		<div id="passwd_spn" style="padding-top:12px;"></div>
+	</td>
+	<td class="styleTdField last" colspan="2">
+		<input type="password" id="passwd" class="styleInput" name="passwd" onfocus="this.select()"> &nbsp;
+	</td>
+</tr>
+<tr>
+	<td></td>
+	<td width="80">
+		<div class="rowOfButtons" style="padding-right:2px;padding-left:2px;">
+			<div style="width:75px" onclick="reloginClick(0)" class="btn"><div class="btnText" id="reloginBtn"></div></div>
+		</div>
+	</td>
+	<td>
+		<div class="rowOfButtons">
+			<div style="width:75px" onclick="reloginClick(1)" class="btn"><div class="btnText" id="logoutBtn"></div></div>
+		</div>
+	</td>
+</tr>	
+</table>
+</form>
+</body>
+</html>
+
+
+
+
+
+

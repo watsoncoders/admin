@@ -1,0 +1,558 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var pageTitleId		= -1;
+var updateTitleId	= -1;
+var searchFormId	= -1;
+var searchButtonsId	= -1;
+var tableId			= -1;
+var rowButtonsId	= -1;
+var formId			= -1;
+var formButtonsId	= -1;
+
+var idCol;
+var nameCol;
+var typeCol;
+var statusCol;
+
+var idCol			= {textHEB	: "קוד",		textENG	: "Id",	   		xmlTag	: "id"				}
+var statusCol		= {textHEB	: "סטטוס",	   	textENG	: "Status",	   	xmlTag	: "status"			}
+var firstNameCol	= {textHEB	: "שם פרטי",   	textENG	: "First name",	xmlTag	: "firstName"		}
+var lastNameCol		= {textHEB	: "שם משפחה",   textENG	: "Last name",	xmlTag	: "lastName"		}
+var emailCol		= {textHEB	: "אימייל",	   	textENG	: "E-Mail",	   	xmlTag	: "email"			}
+var registerTimeCol	= {textHEB	: "הרשמה",   	textENG	: "Time",	   	xmlTag	: "registerTime"	}
+var numRegisteredCol= {textHEB	: "נרשמים",		textENG	: "Registered",	xmlTag	: "numRegistered"	}
+
+
+var globalEventId 	= commonGetGlobalData("globalEventId");
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (globalEventId == undefined)
+		window.location.replace ("handleEvents.html");
+
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage 	  ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    	();	
+	createDataTable     	();	
+	createTableButtons  	();	
+	loadData				();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	= pageObj.addPageTitle 	  ("רשימת הנרשמים לארוע " + globalEventId,  "Registrants to event " + globalEventId,	"");
+	updateTitleId	= pageObj.addPageSubTitle ("פרטי רישום לארוע",	"Event Registration");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		=  {textHEB		: idCol.textHEB,			widthHEB : 70,
+			   		textENG		: idCol.textENG,			widthENG : 70,
+			   		sortType	: "number",					sortDir  : "ascending",
+			   		xmlTag   	: idCol.xmlTag}
+		   
+	column2		= {textHEB		: firstNameCol.textHEB,		widthHEB : 120,
+			   	   textENG		: firstNameCol.textENG,		widthENG : 120,
+			 	   sortType		: "text",					sortDir  : "ascending",
+			 	   xmlTag   	: firstNameCol.xmlTag}
+		   
+	column3		= {textHEB		: lastNameCol.textHEB,		widthHEB : 120,
+			   	   textENG		: lastNameCol.textENG,		widthENG : 120,
+			   	   sortType 	: "text",					sortDir  : "ascending",
+			 	   xmlTag   	: lastNameCol.xmlTag}
+		 	  
+	column4		= {textHEB		: emailCol.textHEB,			widthHEB : 180,
+				   textENG		: emailCol.textENG,			widthENG : 180,
+				   sortType 	: "text",					sortDir  : "ascending",
+				   xmlTag   	: "emailLink",				className: "styleLink",
+	   			   dir 	 		: "ltr"}
+		   
+	column5		= {textHEB		: registerTimeCol.textHEB,	widthHEB : 120,
+				   textENG		: registerTimeCol.textENG,	widthENG : 120,
+				   sortType 	: "text",					sortDir  : "ascending",
+				   xmlTag   	: registerTimeCol.xmlTag}
+
+	column6		= {textHEB		: numRegisteredCol.textHEB,	widthHEB : 80,
+				   textENG		: numRegisteredCol.textENG,	widthENG : 80,
+				   sortType 	: "text",					sortDir  : "ascending",
+				   xmlTag   	: numRegisteredCol.xmlTag}
+
+	column7		= {textHEB		: statusCol.textHEB,		widthHEB : 80,
+				   textENG		: statusCol.textENG,		widthENG : 80,
+				   sortType 	: "text",					sortDir  : "ascending",
+				   xmlTag   	: statusCol.xmlTag}
+
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5, column6, column7);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 350, 270);
+	pageObj.setTableSort	(tableId, firstNameCol.xmlTag, "desc");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "update",
+			   action		: "openForm()"}
+
+	btn2	= {type			: "delete",
+			   action		: "deleteEventRegister()"}
+
+	btn3	= {type			: "",
+			   textHEB		: "ייצוא לאקסל",
+			   textENG		: "Export to Excel",
+			   action		: "excelExport()"}
+
+    btn4	= {type			: "back",
+			   action		: "top.mainFrame.location.replace('handleEvents.html')"}
+
+	btn5	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2), new Array(btn3), new Array(btn4), new Array(btn5));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (updateTitleId);
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag       ("eventId",	globalEventId);
+	serverObj.sendRequest  ("events.getEventRegisters", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay 		("report");
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+var globalDetailsXml;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm ()
+{
+	if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור נרשם", "Choose a registrant");
+		return false;
+	}
+
+	globalDetailsXml = undefined;
+
+	serverObj.cleanRequest ();
+	serverObj.addTag	   (idCol.xmlTag, pageObj.getSelectedValueOf (tableId, idCol.xmlTag));
+	serverObj.sendRequest("events.getRegisterDetails", undefined, "after_loadDetails");
+}
+
+function after_loadDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+function openForm_continue ()
+{
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+			
+	pageObj.setFormXml (formId, globalDetailsXml);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(110,160,110,160),
+					ENG : new Array(110,160,110,160)}
+
+	var fieldWidth   = 146;
+	var fieldWidth2  = 421;
+	var fieldWidth3  = 425;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "פרטי הנרשם", "Registrant details"); 
+
+	hidden = {type			: "hidden",					dataFld		 : idCol.xmlTag}
+
+  	field1 = {type			: "text",					textHEB		 : "שם פרטי",
+			  spanData		: 1,						textENG		 : "First name",
+			  dataFld		: "firstName",				width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : true,
+			  maxLength		: "50"}
+
+  	field2 = {type			: "text",					textHEB		 : "שם משפחה",
+			  spanData		: 1,						textENG		 : "Last name",
+			  dataFld		: "lastName",				width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "50"}
+
+  	field3 = {type			: "phone",					textHEB		 : "טלפון",
+			  spanData		: 1,						textENG		 : "Phone",
+			  dataFld		: "phone",					width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "15"}
+
+  	field4 = {type			: "phone",					textHEB		 : "נייד",
+			  spanData		: 1,						textENG		 : "Cellphone",
+			  dataFld		: "cellphone",				width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "15"}
+
+  	field5 = {type			: "text",					textHEB		 : "עיר",
+			  spanData		: 1,						textENG		 : "City",
+			  dataFld		: "city",					width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "50"}
+
+  	field6 = {type			: "number",					textHEB		 : "מיקוד",
+			  spanData		: 1,						textENG		 : "Zipcode",
+			  dataFld		: "zipcode",				width	 	 : fieldWidth,
+			  minLength		: "5",						mandatory	 : false,
+			  maxLength		: "5"}
+
+  	field7 = {type			: "text",					textHEB		 : "כתובת",
+			  spanData		: 3,						textENG		 : "Address",
+			  dataFld		: "address",				width	 	 : fieldWidth2,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "200"}
+
+  	field8 = {type			: "email",					textHEB		 : "E-Mail",
+			  spanData		: 3,						textENG		 : "E-Mail",
+			  dataFld		: "email",					width	 	 : fieldWidth2,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "50"}
+
+  	field9 = {type			: "textarea",				textHEB		 : "פרטים נוספים",
+			  spanData		: 3,						textENG		 : "Extra details",
+			  dataFld		: "moreDetails",			width	 	 : fieldWidth2,
+			  rows			: "3"}
+
+  	field10= {type			: "textarea",				textHEB		 : "מקום עבודה",
+			  spanData		: 3,						textENG		 : "Work details",
+			  dataFld		: "workDetails",			width	 	 : fieldWidth2,
+			  rows			: "3"}
+
+	fields = new Array(hidden, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "פרטי הזמנה", "Order details"); 
+
+	var options = new selectOptionsObj();
+
+	hidden = {type			: "hidden",					dataFld		: "orderNumber"}
+
+	state     = "lock";
+	mandatory = false;
+	if (commonGetInnerData (globalDetailsXml, "payMethod") == "online")
+	{
+		state     = "unlock";
+		mandatory = true;
+	}
+
+
+  	field1 = {type			: "number",					textHEB		 : numRegisteredCol.textHEB,
+			  spanData		: 1,						textENG		 : numRegisteredCol.textENG,
+			  dataFld		: numRegisteredCol.xmlTag,	width	 	 : fieldWidth,
+			  minValue		: "1",						mandatory	 : true}
+
+	var options = new selectOptionsObj();
+	options.addOption ("online", "בכרטיס אשראי", 		"Credit card");
+	options.addOption ("phone",	 "בכרטיס אשראי בטלפון",	"Card by phone");
+	options.addOption ("check",  "בהמחאה בדואר",		"Check in mail");
+
+	field2 = {type			: "select",					textHEB		 : "אופן תשלום",
+			  spanData		: 1,						textENG		 : "Payment method",
+			  dataFld		: "payMethod",				width	 	 : fieldWidth,
+			  options		: options.getOptions(),		mandatory	 : false,
+	  		  action		: "onChangeField(\"payMethod\")"}
+
+  	field3 = {type			: "text",					textHEB		 : "שם בעל הכרטיס",
+			  spanData		: 1,						textENG		 : "Card holder name",
+			  dataFld		: "ccHolderName",			width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : mandatory,
+			  maxLength		: "25",						state		 : state}
+
+  	field4 = {type			: "text",					textHEB		 : "ת\"ז בעל הכרטיס",
+			  spanData		: 1,						textENG		 : "Card holder ID",
+			  dataFld		: "ccHolderTZ",				width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : mandatory,
+			  maxLength		: "9",						state		 : state}
+
+	options.clean 	  ();
+	options.addOption ("", 				"", 		    	"");
+	options.addOption ("isracard", 		"ישראכרט", 			"Isracard");
+	options.addOption ("mastercard",	"מסטרכארד",			"Mastercard");
+	options.addOption ("visa",			"ויזה",				"Visa");
+	options.addOption ("american",  	"אמריקן אקספרס",	"American Express");
+	options.addOption ("diners",  		"דיינרס",			"Diners");
+
+	field5 = {type			: "select",					textHEB		 : "סוג כרטיס",
+			  spanData		: 1,						textENG		 : "Card Type",
+			  dataFld		: "ccType",					width	 	 : fieldWidth,
+			  options		: options.getOptions(),		state		 : state,
+	  		  mandatory		: mandatory}
+
+  	field6 = {type			: "number",					textHEB		 : "מספר כרטיס",
+			  spanData		: 1,						textENG		 : "Card Number",
+			  dataFld		: "ccNumber",				width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : mandatory,
+			  maxLength		: "19",						state		 : state}
+
+  	field7 = {type			: "mmyy",					textHEB		 : "תוקף כרטיס",
+			  spanData		: 1,						textENG		 : "Expire date",
+			  dataFld		: "ccExpireDate",			width	 	 : fieldWidth,
+	  		  state			: state,					mandatory	 : mandatory}
+			  
+  	field8 = {type			: "number",					textHEB		 : "CVV",
+			  spanData		: 1,						textENG		 : "CVV",
+			  dataFld		: "ccCvv",					width	 	 : fieldWidth,
+			  minLength		: "3",						state		 : state,
+			  maxLength		: "3"}
+
+    fields = new Array(hidden, field1, field2, field3, field4, field5, field6, field7, field8);
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId);
+
+	createEditFormButtons ();	
+
+	handleDisplay 		  ("update");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons ()
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: "update",
+			   action		: "submitForm()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm ()
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	serverObj.sendRequest("events.updateEventRegister", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+		doRefresh 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteEventRegister																		*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteEventRegister() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור נשרם", "Choose a registrant");
+		return false;
+	}
+	
+	confirm("מחיקת נרשם", "delete registrant", "deleteEventRegister_confirm");
+}
+
+function deleteEventRegister_confirm ()
+{
+	var id 	= pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, id);
+	serverObj.addTag    ("eventId",	globalEventId);
+	
+	serverObj.sendRequest("events.deleteEventRegister", undefined, "deleteEventRegister_continue");
+}
+
+function deleteEventRegister_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* excelExport																				*/
+/*  ---------------------------------------------------------------------------------------- */
+function excelExport ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag       ("eventId",	globalEventId);
+	
+	serverObj.sendRequest("events.excelExport", undefined, "excelExport_continue");
+}
+
+function excelExport_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	window.open ("http://www.i-bos.co.il/3.0/tempExcels/" + commonGetInnerData (responseXml, "excelFileName"),"_new");
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>
+

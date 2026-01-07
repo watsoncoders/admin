@@ -1,0 +1,6 @@
+table.noTabsTbl select.styleInput,
+table.formFrameTbl select.styleInput
+{
+	padding-left: 20px;
+	padding-right: 0px;
+}

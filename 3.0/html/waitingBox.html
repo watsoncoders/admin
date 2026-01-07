@@ -1,0 +1,90 @@
+<!--RCS: @(#) $Id: msgBox.html,v 1.2 2005/07/05 12:23:34 liat Exp $ -->
+
+<html dir="rtl">
+<head>
+<title>Message Box</title>
+<meta http-equiv = "Pragma"  content="no-cache">
+<meta http-equiv = "Expires" content="-1">
+<meta http-equiv = "content-type" content="text/html;charset=windows-1255">
+<link rel="stylesheet" href="../css2/common.css" type="text/css"/>
+<script language="JavaScript" src="../javascript2/general.js"></script>
+<script language="JavaScript">
+/* -------------------------------------------------------------*/
+/* onLoad														*/
+/* -------------------------------------------------------------*/
+function onLoad()
+{
+	if (dialogArguments.guiLang == "HEB")
+	{
+		sendText	 = "שליחה";
+		document.dir ="rtl";
+	}
+	else
+	{
+		sendText	 = "Send no.";
+		document.dir ="ltr";
+	}
+
+	var parentWindow = dialogArguments.win;
+	var currRetry	 = (dialogArguments.currRetry*1)+1;
+
+
+	window.msg_span.innerHTML = parentWindow.msg + "<br/><br/><span style='font-size:9px'>(" + sendText + " " + currRetry + ")</span>";
+
+	if (window.msg_span.innerText == "undefined")
+	{
+		window.close();
+	}
+
+	var msgKind = parentWindow.msgKind;
+
+	language = parentWindow.language;
+	if (language == "") language = "HEB";
+
+	setTimeout ("checkHttpObj()", 150*currRetry);	// currRetry : 1,2 ...
+}
+
+var myNumRetries = 2; //ex. 20
+function checkHttpObj ()
+{
+	httpObj = dialogArguments.httpObj;
+	var parentWindow = dialogArguments.win;
+
+	if (httpObj.readyState == 4 || myNumRetries == 0)
+	{
+		window.close ();
+	}
+	else
+	{
+		myNumRetries--;
+
+		var currRetry	 = (dialogArguments.currRetry*1)+1;
+		setTimeout ("checkHttpObj()",1500*currRetry);
+	}
+}
+
+//-->
+</script>
+
+</head>
+
+<body topmargin="0" onload="onLoad()">
+<center>
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0" id="mainTbl">
+<tr height="100%">
+	<td align="center">
+		<br/><br/><br/><span class="styleMsgText" id="msg_span"></span>
+	</td>
+</tr>
+</table>
+</center>
+</body>
+</html>
+
+
+
+
+
+
+

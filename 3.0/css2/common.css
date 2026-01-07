@@ -1,0 +1,613 @@
+body
+{
+    background-color: #D9DEE2;
+	margin: 0px;
+}
+
+form
+{
+	display: inline;
+	margin: 0px;
+	padding: 0px;
+}
+
+/* login styles 																	
+----------------------------------------------------------------------------------- */
+.styleLoginHeader
+{
+		font-family: Tahoma;
+		color: white;
+		font-size: 10px;
+}
+
+.styleLogin
+{
+		font-family: Tahoma;
+		color: white;
+		font-size: 11px;
+		font-weight: bold;
+}
+
+/* menu styles																		
+----------------------------------------------------------------------------------- */
+.styleMenu
+{
+		font-weight: bold;
+		font-family: Tahoma;
+		color: white;
+		font-size: 11px;
+		cursor: pointer;
+}
+.styleMenuOn
+{
+		font-weight: bold;
+		font-family: Tahoma;
+		color: #767779; /*#5E720C; #727C7B;*/
+		font-size: 11px;
+		cursor: pointer;
+}
+.styleMenuDis
+{
+		font-family: Tahoma;
+		color: white;
+		font-size: 11px;
+}
+
+/* title styles
+----------------------------------------------------------------------------------- */
+.styleTitle
+{
+    font-weight: bold;
+    font-size: 12px;
+    color: #7F9621;
+    font-family: tahoma
+}
+
+.styleSubTitleBold
+{
+    font-weight: bold;
+    font-size: 11px;
+    color: #7F9621; /*black;*/
+    font-family: tahoma
+}
+
+.styleTitleLink
+{
+    font-weight: bold;
+    font-size: 12px;
+    color: #A5C816; /*black;*/
+    font-family: tahoma;
+	cursor: pointer;
+}
+
+.styleExplain
+{
+    font-weight: normal;
+    font-size: 10px;
+    color: #59625F;
+    font-family: tahoma
+}
+
+.styleMsgText
+{
+    font-weight: bold;
+    font-size: 13px;
+    color: black;
+    font-family: Arial
+}
+/* text styles
+----------------------------------------------------------------------------------- */
+.styleSpanBold
+{
+    font-weight: bold;
+    font-size: 11px;
+    color: black;
+    font-family: tahoma
+}
+.styleText
+{
+    font-weight: normal;
+    font-size: 10px;
+    color: black;
+    font-family: tahoma
+}
+.styleTotalText
+{
+    font-weight: bold;
+    font-size: 10px;
+    color: white;
+    font-family: tahoma
+}
+.styleNewTotalText
+{
+    font-weight: normal;
+    font-size: 10px;
+    color: white;
+    font-family: tahoma
+}
+.styleBigText
+{
+    font-weight: normal;
+    font-size: 12px;
+    color: black;
+    font-family: tahoma
+}
+.styleBigText2
+{
+    font-weight: normal;
+    font-size: 12px;
+    color: #5155FF;
+    font-family: tahoma
+}
+.styleTextTitle
+{
+    font-weight: bold;
+    font-size: 15px;
+    color: midnightblue;
+    font-family: tahoma;
+}
+
+/* form  & table styles
+----------------------------------------------------------------------------------- */
+.styleTrText
+{
+    font-weight: normal;
+    font-size: 10px;
+    color: black;
+    font-family: tahoma;
+	background-color: #BDC6CD;
+	height: 25px;
+}
+.styleTrTabText
+{
+    font-weight: normal;
+    font-size: 10px;
+    color: black;
+    font-family: tahoma;
+	background-color: #C0CBD1;
+	height: 25px;
+}
+.styleSpanText
+{
+    font-size: 10px;
+    color: #139522;
+    font-family: tahoma;
+	font-weight: bold;
+}
+.styleSpanTotal
+{
+    font-size: 10px;
+    color: blue;
+    font-family: tahoma;
+	font-weight: bold;
+}
+.styleTableBorder
+{
+    border-right: #C0C0C0 1px solid;
+    border-top: #C0C0C0 1px solid;
+    border-left: #C0C0C0 1px solid;
+    border-bottom: #C0C0C0 1px solid
+}
+.styleTableHeadTitle
+{
+    font-weight: bold;
+    font-size: 11px;
+	height: 16px;
+    background-image: url(../imagesNew/headerBG.gif);
+    color: #F7FFE7;
+    font-family: tahoma;
+    background-color: #A7A7A7;
+}
+.styleFormHeadTitle
+{
+    font-weight: bold;
+    font-size: 11px;
+	height: 16px;
+    background-image: url(../imagesNew/formBG.gif);
+    background-repeat: repeat-x
+    color: #121315;
+    font-family: tahoma;
+}
+.styleTabHeadTitle
+{
+    font-weight: bold;
+    font-size: 11px;
+	height: 16px;
+    background-image: url(../images/tabHeadBG.gif);
+    color: #191970;
+    font-family: tahoma;
+    background-color: #E7F1C1;
+}
+.styleTabRow
+{
+	height: 16px;
+/*    background-image: url(../images/tableHeadBG.gif); */
+    background-color: #D6E796;
+}
+.styleTabTitle
+{
+    font-weight: bold;
+    color: black;
+    font-family: tahoma;
+    font-size: 11px;
+	height: 27px;
+    background-image: url(../imagesNew/tabOffBG.gif);
+	text-align: center;
+}
+.styleCurrTabTitle
+{
+    font-weight: bold;
+    color: black;
+    font-family: tahoma;
+    font-size: 11px;
+	height: 27px;
+    background-image: url(../imagesNew/tabOnBG.png);
+	text-align: center;
+}
+.styleSpeicalTabTitle
+{
+    font-weight: bold;
+    color: black;
+    font-family: tahoma;
+    font-size: 11px;
+	height: 27px;
+    background-image: url(../imagesNew/specialTabBG.gif);
+	text-align: center;
+}
+.styleTableBorderHeadTitle
+{
+    background-image: url(../images/tableBorderHeadBG.gif);
+    background-color: #A7A7A7;
+}
+.styleTabBottom
+{
+	background-image:url(../imagesNew/tabB.gif);
+}
+.styleSpecialTabBottom
+{
+	background-image:url(../imagesNew/special_tabB.gif);
+}
+.styleTableBorderTabTitle
+{
+    background-color: #D6E796;
+}
+.styleLinkSort
+{
+	cursor: pointer;
+}
+.styleArrow 
+{
+	border:none;
+	cursor:pointer;
+	width:20;
+	margin-top: 4px;
+}
+.stylePageInput
+{
+    border-left: lightsteelblue 1px inset;
+    border-bottom: lightsteelblue 1px inset;
+	width:30;
+	color:black;
+	height:17;
+    font-weight: normal;
+    font-size: 11px;
+    font-family: Tahoma
+}
+.styleInfo
+{
+    font-weight: bold;
+    font-size: 14px;
+    color: #83A32B;
+    font-family: Tahoma;
+}
+
+.styleCheckUncheckAll
+{
+	font-size: 10px;
+	cursor: pointer;
+    font-weight: bold;
+    color: white;
+}
+
+
+
+
+.styleSubTableHeadTitle
+{
+    font-weight: normal;
+    font-size: 10px;
+    color: #003399;
+    font-family: tahoma;
+    background-color: #C0C0C0;
+}
+.styleTr
+{
+    font-size: 10px;
+    color: black;
+    font-family: tahoma;
+    background-color: gainsboro
+}
+.styleButton
+{
+    font-weight: bold;
+    font-size: 12px;
+    color: black;
+    font-family: Arial;
+/*    background-color: #DEDCDC;*/
+    cursor: pointer;
+	text-align: center;
+}
+.styleWideButton
+{
+    font-weight: normal;
+    font-size: 10px;
+    width: 150px;
+    color: #003399;
+    font-family: tahoma;
+    background-color: #d8dfe7;
+    cursor: pointer;
+}
+.styleTableButton
+{
+    font-weight: normal;
+    font-size: 9px;
+    height: 16px;
+    width: 50px;
+    color: #003399;
+    font-family: tahoma;
+    background-color: #d8dfe7
+}
+.styleWhiteBorder
+{
+    border-right: white 1px solid;
+    border-top: white 1px solid;
+    border-left: white 1px solid;
+    border-bottom: white 1px solid
+}
+/*.styleMenu
+{
+    background-image: url(../images/menuBG.gif)
+}*/
+.styleCursor
+{
+    cursor: pointer;
+}
+.styleSubRight
+{
+    background-attachment: fixed;
+    background-image: url(../images/subMenuRight.gif);
+    background-repeat: repeat-x
+}
+.styleSubLeft
+{
+    background-image: url(../images/subMenuLeft.gif)
+}
+.styleMenuText
+{
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 11px;
+    color: darkblue;
+    font-family: tahoma;
+    text-decoration: none
+}
+.styleSubMenu
+{
+    border-right: #396fb6 1px solid;
+    border-top: #396fb6 1px solid;
+    font-size: 10px;
+    border-left: #396fb6 1px solid;
+    color: #000066;
+    border-bottom: #396fb6 1px solid;
+    font-family: tahoma;
+    height: 0pc
+}
+.styleSubMenuText
+{
+    font-size: 10px;
+    color: darkblue;
+    font-family: tahoma;
+    text-decoration: none
+}
+.styleInnerMenu
+{
+    cursor: pointer;
+    font-size: 10px;
+    color: black;
+    font-family: tahoma;
+    text-decoration: underline
+}
+.styleInnerMenuSelected
+{
+    cursor: pointer;
+    font-size: 10px;
+    color: black;
+    font-family: tahoma;
+    text-decoration: underline;
+    font-weight: bold;
+}
+.styleLogInTitle
+{
+    font-weight: bold;
+    font-size: 11px;
+    background-image: url(../images/loginMiddle.gif);
+    color: #336699;
+    font-family: Tahoma
+}
+.styleLoginRightGray
+{
+    background-image: url(../images/loginRightGray.gif)
+}
+.styleGrayTR
+{
+    font-size: 10px;
+    color: black;
+    font-family: Tahoma;
+    background-color: #E9F0F6;
+	cursor: pointer;
+}
+.styleGrayTrNoHeight
+{
+    font-size: 10px;
+    color: black;
+    font-family: Tahoma;
+    background-color: gainsboro;
+	vertical-align: top;
+}
+.styleTotalTR
+{
+    font-size: 10px;
+    font-weight: bold;
+    color: black;
+    font-family: Tahoma;
+    height: 20px;;
+    background-color: #C0C0C0;
+}
+.styleEmptyTR
+{
+    font-size: 10px;
+    font-weight: bold;
+    color: black;
+    font-family: Tahoma;
+    height: 5px;
+    background-color: lightsteelblue;
+}
+.styleNoBtnTR
+{
+    font-size: 10px;
+    color: black;
+    font-family: Tahoma;
+    height: 15px;
+    background-color: gainsboro
+}
+.styleGrayTRChoosen
+{
+    font-weight: bold;
+    font-size: 10px;
+    color: black;
+    font-family: Tahoma;
+    height: 20px;;
+    background-color: gainsboro
+}
+.styleTROnClick
+{
+    font-weight: bold;
+    font-size: 10px;
+    color: black;
+    font-family: Tahoma;
+    height: 20px;;
+    background-color: #C1D6F5;
+}
+.styleBorder
+{
+    border-right: lightsteelblue 1px solid;
+    border-top: lightsteelblue 1px solid;
+    border-left: lightsteelblue 1px solid;
+    border-bottom: lightsteelblue 1px solid
+}
+.styleModolText
+{
+    FONT-SIZE: 10px;
+    COLOR: #8ae3f9;
+    FONT-FAMILY: Arial;
+    TEXT-DECORATION: none
+}
+.styleModolsLinks
+{
+    FONT-WEIGHT: bold;
+    FONT-SIZE: 11px;
+    COLOR: #000066;
+    FONT-FAMILY: Arial;
+    TEXT-DECORATION: none
+}
+.styleFrontPageRight
+{
+    BACKGROUND-ATTACHMENT: fixed;
+    BACKGROUND-IMAGE: url(../images/frontPageRight.jpg);
+    BACKGROUND-REPEAT: no-repeat
+}
+.styleFrontPageLeft
+{
+    BACKGROUND-ATTACHMENT: fixed;
+    BACKGROUND-IMAGE: url(../images/frontPageLeft.jpg);
+    BACKGROUND-REPEAT: repeat-x
+}
+.styleFrontPageBorder
+{
+    BORDER-RIGHT: mediumblue 1px solid;
+    BORDER-TOP: mediumblue 1px solid;
+    BORDER-LEFT: mediumblue 1px solid;
+    BORDER-BOTTOM: mediumblue 1px solid
+}
+.styleDataDiv 
+{
+	overflow:scroll; 
+	overflow-x:visible;
+	clip:auto; 
+	height:150; 
+/*	width:757;*/
+	width:700;
+	direction:ltr;
+	background-color:#A1AEB7;
+	scrollbar-face-color:#D5E0E6;
+	scrollbar-highlight-color:#E9F0F6;
+}
+.styleLink 
+{
+	font-family:Tahoma;
+	color:#003399;
+	font-size: 10px;
+	text-decoration:underline;
+	cursor: pointer;
+}
+
+.styleLeft
+{
+	direction: ltr;
+	text-align: left;
+}
+.styleBigLink 
+{
+	font-family:Tahoma;
+	color:#003399;
+	font-size: 13px;
+	text-decoration:underline;
+	cursor: pointer;
+}
+
+
+.styleHelpTitle
+{
+    font-weight: bold;
+    font-size: 12px;
+    color: midnightblue;
+    font-family: tahoma;
+}
+
+.styleHelpText
+{
+	font-size: 11px;
+	font-family: tahoma;
+}
+
+.styleCloser
+{
+	background-color: #7B8084;
+	height: 1px;
+	font-size: 0px;
+}
+
+.styleColorPicker
+{
+	width: 15px;
+	height: 14px;
+	border: 1px solid #000;
+	cursor:pointer;
+	font-size: 12px;
+	display: block;
+	text-align: center;
+	margin-top: 4px;
+	margin-right: 2px;
+}
+
+

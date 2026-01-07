@@ -1,0 +1,1728 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/categories.js"></script>
+<script language="JavaScript" src="../../javascript2/multiUpload.js"></script>
+<script language="JavaScript" src="../../javascript2/shopCommon.js?v=2"></script>
+
+<script language="JavaScript">
+
+var langArray			= commonGetGlobalData ("langArray");
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var addTitleId			= -1;
+var updateTitleId		= -1;
+var duplicateTitleId	= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+var formTableObj		= -1;
+var duplicateFormId		= -1;
+var duplicateButtonsId	= -1;
+
+var specialsTitleId		= -1;
+var specialsFormId		= -1;
+var specialsButtonsId	= -1;
+
+var varsTitleId			= -1;
+var varsTableId			= -1;
+var varsRowButtonsId	= -1;
+var varsFormId			= -1;
+var varsFormButtonsId	= -1;
+var varsAddTitleId		= -1;
+var varsUpdateTitleId	= -1;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	shopCommon_init		();
+}
+
+function onLoad_continue ()
+{
+	createPageTitles    ();
+	addSearchSection    ();	
+	createDataTable     ();
+	createTableButtons  ();
+	createSearchSection ();
+
+	loadData 			();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	 = pageObj.addPageTitle    ("ניהול מוצרים",  	"Products management");
+	addTitleId		 = pageObj.addPageSubTitle ("הוספת מוצר",		"Add a Product");
+	updateTitleId	 = pageObj.addPageSubTitle ("עדכון מוצר",		"Update a Product");
+	duplicateTitleId = pageObj.addPageSubTitle ("שכפול מוצר",		"Duplicate a Product");
+
+	specialsTitleId	 = pageObj.addPageSubTitle ("עדכון מוצרים נבחרים", "Update selected products");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	// ------------------------------------------------------------------------------------ 
+	
+	var queryXml = commonGetGlobalData ("productsQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (searchFormId, queryXml);
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	field1 = {type      : "text",					textHEB		 : nameCol.textHEB,
+			  spanData  : 1,						textENG		 : nameCol.textENG,
+			  dataFld   : nameCol.xmlTag,			width   	 : 110,
+			  mandatory : false}
+
+	field2 = {type      : "select",					textHEB		 : categoryCol.textHEB,
+			  spanData  : 1,						textENG		 : categoryCol.textENG,
+			  dataFld   : categoryCol.xmlTag,		width		 : 140,
+			  mandatory : false,					options		 : globalShopCats}
+
+	field3 = {type      : "select",					textHEB		 : statusCol.textHEB,
+			  spanData  : 1,						textENG		 : statusCol.textENG,
+			  dataFld   : statusCol.xmlTag,			width		 : 100,
+			  mandatory : false,					options		 : statusOptions.getOptions()}
+
+	field4 = {type		: "select",					textHEB		 : buyOnlineCol.textHEB,
+			  spanData	: 1,						textENG		 : buyOnlineCol.textENG,
+			  dataFld	: buyOnlineCol.xmlTag,		width	 	 : 80,
+			  options	: buyOnlineOptions.getOptions()}
+
+	field5 = {type		: "select",					textHEB		 : producerCol.textHEB,
+			  spanData	: 1,						textENG		 : producerCol.textENG,
+			  dataFld	: producerCol.xmlTag,		width	 	 : 100,
+			  options	: globalProducers}
+
+	field6 = {type      : "text",					textHEB		 : idCol.textHEB,
+			  spanData  : 1,						textENG		 : idCol.textENG,
+			  dataFld   : idCol.xmlTag,				width   	 : 50,
+			  mandatory : false}
+
+  	fields.push (field1, field2, field3, field4, field5, field6);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(60,130,50,160,45,120,75,100,35,120,25,width),
+					ENG : new Array(60,130,50,160,45,120,75,100,35,120,25,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "report",
+			   action		: "doRefresh()"}
+
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1,btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	pageObj.tableIsMultiSelection (tableId);
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,			widthHEB 	: 70,
+				   textENG	: idCol.textENG,			widthENG 	: 70,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: nameCol.textHEB,			widthHEB 	: 250,
+				   textENG	: nameCol.textENG,			widthENG 	: 250,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : nameCol.xmlTag}
+		   
+	column3		= {textHEB	: producerCol.textHEB,		widthHEB 	: 150,
+				   textENG	: producerCol.textENG,		widthENG 	: 150,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : "producerName"}
+		   
+	column4		= {textHEB	: statusCol.textHEB,		widthHEB 	: 100,
+				   textENG	: statusCol.textENG,		widthENG 	: 100,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : statusCol.xmlTag}
+
+	column5		= {textHEB	: "מלאי",					widthHEB 	: 90,
+				   textENG	: "Stock",					widthENG 	: 90,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : "stock"}
+		   
+	column6		= {textHEB	: "נבחר",					widthHEB 	: 80,
+				   textENG	: featuredCol.textENG,		widthENG 	: 80,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : featuredCol.xmlTag}
+		   
+	column7		= {textHEB	: makatCol.textHEB,			widthHEB 	: 90,
+				   textENG	: makatCol.textENG,			widthENG 	: 90,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : makatCol.xmlTag}
+		   
+	column8		= {textHEB	: "נצפה",					widthHEB 	: 90,
+				   textENG	: "Viewed",					widthENG 	: 90,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : "countViews"}
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5, column6, column7, column8);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 330, 250);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btnsGroups = new Array ();
+
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "duplicate",
+			   action		: "openDuplicateForm()"}
+
+	btn4	= {type			: "delete",
+			   action		: "deleteProduct()"}
+
+	btnsGroups.push (new Array(btn1, btn2, btn3, btn4));
+
+	if (specailsCount != 0)
+	{
+		btn1	= {type			: "",
+				   textHEB		: "מוצרים נבחרים",
+				   textENG		: "Selected Products",
+				   	action		: "openSpecialsForm()"}
+
+		btnsGroups.push (new Array(btn1));
+	}
+
+	btn1	= {type			: "",
+			   textHEB		: "איפוס מונים",
+			   textENG		: "Reset counters",
+			   action		: "resetCounters()"}
+
+	btnsGroups.push (new Array(btn1));
+
+	btn1	= {type			: "",
+			   textHEB		: "קבצי מוצר",
+			   textENG		: "Product Files",
+			   action		: "showFilesPage()"}
+
+	btnsGroup = new Array (btn1);
+
+	for (var i=0; i < globalGroups.length; i++)
+	{
+		btn	= {type			: "",
+			   textHEB		: globalGroups[i].textHEB,
+			   action		: "showProductVariations('" + globalGroups[i].value + "','" + globalGroups[i].textHEB + "')"}
+
+	   	btnsGroup.push (btn);
+
+	}
+
+	btnsGroups.push (btnsGroup);
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	tableHidePic ();
+
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// hide specials form
+		pageObj.hideComponent (specialsTitleId);
+		pageObj.hideComponent (specialsFormId);
+		pageObj.hideComponent (specialsButtonsId);
+
+		// hide duplicate form
+		pageObj.hideComponent (duplicateTitleId);
+		pageObj.hideComponent (duplicateFormId);
+		pageObj.hideComponent (duplicateButtonsId);
+
+		// hide variations table
+		pageObj.hideComponent (varsTitleId);
+		pageObj.hideComponent (varsTableId);
+		pageObj.hideComponent (varsRowButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+
+		if (!pageObj.isCollapse (searchFormId))
+		{
+			pageObj.showComponent (searchButtonsId);
+		}
+	}
+
+	if (type == "add" || type == "update" || type == "specials" || type == "duplicate")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		if (type == "specials")
+		{
+			pageObj.showComponent (specialsTitleId);
+			pageObj.showComponent (specialsFormId);
+			pageObj.showComponent (specialsButtonsId);
+		}
+		else if (type == "duplicate")
+		{
+			pageObj.showComponent (duplicateTitleId);
+			pageObj.showComponent (duplicateFormId);
+			pageObj.showComponent (duplicateButtonsId);
+		}
+		else
+		{
+			pageObj.showComponent (eval(type + "TitleId"));
+			pageObj.showComponent (formId);
+			pageObj.showComponent (formButtonsId);
+		}
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	if (!pageObj.validateForm (searchFormId)) return false;
+
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("productsQueryXml", queryXml);
+
+	serverObj.cleanRequest ();
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("shop.getProducts", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay ("report");
+		
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type, id)
+{
+	if (type == "update" && id == undefined)
+	{
+		if (pageObj.areRowsSelected(tableId))
+		{
+			commonMsgBox ("info", "יש לבחור מוצר אחד בלבד");
+			return false;
+		}
+
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור מוצר", "Please choose a product");
+			return false;
+		}
+	}
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	shopCommon_createProductEditForm (formId, type, id);
+}
+
+function openForm_continue (type)
+{
+	createEditFormButtons (type);
+
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* addCategory																				*/
+/* ---------------------------------------------------------------------------------------- */
+function addCategory (type)
+{
+	if (type == "add")
+	{
+		commonMsgBox ("info", "יש לבצע שמירה של המוצר לפני קישור לקטגוריות", "Please save the product first");
+		return false;
+	}
+	
+	commonSetGlobalData ("action", "add");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (formId, idCol.xmlTag));
+	commonSetGlobalData ("catType", "shop");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* updateCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function updateCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור שורה", "Please choose a category")
+		return false;
+	}
+
+	commonSetGlobalData ("action", "update");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (formId, idCol.xmlTag));
+	commonSetGlobalData ("catType", "shop");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function deleteCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור שורה", "Please choose a category")
+		return false;
+	}
+
+	var itemId 		= pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+	var categoryId 	= pageObj.getSelectedValueOf (formTableObj, "id");
+	
+	categories_deleteCategory (formId, formTableObj, itemId, categoryId, "shop");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadItemCategories																		*/
+/* ---------------------------------------------------------------------------------------- */
+function loadItemCategories ()
+{
+	var itemId 		= pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+
+	if (itemId == "")
+		itemId = pageObj.getFieldValue(formId,idCol.xmlTag);
+
+	categories_loadItemCategories (formId, formTableObj, itemId, "shop");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onChange																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onChange (field, index)
+{
+	var value = pageObj.getFieldValue (formId, field + index);
+
+	if (value == "" || isNaN(value)) return;
+
+	switch (field)
+	{
+		case "cost"			 :	if (value > 0)
+								{
+									cost	 = value;
+									customer = pageObj.getFieldValue (formId, "customerPrice" + index);
+
+									calcAndSetProfit (cost, customer, index);
+								}
+								break;
+
+		case "catalogPrice"	 :  if (value > 0)
+								{
+									catalog  = value;
+									customer = pageObj.getFieldValue (formId, "customerPrice" + index);
+
+									calcAndSetDiscount (catalog, customer, index);
+								}
+								break;
+
+		case "discount"		 :	discount = value*(-1);
+								catalog	 = pageObj.getFieldValue (formId, "catalogPrice" + index);
+		
+								calcAndSetCalcAmount (catalog, discount, "customerPrice" + index);
+								
+								cost	 = pageObj.getFieldValue (formId, "cost" + index);
+								customer = pageObj.getFieldValue (formId, "customerPrice" + index);
+
+								calcAndSetProfit   (cost, customer, index);
+
+								break;
+
+		case "customerPrice" :	if (value > 0)
+								{
+									customer = value;
+									catalog  = pageObj.getFieldValue (formId, "catalogPrice" + index);
+									cost	 = pageObj.getFieldValue (formId, "cost" + index);
+
+									calcAndSetDiscount (catalog, customer, index);
+									calcAndSetProfit   (cost, customer, index);
+								}
+								break;
+
+		case "profit"		 :  profit 	= value;
+								cost	= pageObj.getFieldValue (formId, "cost" + index);
+
+								calcAndSetCalcAmount (cost, profit, "customerPrice" + index);
+
+								catalog	 = pageObj.getFieldValue (formId, "catalogPrice" + index);
+								customer = pageObj.getFieldValue (formId, "customerPrice" + index);
+
+								calcAndSetDiscount (catalog, customer, index);
+
+								break;
+								
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* calcAndSetProfit																			*/
+/* ---------------------------------------------------------------------------------------- */
+function calcAndSetProfit (cost, catalog, index)
+{
+	if (cost    != "" && !isNaN(cost)    && cost > 0	&& 
+		catalog != "" && !isNaN(catalog) && catalog > 0)
+	{
+		// calc profit according to catalog & cost prices
+		cost   = Math.round(cost*100);
+		catalog = Math.round(catalog*100)
+
+		profit  = Math.round(((catalog - cost) * 100) / cost*100) / 100;
+	
+		pageObj.setFieldValue (formId, "profit" + index, profit);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* calcAndSetDiscount																		*/
+/* ---------------------------------------------------------------------------------------- */
+function calcAndSetDiscount (catalog, customer, index)
+{
+	if (catalog  != "" && !isNaN(catalog)   && catalog > 0	&&
+	    customer != "" && !isNaN(customer)  && customer > 0)
+	{
+		// calc discount according to catalog & customer prices
+		catalog  = Math.round(catalog*100)
+		customer = Math.round(customer*100);
+
+		discount  = Math.round(((catalog - customer) * 100) / catalog*100) / 100;
+	
+		pageObj.setFieldValue (formId, "discount" + index, discount);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* calcAndSetCalcAmount																		*/
+/* ---------------------------------------------------------------------------------------- */
+function calcAndSetCalcAmount (base, percent, newField)
+{
+    if (base    != "" && !isNaN(base)   && base > 0	&&
+	    percent != "" && !isNaN(percent))
+	{
+		base = Math.round (base*100);
+		
+		calcVal = Math.round ((base + (base*percent)/100)) / 100;
+
+		pageObj.setFieldValue (formId, newField, calcVal);
+	}				
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report');"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + formId + ")"}
+
+	btn3	= {type			: "save",
+			   action		: "submitForm('" + type + "Save')"}
+
+	btn4	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3, btn4));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+var globalSubmitType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	globalSubmitType = type;
+
+	if (!pageObj.validateForm(formId)) return false;
+	
+	pageObj.setFieldValue (formId, "otherProducts",  pageObj.getFieldValue(formId, "productIds"));
+
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	command = type + "Product"
+
+	if (type == "addSave")
+		command = "addProduct";
+
+	if (type == "updateSave")
+		command = "updateProduct";
+
+	serverObj.sendRequest("shop." + command, undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var type 		= globalSubmitType;
+
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		if (type != "addSave" && type != "updateSave")
+		{
+			handleDisplay	("report");
+		}
+		else
+		{
+			commonMsgBox ("info", "נתוני המוצר נשמרו בהצלחה", "Product details were successfully updated");
+		}
+
+		doRefresh 		();
+		
+		if (type == "addSave")
+		{
+			pageObj.hideComponent (formId);
+			pageObj.hideComponent (formButtonsId);
+			
+			pageObj.hideComponent (addTitleId);
+			pageObj.showComponent (updateTitleId);
+			
+			openForm ("update", commonGetInnerData(responseXml,idCol.xmlTag));
+		}
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteProduct																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteProduct() 
+{
+    if (!pageObj.isRowSelected(tableId) && !pageObj.areRowsSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור מוצר",	"Please choose a product");
+		return false;
+	}
+
+	var productIds = pageObj.getSelectedValuesOf(tableId,idCol.xmlTag);
+	
+	if (productIds.length == 1)
+		confirmMsg = "מחיקת המוצר";
+	else
+		confirmMsg = "מחיקת " + productIds.length + " המוצרים המסומנים";
+
+	confirm(confirmMsg, "", "deleteProduct_confirm");
+}
+
+function deleteProduct_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTags	("productId", pageObj.getSelectedValuesOf(tableId,idCol.xmlTag));
+
+	serverObj.sendRequest("shop.deleteProduct", undefined, "deleteProduct_continue");
+}
+
+function deleteProduct_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showFilesPage																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function showFilesPage () 
+{
+	if (pageObj.areRowsSelected(tableId))
+	{
+		commonMsgBox ("info", "יש לבחור מוצר אחד בלבד");
+		return false;
+	}
+
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור מוצר", "Please choose a product");
+		return false;
+	}
+
+	var id 	= pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	
+	commonSetGlobalData ("globalProductId", id);
+
+	window.location.replace ("handleShopFiles.html");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* resetCounters																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function resetCounters() 
+{
+	confirm("איפוס מוני הצפיות", "Reset views counter", "resetCounters_confirm");
+}
+
+function resetCounters_confirm ()
+{
+	serverObj.cleanRequest ();
+	
+	serverObj.sendRequest("shop.resetCounters", undefined, "resetCounters_continue");
+}
+
+function resetCounters_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+var globalShopSpecials;
+var globalShopProducts;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openSpecialsForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function openSpecialsForm ()
+{
+	serverObj.sendRequest("shop.getShopSpecails", undefined, "after_getShopSpecials");
+
+	serverOptions_getShopProducts ("choose", "after_getShopProducts");
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getShopSpecials (i)
+{
+	globalShopSpecials = asyncResponseXml.getResponseXml (i);
+
+	openSpecialsForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getShopProducts (options)
+{
+	globalShopProducts = options;
+
+	openSpecialsForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+function openSpecialsForm_continue ()
+{
+	if (globalShopSpecials == undefined || globalShopProducts == undefined) return;
+	
+	if (specialsFormId == -1)
+		specialsFormId   = pageObj.addForm ();
+	
+	pageObj.resetForm (specialsFormId);
+
+	fieldsWidths = {HEB : new Array(150,200),
+					ENG : new Array(150,200)}
+
+	var fieldWidth   = 190;
+	
+	fields = new Array();
+
+	var frameId = pageObj.addFormFrame (specialsFormId, "בחירת מוצרים", "Choose Products"); 
+
+	var itemsNode = globalShopSpecials.getElementsByTagName("items").item(0);
+
+	for (i=0; i<itemsNode.childNodes.length; i++)
+	{
+		var currNode    = itemsNode.childNodes[i];
+
+		var id 			= commonGetInnerData (currNode, "id");
+		var productId 	= commonGetInnerData (currNode, "productId");
+		var description = commonGetInnerData (currNode, "description");
+
+  		field = {type			: "select",					textHEB		 : description,
+			 	 spanData		: 1,						textENG		 : description,
+				 dataFld		: "special" + id,			width	 	 : fieldWidth,
+				 options		: globalShopProducts,		defaultValue : productId}
+
+		fields.push (field);
+	}
+
+	pageObj.addFormFields (specialsFormId, frameId, fieldsWidths, fields);
+	pageObj.generateForm  (specialsFormId, false);
+			
+	// buttons
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2	= {type			: "update",
+			   action		: "submitSpecailsForm()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (specialsButtonsId == -1)
+		specialsButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (specialsButtonsId, btnsGroups, pageObj.getFormWidth(specialsFormId));
+
+	handleDisplay ("specials");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitSpecailsForm																		*/
+/* ---------------------------------------------------------------------------------------- */
+function submitSpecailsForm ()
+{
+	if (!pageObj.validateForm(specialsFormId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(specialsFormId));
+
+	serverObj.sendRequest("shop.updateShopSpecails", undefined, "submitSpecailsForm_continue");
+}
+
+function submitSpecailsForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+	}
+	return true;
+}
+
+var	varsIdCol		= {textHEB	: "קוד", 	textENG	: "ID", 		xmlTag	: "variationId"	}
+var varsIndexCol	= {textHEB	: "ערכים", 	textENG	: "Values", 	xmlTag	: "index"		}
+var varsPosCol		= {textHEB	: "מיקום", 	textENG	: "Position", 	xmlTag	: "pos"			}
+
+var currVarsGroup;
+var currVarsGroupName;
+
+/* ---------------------------------------------------------------------------------------- */
+/* showProductVariations																	*/
+/* ---------------------------------------------------------------------------------------- */
+function showProductVariations (groupId, groupName)
+{
+	if (pageObj.areRowsSelected(tableId))
+	{
+		commonMsgBox ("info", "יש לבחור מוצר אחד בלבד");
+		return false;
+	}
+
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור מוצר", "Please choose a product");
+		return false;
+	}
+
+	currVarsGroup 	  = groupId;
+	currVarsGroupName = groupName;
+
+	// create titles
+	// ------------------------------------------------------------------------------------ */
+	if (varsTitleId == -1)
+	{
+		varsTitleId 		= pageObj.addPageSubTitle ("", "");
+		varsAddTitleId		= pageObj.addPageSubTitle ("הוספה", 		"Add");
+		varsUpdateTitleId	= pageObj.addPageSubTitle ("עדכון פרטים",  "Update");
+	}
+
+	var productName		= pageObj.getSelectedValueOf(tableId,nameCol.xmlTag);
+	pageObj.updatePageTitle (varsTitleId, "ניהול " + groupName + " של המוצר '" + productName + "'",
+   									      "Managing " + groupName + " of product '" + productName + "'");
+
+	// create variations table
+	// ------------------------------------------------------------------------------------ */
+	if (varsTableId == -1)
+	{
+		varsTableId  	= pageObj.addTable ();
+	
+		pageObj.setLoadFunction (varsTableId, "loadVarsTable");
+
+		column1		= {textHEB	: varsIdCol.textHEB,		widthHEB 	: 70,
+					   textENG	: varsIdCol.textENG,		widthENG 	: 70,
+					   sortType : "number",					sortDir  	: "ascending",
+					   xmlTag   : varsIdCol.xmlTag}
+		   
+		column2		= {textHEB	: varsIndexCol.textHEB,		widthHEB 	: 200,
+					   textENG	: varsIndexCol.textENG,		widthENG 	: 200,
+					   sortType : "text",					sortDir  	: "ascending",
+					   xmlTag   : varsIndexCol.xmlTag}
+		   
+		column3		= {textHEB	: "מחיר",					widthHEB 	: 230,
+					   textENG	: "Price",					widthENG 	: 230,
+					   sortType : "text",					sortDir  	: "ascending",
+					   xmlTag   : "price"}
+
+		column4		= {textHEB	: "הצגת תמונה",				widthHEB 	: 150,
+					   textENG	: "Show Picture",			widthENG 	: 150,
+					   sortType : "number",					sortDir  	: "ascending",
+					   xmlTag   : "showPic",				action	 	: "tableShowPic(this)",
+					   className: "styleLink"}
+
+		columns = new Array ();
+		columns.push (column1, column2, column3, column4);
+
+		pageObj.setTableColumns (varsTableId, columns);
+		pageObj.setTableHeight	(varsTableId, 330, 330);
+		
+		// -------------------------------------------------------------------------------- */
+
+		btn1	= {type			: "add",
+				   action		: "openVarsForm('add')"}
+
+		btn2	= {type			: "update",
+				   action		: "openVarsForm('update')"}
+
+		btn3	= {type			: "delete",
+				   action		: "deleteProductVariation()"}
+
+		btn4	= {type			: "back",
+				   action		: "handleDisplay('report')"}
+
+		btn5	= {type			: "print",
+				   action		: "pageObj.printTable (" + varsTableId + "," + varsTitleId + ")"}
+
+		btnsGroups = new Array ();
+	
+		btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4), new Array(btn5));
+
+		varsRowButtonsId = pageObj.addRowOfButtons ();
+		pageObj.generateRowOfButtons (varsRowButtonsId, btnsGroups, pageObj.getTableWidth(varsTableId));
+	}
+
+	// ------------------------------------------------------------------------------------ */
+
+	loadVarsTable	  ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* tableShowPic																				*/
+/* ---------------------------------------------------------------------------------------- */
+function tableShowPic (col)
+{
+	rowOfCol 	= col.parentNode;
+	rowIndex	= rowOfCol.rowIndex;
+
+	document.getElementById("showPic").innerHTML = "<img src='" + pageObj.getRowValueOf(varsTableId, rowIndex, "pic") + "' />";
+	document.getElementById("showPic").style.display = "";
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* tableHidePic																				*/
+/* ---------------------------------------------------------------------------------------- */
+function tableHidePic ()
+{
+	document.getElementById("showPic").style.display = "none";
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* varsHandleDisplay																		*/
+/* ---------------------------------------------------------------------------------------- */
+function varsHandleDisplay (type)
+{
+	tableHidePic ();
+
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (varsAddTitleId);
+		pageObj.hideComponent (varsUpdateTitleId);
+		pageObj.hideComponent (varsFormId);
+		pageObj.hideComponent (varsFormButtonsId);
+
+		// hide products table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show table
+		pageObj.showComponent (varsTitleId);
+		pageObj.showComponent (varsTableId);
+		pageObj.showComponent (varsRowButtonsId);
+	}
+
+	if (type == "add" || type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (varsTitleId);
+		pageObj.hideComponent (varsTableId);
+		pageObj.hideComponent (varsRowButtonsId);
+
+		if (type == "add")
+			pageObj.showComponent (varsAddTitleId);
+		else
+			pageObj.showComponent (varsUpdateTitleId);
+
+		pageObj.showComponent (varsFormId);
+		pageObj.showComponent (varsFormButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadVarsTable																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadVarsTable () 
+{
+	serverObj.cleanRequest ();
+
+	serverObj.addTag ("groupId", 	currVarsGroup);
+	serverObj.addTag ("productId",	pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+
+	serverObj.sendRequest("shopVariations.getProductVariations", pageObj.getTablePaging(varsTableId), "loadVarsTable_continue"); 
+}
+
+function loadVarsTable_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (varsTableId, responseXml);
+		pageObj.setTablePaging (varsTableId, responseXml);
+
+		pageObj.generateTable  (varsTableId);
+
+		varsHandleDisplay 	   ("report");
+	}
+
+	return true;
+}
+
+var globalDimensions;
+var globalRestVariations;
+var globalRestVariationsXml;
+var globalProductVariations;
+
+var priceFunctions = new selectOptionsObj();
+priceFunctions.addOption ("inheritor", 	  "לפי הוריאציה",  "By Variation");
+priceFunctions.addOption ("none", 	  	  "ללא שינוי",     "Without change");
+priceFunctions.addOption ("plusUnit", 	  "תוספת ביחידות", "Addition by Units");
+priceFunctions.addOption ("minusUnit", 	  "הורדה ביחידות", "Decrease by Units");
+priceFunctions.addOption ("plusPercent",  "תוספת באחוזים", "Addition by %");
+priceFunctions.addOption ("minusPercent", "הורדה באחוזים", "Decrease by %");
+
+/* ---------------------------------------------------------------------------------------- */
+/* openVarsForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function openVarsForm (type)
+{
+	globalType = type;
+
+	var productId = pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+
+	if (type == "update")
+	{
+		if (!pageObj.isRowSelected(varsTableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור וריאציה", "Please choose a product variation");
+			return false;
+		}
+
+		globalDetailsXml = undefined;
+
+		serverObj.cleanRequest 	();
+		serverObj.addTag 		("variationId", pageObj.getSelectedValueOf(varsTableId,varsIdCol.xmlTag));
+		serverObj.addTag 		("productId",	productId);
+		serverObj.sendRequest	("shopVariations.getProductVariationDetails", undefined, "after_getVariationDetails");
+			
+	}
+	else	// type = add
+	{
+		globalRestVariations = undefined;
+
+		serverObj.cleanRequest  ();
+		serverObj.addTag 	   	("groupId", 	currVarsGroup);
+		serverObj.addTag 		("productId",	productId);
+    	serverObj.sendRequest	("shopVariations.getProductRestVariations", undefined, "after_getRestVariations");
+	}
+
+	if (globalDimensions == undefined)
+		serverOptions_getDimensions	(true, "after_getDimensions");
+
+	globalProductVariations = undefined;
+
+	serverObj.cleanRequest 	();
+	serverObj.addTag 		("groupId", 	currVarsGroup);
+	serverObj.addTag 		("productId",	productId);
+	serverObj.sendRequest	("shopVariations.getProductVariations", undefined, "after_getProductVariations"); 
+
+	openVarsForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getDimensions (options)
+{
+	globalDimensions = new Object(options);
+
+	openVarsForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getVariationDetails (i)
+{
+	globalDetailsXml  = asyncResponseXml.getResponseXml (i);
+
+	openVarsForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getProductVariations (i)
+{
+	globalProductVariations  = asyncResponseXml.getResponseXml (i);
+
+	openVarsForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getRestVariations (i)
+{
+	globalRestVariationsXml  = asyncResponseXml.getResponseXml (i);
+
+	var selectOptions 	= new selectOptionsObj();
+
+	itemsNode = globalRestVariationsXml.getElementsByTagName("items").item(0);
+
+	if (itemsNode == null)
+	{
+		selectOptions.addOption ("", "אין וריאציות נוספות", "No Variations");
+	} 
+	else
+	{
+		selectOptions.addOption ("", "<בחירת וריאצה>", "<choose variation>");
+
+		for (i=0; i < itemsNode.childNodes.length; i++)
+		{
+			var currNode    = itemsNode.childNodes[i];
+
+			var id  	= commonGetInnerData(currNode, "variationId");
+			var index 	= commonGetInnerData(currNode, "index");
+
+			var optionText = id + " - " + index;
+
+			selectOptions.addOption (id, optionText, optionText);
+		}
+	}
+
+	globalRestVariations = selectOptions.getOptions ();
+
+	openVarsForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+function openVarsForm_continue ()
+{
+	var type = globalType;
+
+	if (globalDimensions == undefined || 
+		(type == "add" && globalRestVariations == undefined) || 
+	    (type == "update" && globalDetailsXml == undefined)) return;
+
+	if (type == "add")
+	{
+		if (globalRestVariations.length == 1)
+		{
+			commonMsgBox ("info", "לא מוגדרות וריאציות נוספות של " + currVarsGroupName, "There are no other variations for " + currVarsGroupName);
+			return false;
+		}
+	}
+
+	if (varsFormId == -1)
+		varsFormId   = pageObj.addForm ();
+	
+	pageObj.resetForm (varsFormId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(120,230,120,230),
+					ENG : new Array(120,230,120,230)}
+
+	var fieldWidth   = 210;
+	var fieldWidth2  = 500;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (varsFormId, "פרטים", "Details"); 
+
+	fields = new Array();
+	
+	var priceValueState = "lock";
+	if (type == "update")
+	{
+		field1	= {type		: "hidden", 				dataFld		 : varsIdCol.xmlTag}
+
+		fields.push (field1);
+
+		pageObj.setFormXml (varsFormId, globalDetailsXml);
+
+		var priceFunction = commonGetInnerData (globalDetailsXml, "priceFunction");
+		if (priceFunction != "none" && priceFunction != "inheritor")
+			priceValueState = "unlock";
+	}
+	
+	field1 = {type			: "select",					textHEB		 : "וריאציה",
+			  spanData 		: 1,						textENG		 : "Variation",
+			  dataFld  		: varsIdCol.xmlTag,			width        : fieldWidth,
+			  options		: globalRestVariations,		mandatory	 : true,
+			  action		: "onSelectVariation()"}
+
+  	field2 = {type			: "span",					textHEB		 : "מחיר לפי הוריאציה",
+			  spanData		: 1,						textENG		 : "Price by variation",
+			  dataFld		: "price",					width	 	 : fieldWidth}
+
+	field3 = {type			: "select",					textHEB		 : "יחס למחיר",
+			  spanData  	: 1,						textENG		 : "Price relation",
+			  dataFld   	: "priceFunction",			width        : fieldWidth,
+			  options		: priceFunctions.getOptions(),
+	  		  defaultValue	: "inheritor",				action		 : "onSelectFunction()"}
+
+  	field4 = {type			: "text",					textHEB		 : "מחיר",
+			  spanData		: 1,						textENG		 : "Price",
+			  dataFld		: "priceValue",				width	 	 : fieldWidth,
+	  		  state			: priceValueState}
+
+	if (type == "update")
+	{
+		hidden = {type		: "hidden",					dataFld   	: varsIdCol.xmlTag}
+
+		fields.push (hidden);
+
+		field1.type			= "span";
+		field1.dataFld 		= varsIndexCol.xmlTag;
+		field1.mandatory	= false;
+	}
+
+    fields.push (field1, field2, field3, field4);
+
+	// build pos options
+	var removePos = 0;
+	if (type == "update")
+	{
+		removePos = pageObj.getSelectedValueOf (varsTableId, varsPosCol.xmlTag)*1 + 1;
+	}	
+	
+	var posOptions = commonGetPosOptions (globalProductVariations, removePos, varsIndexCol.xmlTag);
+
+	field1 = {type			: "select",					textHEB		 : varsPosCol.textHEB,
+			  spanData		: 1,						textENG		 : varsPosCol.textENG,
+			  dataFld		: varsPosCol.xmlTag,		width	 	 : fieldWidth,
+			  options		: posOptions.getOptions(),	mandatory	 : true,
+		  	  defaultValue	: "1"}
+	  
+  	field2 = {type			: "text",					textHEB		 : "מק\"ט",
+			  spanData		: 1,						textENG		 : "Cat. Num.",
+			  dataFld		: "makat",					width	 	 : fieldWidth,
+			  maxLength		: 100}
+
+	fields.push (field1, field2);
+
+	field1 = {type			: "span",					textHEB		 : "קובץ מקור",
+			  spanData  	: 3,						textENG		 : "Source",
+			  dataFld		: "formSourceFile",			width   	 : fieldWidth2}
+
+  	if (type == "add")
+		field1.type = "hidden";
+
+	fields.push (field1);
+	
+	hidden = {type			: "hidden",					dataFld   	: "picSource"}
+
+	field1 = {type			: "onlineUpload",			textHEB	 	: "קובץ",
+			  spanData		: 1,						textENG		: "File",
+			  dataFld		: "files",					width		: fieldWidth}
+
+	field2 = {type      	: "select",					textHEB 	 : "גודל",
+			  spanData  	: 1,						textENG      : "Size",
+			  dataFld   	: "dimensionId",			width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	show   = {type			: "span",					textHEB		 : "הצגת קובץ",
+			  spanData		: 1,						textENG		 : "Show file",
+			  dataFld   	: "show",					width		 : fieldWidth,
+			  className 	: "styleLink", 				action       : "showFile()"}
+
+	del    = {type			: "span",					textHEB		 : "מחיקה",
+			  spanData		: 1,						textENG		 : "Delete",
+			  dataFld  	 	: "delete",					width		 : fieldWidth,
+			  className 	: "styleLink", 				action       : "deleteFile()"}
+
+	hidden1= {type			: "hidden",					dataFld   	 : "linkToFile"}
+
+  	fields.push (hidden, field1, field2);
+			  
+	if (type == "update")
+		fields.push (show, del, hidden1);
+
+    pageObj.addFormFields (varsFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (varsFormId, false);
+
+	multiUploadStart(undefined, varsFormId);
+	
+	createVarsFormButtons (type);
+
+	varsHandleDisplay	  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectVariation																		*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectVariation ()
+{
+	var varId = pageObj.getFieldValue (varsFormId, varsIdCol.xmlTag);
+
+	if (varId == "")
+	{
+		pageObj.setFieldValue (varsFormId, "price",	"");
+	}
+	else
+	{
+		var priceValue = "";
+
+		itemsNode = globalRestVariationsXml.getElementsByTagName("items").item(0);
+
+		for (i=0; i < itemsNode.childNodes.length; i++)
+		{
+			var currNode    = itemsNode.childNodes[i];
+
+			var id  	= commonGetInnerData (currNode, "variationId");
+
+			if (id == varId)
+			{
+				priceValue 	= commonGetInnerData (currNode, "price");
+				break;
+			}
+		}
+
+		pageObj.setFieldValue (varsFormId, "price",	priceValue);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectFunction																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectFunction ()
+{
+	var priceFunction = pageObj.getFieldValue (varsFormId, "priceFunction");
+	if (priceFunction == "none" || priceFunction == "inheritor")
+	{
+		pageObj.setFieldValue (varsFormId, "priceValue", "");
+		pageObj.setFieldState (varsFormId, "priceValue", "lock");
+	}
+	else
+	{
+		pageObj.setFieldState (varsFormId, "priceValue", "unlock");
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteFile																				*/
+/* ---------------------------------------------------------------------------------------- */
+function deleteFile ()
+{
+	pageObj.setFieldValue(varsFormId, "formSourceFile", "");
+	pageObj.setFieldValue(varsFormId, "picSource", 	    "");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showFile																					*/
+/* ---------------------------------------------------------------------------------------- */
+function showFile ()
+{
+	window.open (pageObj.getFieldValue(varsFormId, "linkToFile"), "_blank");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createVarsFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createVarsFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "varsHandleDisplay('report')"}
+
+	btn2	= {type			: type,
+			   action		: "submitVarsForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (varsFormButtonsId == -1)
+		varsFormButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (varsFormButtonsId, btnsGroups, pageObj.getFormWidth(varsFormId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitVarsForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function submitVarsForm (type)
+{
+	if (!pageObj.validateForm(varsFormId)) return false;
+
+	var picFile = uploadGetFileName();
+	if (picFile != "")
+	{
+		pageObj.setFieldValue (varsFormId, "picSource",  picFile);
+	}
+
+	serverObj.cleanRequest 	();
+	serverObj.setXml 		(pageObj.getFormXml(varsFormId));
+	serverObj.addTag 		("productId",	pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+
+	serverObj.sendRequest("shopVariations." + type + "ProductVariation", undefined, "submitVarsForm_continue");
+}
+
+function submitVarsForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		varsHandleDisplay	("report");
+		loadVarsTable 		();
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteProductVariation																	*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteProductVariation() 
+{
+    if (!pageObj.isRowSelected(varsTableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור וריאציה", "Please choose a product variation");
+		return false;
+	}
+
+	confirm("מחיקת וריאציה", "", "deleteProductVariation_confirm");
+}
+
+function deleteProductVariation_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag ("variationId",	pageObj.getSelectedValueOf(varsTableId,varsIdCol.xmlTag));
+	serverObj.addTag ("productId",		pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+	
+	serverObj.sendRequest("shopVariations.deleteProductVariation", undefined, "deleteProductVariation_continue");
+}
+
+function deleteProductVariation_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		loadVarsTable();	
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* openDuplicateForm																		*/
+/* ---------------------------------------------------------------------------------------- */
+function openDuplicateForm ()
+{
+	if (pageObj.areRowsSelected(tableId))
+	{
+		commonMsgBox ("info", "יש לבחור מוצר אחד בלבד");
+		return false;
+	}
+
+	if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור מוצר", "Please choose a product");
+		return false;
+	}
+
+	serverObj.addTag	    (idCol.xmlTag, pageObj.getSelectedValueOf (tableId, idCol.xmlTag));
+	serverObj.sendRequest	("shop.getProductDetails", undefined, "openDuplicateForm_continue");
+}
+
+function openDuplicateForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (duplicateFormId == -1)
+		duplicateFormId   = pageObj.addForm ();
+	
+	pageObj.resetForm (duplicateFormId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(150,200),
+					ENG : new Array(150,200)}
+
+	var fieldWidth   = 170;
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.setFormXml (duplicateFormId, responseXml);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (duplicateFormId, "פרטים", "Details"); 
+
+	hidden = {type			: "hidden",					dataFld   	: "productId"}
+
+  	field1 = {type			: "text",					textHEB		 : nameCol.textHEB,
+			  spanData		: 1,						textENG		 : nameCol.textENG,
+			  dataFld		: nameCol.xmlTag,			width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : true,
+			  maxLength		: "100",					lang		 : langArray}
+
+  	field2 = {type			: "text",					textHEB		 : makatCol.textHEB,
+			  spanData		: 1,						textENG		 : makatCol.textENG,
+			  dataFld		: makatCol.xmlTag,			width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "30",						lang		 : langArray}
+
+	field3 = {type			: "yesNoSelect",			textHEB		 : "קבצי מוצר",
+			  spanData		: 1,						textENG		 : "Product Files",
+			  dataFld		: "copyFiles",				width	 	 : fieldWidth,
+			  mandatory	 	: true,						defaultValue : "1"}
+
+	field4 = {type			: "yesNoSelect",			textHEB		 : "מוצרים נלווים",
+			  spanData		: 1,						textENG		 : "Accompanying products",
+			  dataFld		: "copyAttachProducts",		width	 	 : fieldWidth,
+			  mandatory	 	: true,						defaultValue : "1"}
+
+  	fields = new Array(hidden, field1, field2, field3, field4);
+
+	for (var i=0; i<globalGroups.length; i++)
+	{
+		var tag = "copyVariations" + globalGroups[i].value;
+
+		field1 = {type			: "yesNoSelect",		textHEB		 : globalGroups[i].textHEB,
+			 	  spanData		: 1,					textENG		 : globalGroups[i].textENG,
+				  dataFld		: tag,					width	 	 : fieldWidth,
+			 	  mandatory	 	: true,					defaultValue : "1"}
+
+		fields.push (field1);
+	}
+
+	pageObj.addFormFields (duplicateFormId, frameId, fieldsWidths, fields);
+
+	pageObj.generateForm  (duplicateFormId);
+
+	createDuplicateFormButtons 	();
+
+	handleDisplay 		  		("duplicate");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDuplicateFormButtons																*/
+/* ---------------------------------------------------------------------------------------- */
+function createDuplicateFormButtons ()
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report');"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + duplicateFormId + ")"}
+
+	btn3	= {type			: "duplicate",
+			   action		: "submitDuplicateForm()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3));
+
+	if (duplicateButtonsId == -1)
+		duplicateButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (duplicateButtonsId, btnsGroups, pageObj.getFormWidth(duplicateFormId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitDuplicateForm																		*/
+/* ---------------------------------------------------------------------------------------- */
+function submitDuplicateForm ()
+{
+	if (!pageObj.validateForm(duplicateFormId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(duplicateFormId));
+
+	serverObj.sendRequest("shop.duplicateProduct", undefined, "submitDuplicateForm_continue");
+}
+
+function submitDuplicateForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+		doRefresh 		();
+	}
+
+	return true;
+}
+
+
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+	<div id="showPic" style="position:absolute;display:none;top:100;left:250;background-color:white" onclick="this.style.display='none'"></div>
+</body>
+
+</html>

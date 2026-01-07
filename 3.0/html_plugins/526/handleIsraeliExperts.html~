@@ -1,0 +1,540 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<link rel="stylesheet" href="israeli.css" type="text/css" />
+
+<style>
+		.green		{ color: #49C927; }
+		.yellow		{ color: #C5C717; }
+		.red		{ color: #C71717; }
+		.promoted	{ color: #0000C0; text-decoration: underline; }
+</style>
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/multiUpload.js"></script>
+<script language="JavaScript" src="israeliCommon.js?v=15"></script>
+<script language="JavaScript" src="memberContacts.js?v=4"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	global_whereAmI		= "experts";
+
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage 	  ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();
+	addSearchSection    ();
+	createDataTable     ();	
+	createTableButtons  ();	
+	createSearchSection ();
+	loadData			();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   		= pageObj.addPageTitle 	  ("ניהול מומחים",	  			"");
+
+	members_createTitles ("expert");
+
+	memberContacts_createTitles ("מומחה");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+var statuses	= new selectOptionsObj();
+statuses.addOption ("",			"",					"");
+statuses.addOption ("new",		"לא פעיל - חדש",	"");
+statuses.addOption ("active",	"פעיל - רגיל",		"");
+statuses.addOption ("promoted",	"פעיל - מקודם",		"");
+statuses.addOption ("hidden",	"פעיל - ללא פרטים",	"");
+statuses.addOption ("disabled",	"לא פעיל - ישן",	"");
+
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	var queryXml = commonGetGlobalData ("israeliExpertsQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (searchFormId, queryXml);
+	}
+	
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	var fieldWidth  = 150;
+
+	field1 = {type      : "select",					textHEB		 : m_statusCol.textHEB,
+			  spanData  : 1,						textENG		 : m_statusCol.textENG,
+			  dataFld   : m_statusCol.xmlTag,		width   	 : 120,
+			  options	: statuses.getOptions(),	defaultValue : "active"}
+
+	field2 = {type      : "select",					textHEB		 : m_langCol.textHEB,
+			  spanData  : 1,						textENG		 : m_langCol.textENG,
+			  dataFld   : m_langCol.xmlTag,			width   	 : 70,
+			  options	: m_langs.getOptions()}
+
+	field3 = {type      : "text",					textHEB		 : "לפי שם",
+			  spanData  : 1,						textENG		 : "",
+			  dataFld   : "name",					width		 : fieldWidth}
+
+	field4 = {type      : "text",					textHEB		 : "לפי טקסט",
+			  spanData  : 1,						textENG		 : "",
+			  dataFld   : "byText",					width		 : fieldWidth}
+
+	field5 = {type      : "select",					textHEB		 : "אזור חיוג",
+			  spanData  : 1,						textENG		 : "",
+			  dataFld   : "dialZone",				width   	 : 70,
+			  options	: m_dialZones.getOptions()}
+
+  	fields.push (field1, field2, field3, field4, field5);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(50,140,40,90,50,170,60,170,65,width),
+					ENG : new Array(50,140,40,90,50,170,60,170,65,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "excel",
+			   action		: "excelReport()"}
+
+	btn3	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2), new Array(btn3));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  		= pageObj.addTable ();
+	pageObj.tableIsMultiSelection (tableId);
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// ------------------------------------------------------------------------------------
+	column1		=  {textHEB		: m_idCol.textHEB,			widthHEB : 60,
+			   		textENG		: m_idCol.textENG,			widthENG : 60,
+			   		sortType	: "number",					sortDir  : "descending",
+				   	xmlTag   	: m_idCol.xmlTag}
+		   
+	column2		=  {textHEB		: "קוד ישן",				widthHEB : 80,
+			   		textENG		: m_idCol.textENG,			widthENG : 80,
+			   		sortType	: "number",					sortDir  : "descending",
+				   	xmlTag   	: "oldId"}
+		   
+	column3		=  {textHEB		: m_langCol.textHEB,		widthHEB : 80,
+			  		textENG		: m_langCol.textENG,		widthENG : 80,
+			   		sortType	: "text",					sortDir  : "ascending",
+			  		xmlTag   	: m_langCol.xmlTag}
+		   
+	column4		=  {textHEB		: m_nameCol.textHEB,		widthHEB : 180,
+			  		textENG		: m_nameCol.textENG,		widthENG : 180,
+			   		sortType	: "text",					sortDir  : "ascending",
+			  		xmlTag   	: m_nameCol.xmlTag}
+		   
+	column5		=  {textHEB		: m_statusCol.textHEB,		widthHEB : 160,
+			  		textENG		: m_statusCol.textENG,		widthENG : 160,
+			   		sortType	: "text",					sortDir  : "ascending",
+			  		xmlTag   	: m_statusCol.xmlTag}
+		   
+	column6		=  {textHEB		: m_usernameCol.textHEB,	widthHEB : 120,
+			   		textENG		: m_usernameCol.textENG,	widthENG : 120,
+			  	 	sortType 	: "text",					sortDir  : "ascending",
+			  		xmlTag   	: m_usernameCol.xmlTag,		dir		 : "ltr"}
+		   
+	column7		=  {textHEB		: m_professionCol.textHEB,	widthHEB : 200,
+			   		textENG		: m_professionCol.textENG,	widthENG : 200,
+			  	 	sortType 	: "number",					sortDir  : "ascending",
+			  		xmlTag   	: m_professionCol.xmlTag}
+		   
+	column8		=  {textHEB		: "דף מומחה",				widthHEB : 100,
+			   		textENG		: "",						widthENG : 100,
+			  	 	sortType 	: "number",					sortDir  : "ascending",
+			  		xmlTag   	: "pageLink"}
+		   
+	columns = new Array ();
+	columns.push (column1, column3, column4, column5, column6, column7, column8);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 470, 270);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "members_openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "members_openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteMember()"}
+
+	btn4	= {type			: "",
+			   textHEB		: "שליחת מייל",
+			   action		: "memberContacts_show()"}
+
+	btn5	= {type			: "",
+			   textHEB		: "שליחת סיסמא",
+			   action		: "sendMemberPassword()"}
+
+	btn6	= {type			: "",
+			   textHEB		: "עדכון באתר",
+			   action		: "gotoSiteUpdate()"}
+
+	btn7	= {type			: "",
+			   textHEB		: "עדכוני פרופיל",
+			   action		: "showUpdates('expertsTable')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2), new Array(btn3), new Array(btn4), new Array(btn5,btn6), new Array(btn7));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (m_addTitleId);
+		pageObj.hideComponent (m_updateTitleId);
+		pageObj.hideComponent (m_formId);
+		pageObj.hideComponent (m_formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+
+		pageObj.collapseSection (searchFormId, false);
+	}
+	else
+	{
+		pageObj.showComponent (pageTitleId);
+
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		if (type == "add" || type == "update")
+		{
+			// show from
+			pageObj.showComponent (eval("m_" + type + "TitleId"));
+			pageObj.showComponent (m_formId);
+			pageObj.showComponent (m_formButtonsId);
+		}
+	}
+
+	memberContacts_handleDisplay (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("israeliExpertsQueryXml", queryXml);
+
+	serverObj.cleanRequest ();
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("israeliExperts.getMembers", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_selected;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		var returnTo = commonGetGlobalData ("global_returnTo");
+
+		if (returnTo != undefined)
+		{
+			global_selected = commonGetGlobalData ("global_saveId");
+		}
+
+		commonSetGlobalData ("global_returnTo", "");
+
+		if (returnTo != "expertForm")
+		{
+			handleDisplay 		("report");	
+		}
+
+		if (global_selected != undefined)
+		{
+			handleDisplay 		("report");	
+			pageObj.setSelectedRow (tableId, m_idCol.xmlTag, global_selected);
+		}
+
+		if (returnTo == "expertForm")
+		{
+			members_openForm ("update");
+		}
+	}
+
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteMember																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteMember() 
+{
+	if (pageObj.areRowsSelected(tableId))
+	{
+		commonMsgBox ("info", "יש לבחור מומחה אחד בלבד");
+		return false;
+	}
+
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור מומחה");
+		return false;
+	}
+
+	confirm("מחיקת המומחה", "", "deleteMember_confirm");
+}
+
+function deleteMember_confirm ()
+{
+	commonMsgBox("confirm", 
+				 "<strong><span style='color:red;'>שים לב! </span>המומחה יימחק ולא ניתן יהיה להחזירו<br/><br/></strong>" + 
+				 "לחץ על 'אישור' כדי לבצע את מחיקת המומחה", "", 
+				 "deleteMember_doubleConfirm");
+}
+
+function deleteMember_doubleConfirm ()
+{
+	var id 	= pageObj.getSelectedValueOf(tableId,m_idCol.xmlTag);
+	
+	serverObj.cleanRequest ();
+	serverObj.addTag	(m_idCol.xmlTag, id);
+	
+	serverObj.sendRequest("israeliExperts.deleteMember", undefined, "deleteMember_continue");
+}
+
+function deleteMember_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* sendMemberPassword																		*/ 
+/* ---------------------------------------------------------------------------------------- */
+function sendMemberPassword() 
+{
+    if (!pageObj.isRowSelected(tableId) && !pageObj.areRowsSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור מומחה");
+		return false;
+	}
+
+	ids = pageObj.getSelectedValuesOf(tableId,m_idCol.xmlTag);
+
+	if (ids.length == 1)
+		confirmMsg = "שליחת הסיסמא למומחה";
+	else
+		confirmMsg = "שליחת הסיסמא " + ids.length + " למומחים המסומנים";
+
+	confirm(confirmMsg, "", "sendMemberPassword_confirm");
+}
+
+function sendMemberPassword_confirm ()
+{
+	var ids = pageObj.getSelectedValuesOf(tableId,m_idCol.xmlTag);
+	
+	serverObj.cleanRequest ();
+	serverObj.addTags	(m_idCol.xmlTag, ids);
+	
+	serverObj.sendRequest("israeliExperts.sendMemberPasswordEmail", undefined, "sendMemberPassword_continue");
+}
+
+function sendMemberPassword_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		commonMsgBox ("info", "הסיסמא נשלחה בהצלחה!", "");
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* gotoSiteUpdate																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function gotoSiteUpdate() 
+{
+	if (pageObj.areRowsSelected(tableId))
+	{
+		commonMsgBox ("info", "יש לבחור מומחה אחד בלבד");
+		return false;
+	}
+
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור מומחה");
+		return false;
+	}
+
+	window.open ("http://www.israeli-expert.co.il/privateGotoUpdateExpert.php?code=" + pageObj.getSelectedValueOf(tableId,"code"));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showUpdates																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function showUpdates (returnTo) 
+{
+	if (pageObj.areRowsSelected(tableId))
+	{
+		commonMsgBox ("info", "יש לבחור מומחה אחד בלבד");
+		return false;
+	}
+
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור מומחה");
+		return false;
+	}
+
+	commonSetGlobalData ("global_returnTo",   returnTo);
+	commonSetGlobalData ("global_expertName", pageObj.getSelectedValueOf(tableId,m_nameCol.xmlTag));
+	commonSetGlobalData ("global_expertId",   pageObj.getSelectedValueOf(tableId,m_idCol.xmlTag));
+	commonSetGlobalData ("global_saveId", 	  pageObj.getSelectedValueOf(tableId,m_idCol.xmlTag));
+
+	location.href = "handleIsraeliProfileUpdates.html";
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+//	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* excelReport																				*/
+/*  ---------------------------------------------------------------------------------------- */
+function excelReport ()
+{
+	serverObj.cleanRequest ();
+	serverObj.setXml (pageObj.getFormXml(searchFormId));
+	serverObj.sendRequest("israeliExperts.excelReport", undefined, "after_excelReport");
+}
+
+function after_excelReport (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	window.open ("http://www.i-bos.co.il/3.0/tempExcels/" + commonGetInnerData (responseXml, "excelFileName"),"_new");
+}
+
+
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

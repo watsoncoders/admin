@@ -1,0 +1,794 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/categories.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var pageTitleId		= -1;
+var addTitleId		= -1;
+var updateTitleId	= -1;
+var searchFormId	= -1;
+var searchButtonsId	= -1;
+var tableId			= -1;
+var rowButtonsId	= -1;
+var formId			= -1;
+var formButtonsId	= -1;
+var formTableObj	= -1;
+
+var	idCol			= {textHEB	: "קוד",				textENG	: "",	xmlTag	: "hugId"			}
+var	statusCol		= {textHEB	: "סטטוס",			   	textENG	: "",   xmlTag	: "status"			}
+var	categoryIdCol	= {textHEB	: "קטגוריה",		 	textENG	: "",   xmlTag	: "categoryId"		}
+var	nameCol			= {textHEB	: "שם החוג",		   	textENG	: "",   xmlTag	: "name"			}
+var placeCol		= {textHEB  : "מקום",				textENG : "",	xmlTag  : "place"			}
+var instructorCol	= {textHEB 	: "מדריך",				textENG : "",	xmlTag	: "instructor"		}
+var descCol			= {textHEB  : "תיאור",				textENG : "",	xmlTag	: "description"		}
+var remarksCol		= {textHEB	: "הערות",				textENG : "",	xmlTag	: "remarks"			}
+
+var membersOnlyCol	= {textHEB	: "לגולשים רשומים בלבד",textENG : "",	xmlTag	: "membersOnly"		}
+
+var contactNameCol  = {textHEB	: "איש קשר",			textENG : "",	xmlTag  : "contactName"		}
+var contactPhoneCol = {textHEB  : "טלפון",				textENG : "",	xmlTag  : "contactPhone"	}
+var contactMoreCol	= {textHEB	: "פרטים נוספים",		textENG : "",	xmlTag  : "contactDetails"	}
+var	emailCol		= {textHEB	: "אימייל",		   		textENG	: "",   xmlTag	: "email"			}
+var	faxCol			= {textHEB	: "פקס",				textENG	: "",   xmlTag	: "fax"				}
+var siteUrlCol		= {textHEB  : "אתר הבית",			textENG : "",	xmlTag	: "siteUrl"			}
+
+var linkCol			= {textHEB	: "קישור",				textENG : "",	xmlTag	: "link"			}
+var linkNameCol		= {textHEB  : "שם קישור",			textENG : "",	xmlTag	: "linkName"		}
+var priceTextCol	= {textHEB	: "תיאור מחיר",			textENG : "",	xmlTag	: "priceText"		}
+
+var activityHoursCol= {textHEB	: "שעות פעילות",		textENG : "",	xmlTag	: "activityHours"	}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage 	  ();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    ();
+	addSearchSection    ();
+	createDataTable     ();	
+	createTableButtons  ();	
+	createSearchSection ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	= pageObj.addPageTitle 	  ("ניהול חוגים",  	"");
+	addTitleId		= pageObj.addPageSubTitle ("הוספת חוג",		"");
+	updateTitleId	= pageObj.addPageSubTitle ("עדכון חוג",		"");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	if (searchButtonsId == -1)
+		searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+var statusOptions = new selectOptionsObj();
+statusOptions.addOption ("" ,   	  "",  			"");
+statusOptions.addOption ("active" ,   "פעיל",  		"");
+statusOptions.addOption ("inactive",  "לא פעיל", 	"");
+
+var globalCats;
+
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	// ------------------------------------------------------------------------------------ 
+	
+	var queryXml = commonGetGlobalData ("hugsQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (searchFormId, queryXml);
+	}
+
+	serverOptions_getCategories("choose", "hug", undefined, undefined, "createSearchSection_continue");
+}
+
+function createSearchSection_continue (options)
+{
+	globalCats = options;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	fields = new Array();
+
+	field1 = {type      : "text",					textHEB		 : nameCol.textHEB,
+			  spanData  : 1,						textENG		 : nameCol.textENG,
+			  dataFld   : nameCol.xmlTag,			width   	 : 110,
+			  maxLength : "50"}
+
+	field2 = {type      : "select",					textHEB		 : statusCol.textHEB,
+			  spanData  : 1,						textENG		 : statusCol.textENG,
+			  dataFld   : statusCol.xmlTag,			width   	 : 110,
+			  mandatory : false,				 	defaultValue : "",
+			  options	: statusOptions.getOptions()}
+
+	field3 = {type		: "select",					textHEB		 : categoryIdCol.textHEB,
+		  	  spanData  : 1,						textENG 	 : categoryIdCol.textENG,
+			  dataFld	: categoryIdCol.xmlTag,		width		 : 110,
+			  options	: globalCats}
+
+  	fields.push (field1, field2, field3);
+	
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB	: new Array(60,130,60,130,60,width),
+					ENG : new Array(60,130,60,130,60,width)}
+
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "pageObj.emptyFormFields(" + searchFormId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+
+	loadData ();	
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// ------------------------------------------------------------------------------------
+	column1		=  {textHEB		: idCol.textHEB,			widthHEB : 70,
+			   		textENG		: idCol.textENG,			widthENG : 70,
+			   		sortType	: "number",					sortDir  : "ascending",
+				   	xmlTag   	: idCol.xmlTag}
+		   
+	column2		=  {textHEB		: nameCol.textHEB,			widthHEB : 380,
+			   		textENG		: nameCol.textENG,			widthENG : 380,
+			   		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: nameCol.xmlTag}
+		   
+	column3		=  {textHEB		: statusCol.textHEB,		widthHEB : 80,
+			   		textENG		: statusCol.textENG,		widthENG : 80,
+			  		sortType 	: "text",					sortDir  : "ascending",
+			   		xmlTag   	: statusCol.xmlTag}
+
+	columns = new Array ();
+	columns.push (column1, column2, column3);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 350, 270);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteHug()"}
+
+	btn4	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (searchButtonsId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+	}
+
+	if (type == "add" || type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("hugsQueryXml", queryXml);
+
+	serverObj.cleanRequest ();
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("hugs.getHugs", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay 		("report");	
+	
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+var oneStatusOptions = new selectOptionsObj();
+oneStatusOptions.addOption ("active" ,   "פעיל",  		"");
+oneStatusOptions.addOption ("inactive",  "לא פעיל", 	"");
+
+var globalPages;
+var globalLayouts;
+var globalDetailsXml;
+
+var globalType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	globalType = type;
+
+	if (type == "update")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור חוג");
+			return false;
+		}
+	}
+
+	if (globalPages == undefined)
+		serverOptions_getPagesNames	("empty", "after_loadPages");
+
+	if (globalLayouts == undefined)
+		serverOptions_getLayoutsByType ("page", "after_loadLayouts");
+
+	if (type == "update")
+	{
+		globalDetailsXml = undefined;
+
+		serverObj.cleanRequest ();
+		serverObj.addTag(idCol.xmlTag, pageObj.getSelectedValueOf (tableId, idCol.xmlTag));
+		serverObj.sendRequest("hugs.getHugDetails", undefined, "after_loadDetails");
+	}
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadPages (options)
+{
+	globalPages = options;
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadLayouts (options)
+{
+	globalLayouts = options;
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function after_loadDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+// ----------------------------------------------------------------------------------------
+
+function openForm_continue ()
+{
+	var type = globalType;
+
+	if (globalPages == undefined || globalLayouts == undefined || (type == "update" && globalDetailsXml == undefined)) return; 
+
+	if (formId == -1)
+		formId   	= pageObj.addForm ();
+
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var id;
+	if (type == "update")
+	{
+		pageObj.setFormXml (formId, globalDetailsXml);
+
+		id = commonGetInnerData(globalDetailsXml, idCol.xmlTag);
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(180,200,180,200),
+					ENG : new Array(180,200,180,200)}
+
+	var fieldWidth  = 180;
+	var fieldWidth2 = 560;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "זיהוי", ""); 
+
+	hidden	 = {type		: "hidden", 					dataFld		 : idCol.xmlTag}
+
+	field1   = {type		: "select",						textHEB		 : statusCol.textHEB,
+			  	spanData  	: 1,							textENG 	 : statusCol.textENG,
+			 	dataFld		: statusCol.xmlTag,				width		 : fieldWidth,
+				options		: oneStatusOptions.getOptions(),defaultValue : "active",
+				mandatory	: true}
+
+	field2   = {type		: "select",						textHEB		 : layoutCol.textHEB,
+			  	spanData	: 1,							textENG		 : layoutCol.textENG,
+			  	dataFld		: layoutCol.xmlTag,				width	 	 : fieldWidth,
+			  	options		: globalLayouts}
+
+	field3   = {type		: "text",						textHEB		 : "כותרת לסרגל ניווט",
+			    spanData	: 1,							textENG		 : "",
+			    dataFld		: "navTitle",					width	 	 : fieldWidth,
+			    minLength	: "1",							mandatory	 : false,
+			    maxLength	: "30",							lang		 : langArray}
+
+	field4   = {type		: "yesNoSelect",				textHEB		 : membersOnlyCol.textHEB ,
+			    spanData	: 1,							textENG		 : membersOnlyCol.textENG,
+			    dataFld		: membersOnlyCol.xmlTag,		width		 : fieldWidth,
+			    mandatory	: false,						defaultValue : "0"}
+
+	field5   = {type		: "select",						textHEB		 : "קישור אב בסרגל ניווט",
+			    spanData	: 1,							textENG		 : "",
+			    dataFld		: "navParentId",				width		 : fieldWidth,
+			    mandatory	: false,						defaultValue : "1",
+			    options		: globalPages}
+
+	if (type == "update")
+		field5.spanData = 3;
+
+   	fields = new Array(hidden, field1, field2, field3, field4, field5);
+
+	if (type == "add")
+	{
+		field= {type		: "select",						textHEB		 : categoryIdCol.textHEB,
+			  	spanData  	: 1,							textENG 	 : categoryIdCol.textENG,
+			 	dataFld		: categoryIdCol.xmlTag,			width		 : fieldWidth,
+				options		: globalCats}
+
+		fields.push (field);
+	}
+
+  	field1 	 = {type		: "text",						textHEB		 : nameCol.textHEB,
+		  		spanData	: 3,							textENG		 : nameCol.textENG,
+		  		dataFld		: nameCol.xmlTag,				width	 	 : fieldWidth2,
+				maxLength 	: "200",						lang		 : langArray,
+				mandatory	: true}
+
+  	field2 	 = {type		: "text",						textHEB		 : instructorCol.textHEB,
+		  		spanData	: 3,							textENG		 : instructorCol.textENG,
+		  		dataFld		: instructorCol.xmlTag,			width	 	 : fieldWidth2,
+		  		maxLength 	: "100",						lang		 : langArray}
+
+  	field3 	 = {type		: "text",						textHEB		 : placeCol.textHEB,
+		  		spanData	: 3,							textENG		 : placeCol.textENG,
+		  		dataFld		: placeCol.xmlTag,				width	 	 : fieldWidth2,
+		  		maxLength 	: "200",						lang		 : langArray}
+
+   	fields.push(field1, field2, field3);
+
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths2 = {HEB : new Array(70,670),
+				 	 ENG : new Array(70,670)}
+
+	var frameId = pageObj.addFormFrame (formId, "תיאור", ""); 
+
+	field1 = {type			: "xstandard",				textHEB			: descCol.textHEB,
+			  spanData		: 1,						textENG		 	: descCol.textENG,
+			  dataFld		: descCol.xmlTag,			width	 	 	: 650,
+			  height  		: 220,						lang		 	: langArray}
+
+	field2 = {type			: "textarea",				textHEB		 	: remarksCol.textHEB,
+			  spanData		: 1,						textENG		 	: remarksCol.textENG,
+			  dataFld		: remarksCol.xmlTag,		width	 	 	: 660,
+			  rows  		: 5,						lang		 	: langArray}
+
+  	fields = new Array(field1, field2);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths2, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "התקשרות", ""); 
+
+  	field1   = {type		: "text",						textHEB		 : contactNameCol.textHEB + " 1",
+		  		spanData	: 1,							textENG		 : contactNameCol.textENG + " 1",
+		 		dataFld		: contactNameCol.xmlTag+"1",	width	 	 : fieldWidth,
+		 		maxLength 	: "50",							lang		 : langArray}
+
+  	field2   = {type		: "phone",						textHEB		 : contactPhoneCol.textHEB + " 1",
+		  		spanData	: 1,							textENG		 : contactPhoneCol.textENG + " 1",
+		  		dataFld		: contactPhoneCol.xmlTag+"1",	width	 	 : fieldWidth,
+		  		maxLength 	: "20"}
+
+  	field3   = {type		: "text",						textHEB		 : contactNameCol.textHEB + " 2",
+		  		spanData	: 1,							textENG		 : contactNameCol.textENG + " 2",
+		 		dataFld		: contactNameCol.xmlTag+"2",	width	 	 : fieldWidth,
+		 		maxLength 	: "50",							lang		 : langArray}
+
+  	field4   = {type		: "phone",						textHEB		 : contactPhoneCol.textHEB + " 2",
+		  		spanData	: 1,							textENG		 : contactPhoneCol.textENG + " 2",
+		  		dataFld		: contactPhoneCol.xmlTag+"2",	width	 	 : fieldWidth,
+		  		maxLength 	: "20"}
+
+  	field5   = {type		: "phone",						textHEB		 : faxCol.textHEB,
+		  		spanData	: 1,							textENG		 : faxCol.textENG,
+		  		dataFld		: faxCol.xmlTag,				width	 	 : fieldWidth,
+		  		maxLength 	: "20"}
+
+  	field6   = {type		: "textEng",					textHEB		 : siteUrlCol.textHEB,
+		  		spanData	: 1,							textENG		 : siteUrlCol.textENG,
+		  		dataFld		: siteUrlCol.xmlTag,			width	 	 : fieldWidth,
+		  		maxLength 	: "200"}
+
+  	field7 	= {type			: "email",						textHEB		 : emailCol.textHEB,
+		  	   spanData		: 3,							textENG		 : emailCol.textENG,
+			   dataFld		: emailCol.xmlTag,				width	 	 : fieldWidth2,
+		  	   maxLength 	: "50"}
+
+	field8   = {type		: "textarea",					textHEB		 : contactMoreCol.textHEB,
+		   		spanData	: 3,							textENG		 : contactMoreCol.textENG,
+		   		dataFld		: contactMoreCol.xmlTag,		rows  		 : 4,
+		   		width		: fieldWidth2*1+1,				lang		 : langArray}
+
+   	fields = new Array(field1, field2, field3, field4, field5, field6, field7, field8);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "פרטים נוספים", ""); 
+
+	field1   = {type		: "textarea",					textHEB		 : priceTextCol.textHEB,
+		   		spanData	: 3,							textENG		 : priceTextCol.textENG,
+		   		dataFld		: priceTextCol.xmlTag,			rows  		 : 4,
+		   		width		: fieldWidth2*1+1,				lang		 : langArray}
+
+	field2 = {type			: "textarea",					textHEB		 : activityHoursCol.textHEB,
+			  spanData		: 3,							textENG		 : activityHoursCol.textENG,
+			  dataFld		: activityHoursCol.xmlTag,		width	 	 : fieldWidth2*1+1,
+			  rows			: "5",							lang		 : langArray}
+
+  	field3   = {type		: "textEng",					textHEB		 : linkCol.textHEB + " 1",
+		  		spanData	: 1,							textENG		 : linkCol.textENG + " 1",
+		 		dataFld		: linkCol.xmlTag+"1",			width	 	 : fieldWidth,
+		 		maxLength 	: "100"}
+
+  	field4   = {type		: "text",						textHEB		 : linkNameCol.textHEB + " 1",
+		  		spanData	: 1,							textENG		 : linkNameCol.textENG + " 1",
+		  		dataFld		: linkNameCol.xmlTag+"1",		width	 	 : fieldWidth,
+		  		maxLength 	: "100",						lang		 : langArray}
+
+  	field5   = {type		: "textEng",					textHEB		 : linkCol.textHEB + " 2",
+		  		spanData	: 1,							textENG		 : linkCol.textENG + " 2",
+		 		dataFld		: linkCol.xmlTag+"2",			width	 	 : fieldWidth,
+		 		maxLength 	: "100"}
+
+  	field6   = {type		: "text",						textHEB		 : linkNameCol.textHEB + " 2",
+		  		spanData	: 1,							textENG		 : linkNameCol.textENG + " 2",
+		  		dataFld		: linkNameCol.xmlTag+"2",		width	 	 : fieldWidth,
+		  		maxLength 	: "100",						lang		 : langArray}
+
+  	field7   = {type		: "textEng",					textHEB		 : linkCol.textHEB + " 3",
+		  		spanData	: 1,							textENG		 : linkCol.textENG + " 3",
+		 		dataFld		: linkCol.xmlTag+"3",			width	 	 : fieldWidth,
+		 		maxLength 	: "100"}
+
+  	field8   = {type		: "text",						textHEB		 : linkNameCol.textHEB + " 3",
+		  		spanData	: 1,							textENG		 : linkNameCol.textENG + " 3",
+		  		dataFld		: linkNameCol.xmlTag+"3",		width	 	 : fieldWidth,
+		  		maxLength 	: "100",						lang		 : langArray}
+
+   	fields = new Array(field1, field2, field3, field4, field5, field6, field7, field8);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	categories_addFormFrame (formId, type, "קטגוריות החוג", "Categories", fieldsWidths, id, "hug", "after_createCategoriesFrame");
+}
+
+function after_createCategoriesFrame ()
+{
+	var type = globalType;
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	formTableObj = new Object(pageObj.getFormTableId (formId, 4));
+
+	commonSetGlobalData ("formTableObj", 	 formTableObj);	// save it for categoryOfItem iframe
+
+	createEditFormButtons (type);
+
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* addCategory																				*/
+/* ---------------------------------------------------------------------------------------- */
+function addCategory (type)
+{
+	if (type == "add")
+	{
+		commonMsgBox ("info", "יש לבצע שמירה של החוג לפני קישור לקטגוריות");
+		return false;
+	}
+	
+	commonSetGlobalData ("action", "add");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (formId, idCol.xmlTag));
+	commonSetGlobalData ("catType", "hug");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* updateCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function updateCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור שורה")
+		return false;
+	}
+
+	commonSetGlobalData ("action", "update");
+	commonSetGlobalData ("itemId", pageObj.getFieldValue (formId, idCol.xmlTag));
+	commonSetGlobalData ("catType", "hug");
+
+	categories_showPage ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteCategory																			*/
+/* ---------------------------------------------------------------------------------------- */
+function deleteCategory ()
+{
+	if (!pageObj.isRowSelected (formTableObj))
+	{
+		commonMsgBox ("info", "יש לבחור שורה")
+		return false;
+	}
+
+	var itemId 		= pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+	var categoryId 	= pageObj.getSelectedValueOf (formTableObj, "id");
+	
+	categories_deleteCategory (formId, formTableObj, itemId, categoryId, "hug");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadItemCategories																		*/
+/* ---------------------------------------------------------------------------------------- */
+function loadItemCategories ()
+{
+	var itemId 		= pageObj.getSelectedValueOf (tableId, idCol.xmlTag);
+
+	categories_loadItemCategories (formId, formTableObj, itemId, "hug");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + formId + ")"}
+
+	btn3	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	serverObj.sendRequest("hugs." + type + "Hug", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+		doRefresh 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteHug																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteHug() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור חוג");
+		return false;
+	}
+
+	confirm("מחיקת החוג", "delete hug", "deleteHug_confirm");
+}
+
+function deleteHug_confirm ()
+{
+	var id 	= pageObj.getSelectedValueOf(tableId,idCol.xmlTag);
+	
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, id);
+	
+	serverObj.sendRequest("hugs.deleteHug", undefined, "deleteHug_continue");
+}
+
+function deleteHug_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+
+</html>

@@ -1,0 +1,640 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+<script language="JavaScript" src="../../javascript2/multiUpload.js"></script>
+
+<script language="JavaScript">
+
+var langArray			= commonGetGlobalData ("langArray");
+
+var guiLang				= commonGetGlobalData ("guiLang");
+var pageObj				= new dynamicPageObj(guiLang);	
+var serverObj			= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var addTitleId			= -1;
+var updateTitleId		= -1;
+var searchFormId		= -1;
+var searchButtonsId		= -1;
+var tableId				= -1;
+var rowButtonsId		= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+
+var	idCol				= {textHEB	: "קוד", 	textENG	: "", xmlTag	: "variationId"	}
+var groupCol			= {textHEB	: "קבוצה", 	textENG	: "", xmlTag	: "groupId"		}
+var indexCol			= {textHEB	: "ערכים", 	textENG	: "", xmlTag	: "index"		}
+var descCol				= {textHEB	: "תיאור",	textENG : "", xmlTag	: "desc"		}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	pageObj.setDebug      	(true);
+	serverObj.setDebug    	(true);
+	serverObj.setXmlDebug 	(false);
+
+	pageObj.initPage 		();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitles    	();
+	addSearchSection    	();
+	createDataTable     	();
+	createTableButtons  	();
+	createSearchSection 	();
+	loadData				();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitles																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitles ()
+{
+	pageTitleId   	 = pageObj.addPageTitle 	("ניהול וריאציות", 	"");
+	addTitleId		 = pageObj.addPageSubTitle  ("הוספת וריאציה",	"");
+	updateTitleId	 = pageObj.addPageSubTitle  ("עדכון וריאציה",	"");
+}
+	
+/* ---------------------------------------------------------------------------------------- */
+/* addSearchSection																			*/
+/* ---------------------------------------------------------------------------------------- */
+function addSearchSection ()
+{
+	if (searchFormId == -1)
+		searchFormId   = pageObj.addForm ();
+	
+	searchButtonsId = pageObj.addRowOfButtons ();
+}
+	
+var globalGroups;
+
+/* ---------------------------------------------------------------------------------------- */
+/* createSearchSection																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createSearchSection ()
+{
+	// ------------------------------------------------------------------------------------ 
+	
+	var queryXml = commonGetGlobalData ("shopVariationsQueryXml");
+
+	if (queryXml != undefined)
+	{
+		pageObj.setFormXml (searchFormId, queryXml);
+	}
+
+	// ------------------------------------------------------------------------------------ 
+
+	serverOptions_getShopVariationsGroups ("empty", "after_getGroups");
+}
+
+// ---------------------------------------------------------------------------------------- 
+function after_getGroups (options)
+{
+	globalGroups = options;
+
+	createSearchSection_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function createSearchSection_continue ()
+{
+	var frameId = pageObj.addSearchFrame (searchFormId)
+
+	width = "*" + pageObj.getTableWidth(tableId);
+	fieldsWidths = {HEB : new Array(70,width),
+					ENG : new Array(70,width)}
+
+	field1 = {type		: "select",					textHEB		 : groupCol.textHEB,
+			  spanData  : 1,						textENG		 : groupCol.textENG,
+			  dataFld   : groupCol.xmlTag,			width        : 150,
+			  options	: globalGroups}
+
+	var searchFields	= new Array(field1);
+	
+	pageObj.addFormFields (searchFormId, frameId, fieldsWidths, searchFields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	collapseIds = new Array();
+	collapseIds.push (searchButtonsId);
+
+	expandIds = new Array();
+	expandIds.push (tableId);
+	
+	pageObj.addCollapse	  (searchFormId, collapseIds, expandIds);
+
+	pageObj.generateForm  (searchFormId);
+	
+	btn1	= {type			: "search",
+			   action		: "doRefresh()"}
+
+	btn2	= {type			: "reset",
+			   action		: "reset()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2));
+
+	pageObj.generateRowOfButtons (searchButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createDataTable																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createDataTable ()
+{
+	tableId  	= pageObj.addTable ();
+	
+	pageObj.setLoadFunction (tableId, "loadData");
+
+	// handle the table
+	// ------------------------------------------------------------------------------------
+	column1		= {textHEB	: idCol.textHEB,			widthHEB 	: 70,
+				   textENG	: idCol.textENG,			widthENG 	: 70,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : idCol.xmlTag}
+		   
+	column2		= {textHEB	: groupCol.textHEB,			widthHEB 	: 150,
+				   textENG	: groupCol.textENG,			widthENG 	: 150,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : "groupName"}
+		   
+	column3		= {textHEB	: indexCol.textHEB,			widthHEB 	: 200,
+				   textENG	: indexCol.textENG,			widthENG 	: 200,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : indexCol.xmlTag}
+		   
+	column4		= {textHEB	: "מחיר",					widthHEB 	: 150,
+				   textENG	: "",						widthENG 	: 150,
+				   sortType : "text",					sortDir  	: "ascending",
+				   xmlTag   : "price"}
+
+	column5		= {textHEB	: "הצגת תמונה",				widthHEB 	: 150,
+				   textENG	: "",						widthENG 	: 150,
+				   sortType : "number",					sortDir  	: "ascending",
+				   xmlTag   : "showPic",				action	 	: "tableShowPic(this)",
+				   className: "styleLink"}
+
+		   
+	columns = new Array ();
+	columns.push (column1, column2, column3, column4, column5);
+
+	pageObj.setTableColumns (tableId, columns);
+	pageObj.setTableHeight	(tableId, 330, 330);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* tableShowPic																				*/
+/* ---------------------------------------------------------------------------------------- */
+function tableShowPic (col)
+{
+	rowOfCol 	= col.parentNode;
+	rowIndex	= rowOfCol.rowIndex;
+
+	document.getElementById("showPic").innerHTML = "<img src='" + pageObj.getRowValueOf(tableId, rowIndex, "pic") + "' />";
+	document.getElementById("showPic").style.display = "";
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createTableButtons																		*/
+/* ---------------------------------------------------------------------------------------- */
+function createTableButtons ()
+{
+	btn1	= {type			: "add",
+			   action		: "openForm('add')"}
+
+	btn2	= {type			: "update",
+			   action		: "openForm('update')"}
+
+	btn3	= {type			: "delete",
+			   action		: "deleteVariation()"}
+
+	btn4	= {type			: "print",
+			   action		: "pageObj.printTable (" + tableId + "," + pageTitleId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1, btn2, btn3), new Array(btn4));
+
+	if (rowButtonsId == -1)
+		rowButtonsId = pageObj.addRowOfButtons ();
+	pageObj.generateRowOfButtons (rowButtonsId, btnsGroups, pageObj.getTableWidth(tableId));
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* handleDisplay																			*/
+/* ---------------------------------------------------------------------------------------- */
+function handleDisplay (type)
+{
+	if (type == "report")
+	{
+		// hide edit form
+		pageObj.hideComponent (addTitleId);
+		pageObj.hideComponent (updateTitleId);
+		pageObj.hideComponent (formId);
+		pageObj.hideComponent (formButtonsId);
+
+		// show table
+		pageObj.showComponent (pageTitleId);
+		pageObj.showComponent (searchFormId);
+		pageObj.showComponent (tableId);
+		pageObj.showComponent (rowButtonsId);
+
+		if (!pageObj.isCollapse (searchFormId))
+			pageObj.showComponent (searchButtonsId);
+	}
+
+	if (type == "add" || type == "update")
+	{
+		// hide table
+		pageObj.hideComponent (searchFormId);
+		pageObj.hideComponent (searchButtonsId);
+		pageObj.hideComponent (tableId);
+		pageObj.hideComponent (rowButtonsId);
+
+		// show from
+		pageObj.showComponent (eval(type + "TitleId"));
+		pageObj.showComponent (formId);
+		pageObj.showComponent (formButtonsId);
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* loadData																					*/ 
+/* ---------------------------------------------------------------------------------------- */
+function loadData () 
+{
+	var queryXml = pageObj.getFormXml(searchFormId);
+
+	commonSetGlobalData ("shopVariationsQueryXml", queryXml);
+
+	serverObj.cleanRequest ();
+	serverObj.setXml (queryXml);
+
+	serverObj.sendRequest("shopVariations.getVariations", pageObj.getTablePaging(tableId), "loadData_continue"); 
+}
+
+var global_firstTime = true;
+
+function loadData_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		pageObj.setTableXmls   (tableId, responseXml);
+		pageObj.setTablePaging (tableId, responseXml);
+
+		pageObj.generateTable (tableId);
+
+		if (global_firstTime)
+		{
+			handleDisplay 			("report");
+			pageObj.collapseSection (searchFormId, false);
+
+			global_firstTime = false;
+		}
+	}
+
+	return true;
+}
+
+var priceFunctions = new selectOptionsObj();
+priceFunctions.addOption ("none", 	  	  "ללא שינוי",     "");
+priceFunctions.addOption ("plusUnit", 	  "תוספת ביחידות", "");
+priceFunctions.addOption ("minusUnit", 	  "הורדה ביחידות", "");
+priceFunctions.addOption ("plusPercent",  "תוספת באחוזים", "");
+priceFunctions.addOption ("minusPercent", "הורדה באחוזים", "");
+
+var globalDimensions;
+var globalDetailsXml;
+
+var globalType;
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	globalType = type;
+
+	if (type == "update")
+	{
+		if (!pageObj.isRowSelected(tableId)) 
+		{
+			commonMsgBox ("info", "יש לבחור וריאציה");
+			return false;
+		}
+
+		serverObj.cleanRequest ();
+		serverObj.addTag	   (idCol.xmlTag, pageObj.getSelectedValueOf (tableId, idCol.xmlTag));
+		serverObj.sendRequest  ("shopVariations.getVariationDetails", undefined, "after_getDetails");
+	}
+
+	if (globalDimensions == undefined)
+		serverOptions_getDimensions	(true, "after_getDimensions");
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getDimensions (options)
+{
+	globalDimensions = new Object(options);
+
+	openForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	openForm_continue ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm_continue ()
+{
+	var type = globalType;
+
+	if (globalDimensions == undefined  || (type == "update" && globalDetailsXml == undefined)) return;
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(120,230,120,230),
+					ENG : new Array(120,230,120,230)}
+
+	var fieldWidth   = 210;
+	var fieldWidth2  = 550;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "פרטי הוריאציה", ""); 
+
+	fields = new Array();
+	
+	var priceValueState = "lock";
+	if (type == "update")
+	{
+		field1	= {type		: "hidden", 				dataFld		 : idCol.xmlTag}
+
+		fields.push (field1);
+
+		pageObj.setFormXml (formId, globalDetailsXml);
+
+		if (commonGetInnerData (globalDetailsXml, "priceFunction") != "none")
+			priceValueState = "unlock";
+	}
+	
+	field1 = {type			: "select",					textHEB		 : groupCol.textHEB,
+			  spanData  	: 1,						textENG		 : groupCol.textENG,
+			  dataFld   	: groupCol.xmlTag,			width        : fieldWidth,
+			  options		: globalGroups,				mandatory	 : true}
+
+  	field2 = {type			: "text",					textHEB		 : "ערך 1",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: indexCol.xmlTag+"1",		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "200",					lang		 : langArray}
+
+  	field3 = {type			: "text",					textHEB		 : "ערך 2",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: indexCol.xmlTag+"2",		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "200",					lang		 : langArray}
+
+  	field4 = {type			: "text",					textHEB		 : "ערך 3",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: indexCol.xmlTag+"3",		width	 	 : fieldWidth,
+			  minLength		: "1",						mandatory	 : false,
+			  maxLength		: "200",					lang		 : langArray}
+
+	field5 = {type			: "select",					textHEB		 : "יחס למחיר",
+			  spanData  	: 1,						textENG		 : "",
+			  dataFld   	: "priceFunction",			width        : fieldWidth,
+			  options		: priceFunctions.getOptions(),
+	  		  defaultValue	: "none",					action		 : "onSelectFunction()"}
+
+  	field6 = {type			: "text",					textHEB		 : "מחיר",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: "priceValue",				width	 	 : fieldWidth,
+	  		  state			: priceValueState}
+
+    fields.push (field1, field2, field3, field4, field5, field6);
+
+	field1 = {type			: "span",					textHEB		 : "קובץ מקור",
+			  spanData  	: 3,						textENG		 : "",
+			  dataFld		: "formSourceFile",			width   	 : fieldWidth2}
+
+	fields.push (field1);
+	
+	hidden = {type			: "hidden",					dataFld   	 : "picSource"}
+
+	field1  = {type			: "onlineUpload",			textHEB		 : "קובץ תמונה", 
+			   spanData		: 1,						textENG		 : "",
+			   dataFld		: "picFile",				width		 : fieldWidth}
+	
+	field2  = {type      	: "select",					textHEB 	 : "גודל",
+			  spanData  	: 1,						textENG      : "",
+			  dataFld   	: "dimensionId",			width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	show1  = {type			: "span",					textHEB		 : "הצגת קובץ",
+			  spanData		: 3,						textENG		 : "",
+			  dataFld   	: "show",					width		 : fieldWidth,
+			  className 	: "styleLink", 				action       : "showFile()"}
+
+	hidden1= {type			: "hidden",					
+		 	  dataFld   	: "linkToFile"}
+
+    fields.push (hidden, field1, field2);
+	  
+	if (type == "update")
+		fields.push (show1, hidden1);
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(0,637),
+					ENG : new Array(0,637)}
+
+	var frameId = pageObj.addFormFrame (formId, "תאור הוריאציה", ""); 
+
+	field1 = {type			: "textarea",				textHEB		 : "",
+			  spanData		: 1,						textENG		 : "",
+			  dataFld		: descCol.xmlTag,			width	 	 : 600,
+			  height  		: 420,						mandatory	 : false,
+			  lang		 	: langArray}
+
+  	fields = new Array(field1);
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId, true);
+
+	multiUploadStart	  (undefined, formId);
+
+	createEditFormButtons (type);
+
+	handleDisplay 		  (type);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* showFile																					*/
+/* ---------------------------------------------------------------------------------------- */
+function showFile ()
+{
+	window.open (pageObj.getFieldValue(formId, "linkToFile"), "_blank");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* onSelectFunction																			*/
+/* ---------------------------------------------------------------------------------------- */
+function onSelectFunction ()
+{
+	if (pageObj.getFieldValue (formId, "priceFunction") == "none")
+	{
+		pageObj.setFieldValue  (formId, "priceValue", "");
+		pageObj.setFieldState (formId, "priceValue", "lock");
+	}
+	else
+	{
+		pageObj.setFieldState (formId, "priceValue", "unlock");
+	}
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons (type)
+{
+	btn1	= {type			: "back",
+			   action		: "handleDisplay('report')"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + formId + ")"}
+
+	btn3	= {type			: type,
+			   action		: "submitForm('" + type + "')"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2), new Array(btn3));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm (type)
+{
+	if (!pageObj.validateForm(formId)) return false;
+
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	var picFile = uploadGetFileName();
+	if (picFile != ERROR_WAIT_LOADING)
+	{
+		serverObj.addTag ("picSource",  picFile);
+	}
+	else
+	{
+		return false;
+	}
+
+	serverObj.sendRequest("shopVariations." + type + "Variation", undefined, "submitForm_continue");
+
+	return true;
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		handleDisplay	("report");
+		doRefresh 		();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* deleteVariation																			*/ 
+/* ---------------------------------------------------------------------------------------- */
+function deleteVariation() 
+{
+    if (!pageObj.isRowSelected(tableId)) 
+	{
+		commonMsgBox ("info", "יש לבחור וריאציה");
+		return false;
+	}
+
+	confirm("מחיקת וריאציה", "delete variation", "deleteVariation_confirm");
+}
+
+function deleteVariation_confirm ()
+{
+	serverObj.cleanRequest ();
+	serverObj.addTag	(idCol.xmlTag, pageObj.getSelectedValueOf(tableId,idCol.xmlTag));
+	
+	serverObj.sendRequest("shopVariations.deleteVariation", undefined, "deleteVariation_continue");
+}
+
+function deleteVariation_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		doRefresh ();
+	}
+	return true;
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* doRefresh																				*/ 
+/* ---------------------------------------------------------------------------------------- */
+function doRefresh() 
+{
+	pageObj.resetPage ();
+	loadData		  ();	
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()">
+	<div id="showPic" style="position:absolute;display:none;top:250;left:180;background-color:white" onclick="this.style.display='none'"></div>
+</body>
+
+</html>

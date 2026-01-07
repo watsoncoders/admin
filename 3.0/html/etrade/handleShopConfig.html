@@ -1,0 +1,405 @@
+<html>
+<head>
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var langArray		= commonGetGlobalData ("langArray");
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var formTitleId		= -1;
+var formId			= -1;
+var formButtonsId	= -1;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	if (!commonCanStart()) return false;
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.initPage 	();
+
+	// ------------------------------------------------------------------------------------ 
+
+	createPageTitle    	();
+
+	showForm 			();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitle																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitle ()
+{
+	formTitleId		= pageObj.addPageTitle ("הגדרות מסחר אלקטרוני", "Shop Configuration");
+	pageObj.showComponent (formTitleId);
+}
+
+var globalDimensions;
+var globalDetailsXml;
+var globalPages;
+
+/* ---------------------------------------------------------------------------------------- */
+/* showForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function showForm ()
+{
+	serverOptions_getDimensions	(true, "after_getDimensions");
+	serverOptions_getPages		("choose", "after_getPages");
+
+	serverObj.sendRequest		("shop.getShopConfig", undefined, "after_getDetails");
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getDimensions (options)
+{
+	globalDimensions = new Object(options);
+
+	showForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getPages (options)
+{
+	globalPages = new Object(options);
+
+	showForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function after_getDetails (i)
+{
+	globalDetailsXml = asyncResponseXml.getResponseXml (i);
+
+	showForm_continue ();
+}
+
+// ---------------------------------------------------------------------------------------- 
+
+function showForm_continue ()
+{
+	if (globalDimensions == undefined || globalDetailsXml == undefined) return;
+
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.setFormXml (formId, globalDetailsXml);
+
+	fieldsWidths = {HEB : new Array (130,250,130,250),
+				    ENG : new Array (130,250,130,250)};
+	
+	fieldWidth  = 240;
+	fieldWidth2 = 620;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "כללי", "General"); 
+
+	fields = new Array();
+
+	field1 =  {type      : "text",					textHEB 	 : "שם החנות",
+			   spanData  : 1,						textENG      : "Shop name",
+			   dataFld   : "name",					width     	 : fieldWidth,
+			   maxLength : 50,						lang		 : langArray}
+
+	field2 = {type		: "select",					textHEB		 : "דף החנות",
+			  spanData	: 1,						textENG		 : "Show Page",
+			  dataFld	: "shopPageId",				width	 	 : fieldWidth,
+			  options	: globalPages,				mandatory	 : false}
+
+	field3 = {type		: "select",					textHEB		 : "דף קטגוריית מוצרים",
+			  spanData	: 1,						textENG		 : "Category page",
+			  dataFld	: "categorysPageId",		width	 	 : fieldWidth,
+			  options	: globalPages,				mandatory	 : false}
+
+	field4 = {type		: "select",					textHEB		 : "דף מוצר",
+			  spanData	: 1,						textENG		 : "Product page",
+			  dataFld	: "productPageId",			width	 	 : fieldWidth,
+			  options	: globalPages,				mandatory	 : false}
+
+	field5 = {type		: "select",					textHEB		 : "דף עגלה",
+			  spanData	: 1,						textENG		 : "Cart page",
+			  dataFld	: "cartPageId",				width	 	 : fieldWidth,
+			  options	: globalPages,				mandatory	 : false}
+
+	field6 = {type		: "select",					textHEB		 : "דף טופס הזמנה",
+			  spanData	: 1,						textENG		 : "Order page",
+			  dataFld	: "orderPageId",			width	 	 : fieldWidth,
+			  options	: globalPages,				mandatory	 : false}
+
+	field7 = {type		: "select",					textHEB		 : "דף אישור הזמנה",
+			  spanData	: 1,						textENG		 : "Confirm page",
+			  dataFld	: "confirmOrderPageId",		width	 	 : fieldWidth,
+			  options	: globalPages,				mandatory	 : false}
+
+	field8 = {type		: "select",					textHEB		 : "דף בדיקת הזמנה",
+			  spanData	: 1,						textENG		 : "Check order page",
+			  dataFld	: "checkOrderPageId",		width	 	 : fieldWidth,
+			  options	: globalPages,				mandatory	 : false}
+
+	field9 =  {type      : "email",					textHEB 	 : "דוא\"ל דיווח",
+			   spanData  : 3,						textENG      : "Report E-mail",
+			   dataFld   : "informEmail",			width     	 : fieldWidth2,
+			   maxLength : 100}
+
+	field10=  {type      : "textarea",				textHEB 	 : "כתובת החנות",
+			   spanData  : 3,						textENG      : "Shop address",
+			   dataFld   : "shopAddress",			width     	 : fieldWidth2,
+			   rows		 : 5,						lang		 : langArray}
+
+	field11 =  {type      : "phone",				textHEB 	 : "טלפון קשר",
+			   spanData  : 1,						textENG      : "Phone",
+			   dataFld   : "shopPhone",				width     	 : fieldWidth}
+
+	field12 =  {type      : "number",				textHEB 	 : "מס' מוצרים בדף",
+			   spanData  : 1,						textENG      : "Products per page",
+			   dataFld   : "numProductsInPage",		width     	 : fieldWidth,
+			   maxLength : 2,						minValue	 : 1}
+
+	fields.push (field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12); 
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "ייחודי", "Unique"); 
+
+	fields = new Array();
+
+	field1 =  {type      : "text",					textHEB 	 : "שם הערה 1",
+			   spanData  : 1,						textENG      : "Remark name #1",
+			   dataFld   : "remark1",				width     	 : fieldWidth,
+			   maxLength : 50}
+
+	field2 =  {type      : "text",					textHEB 	 : "שם הערה 2",
+			   spanData  : 1,						textENG      : "Remark name #2",
+			   dataFld   : "remark2",				width     	 : fieldWidth,
+			   maxLength : 50}
+
+	field3 =  {type      : "text",					textHEB 	 : "שם הערה 3",
+			   spanData  : 1,						textENG      : "Remark name #3",
+			   dataFld   : "remark3",				width     	 : fieldWidth,
+			   maxLength : 50}
+
+	field4 =  {type      : "text",					textHEB 	 : "שם הערה 4",
+			   spanData  : 1,						textENG      : "Remark name #4",
+			   dataFld   : "remark4",				width     	 : fieldWidth,
+			   maxLength : 50}
+
+	fields.push (field1, field2, field3, field4); 
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "פרמטרים לחנות", "Shop parameters"); 
+
+	fields = new Array();
+
+	var typeOptions = new selectOptionsObj();
+	typeOptions.addOption ("catalog", "קטלוג", "Catalogue");
+	typeOptions.addOption ("shop",    "חנות",  "Shop");
+
+	field1 =  {type      : "yesNoSelect",			textHEB 	 : "ניהול מלאי",
+			   spanData  : 1,						textENG      : "Stock management",
+			   dataFld   : "handleStock",			width     	 : fieldWidth}
+
+	field9 =  {type      : "amount",				textHEB 	 : "אחוז המע\"מ",
+			   spanData  : 1,						textENG      : "VAT percentage",
+			   dataFld   : "vat",					width     	 : fieldWidth}
+			   
+	field2 =  {type      : "number",				textHEB 	 : "מינימום ימי אספקה",
+			   spanData  : 1,						textENG      : "Minimum supply days",
+			   dataFld   : "minSupplyDays",			width     	 : fieldWidth,
+			   maxLength : 2,						minValue	 : 1}
+
+	field3 =  {type      : "number",				textHEB 	 : "מקסימום ימי אספקה",
+			   spanData  : 1,						textENG      : "Maximum supply days",
+			   dataFld   : "maxSupplyDays",			width     	 : fieldWidth,
+			   maxLength : 2,						minValue	 : 1}
+
+	var currencyOptions = new selectOptionsObj();
+	currencyOptions.addOption ("", 	  "", "");   
+	currencyOptions.addOption ("ILS", "ש\"ח", "NIS");   
+	currencyOptions.addOption ("USD", "דולר", "USD");   
+	currencyOptions.addOption ("EUR", "יורו", "EUR");   
+	currencyOptions.addOption ("GBP", "ליש\"ט", "GBP");   
+
+	field4 =  {type      : "select",				textHEB 	 : "מטבע 1",
+			   spanData  : 1,						textENG      : "Currency #1",
+			   dataFld   : "currency1",				width     	 : fieldWidth,
+			   options 	 : currencyOptions.getOptions()}
+
+	field5 =  {type      : "select",				textHEB 	 : "מטבע 2",
+			   spanData  : 1,						textENG      : "Currency #2",
+			   dataFld   : "currency2",				width     	 : fieldWidth,
+			   options 	 : currencyOptions.getOptions()}
+	   
+	field6 =  {type      : "amount",				textHEB 	 : "שער המרה",
+			   spanData  : 1,						textENG      : "Exchange rate",
+			   dataFld   : "conversionRate",		width     	 : fieldWidth}
+			   
+	field7 =  {type      : "yesNoSelect",			textHEB 	 : "אריזת מתנה",
+			   spanData  : 1,						textENG      : "Gift wrap",
+			   dataFld   : "enablePresent",			width     	 : fieldWidth}
+			   
+	field8 =  {type      : "yesNoSelect",			textHEB 	 : "תגובות גולשים",
+			   spanData  : 1,						textENG      : "Surfers opinions",
+			   dataFld   : "enableComments",		width     	 : fieldWidth}
+			   
+	field10=  {type      : "amount",				textHEB 	 : "אחוז הנחה",
+			   spanData  : 1,						textENG      : "Discount",
+			   dataFld   : "discountPercent",		width     	 : fieldWidth}
+			   
+	fields.push (field1, field9, field2, field3, field4, field5, field6, field10, field7, field8); 
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "הגדרות לתמונות מוצר", "Product Pictures"); 
+
+	fields = new Array();
+
+	field1 = {type      	: "select",				textHEB 	 : "גודל לרוחב size1",
+			  spanData  	: 1,					textENG      : "Width size #1",
+			  dataFld   	: "wideDimension1",		width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	field3 = {type      	: "select",				textHEB 	 : "גודל לרוחב size2",
+			  spanData  	: 1,					textENG      : "Width size #2",
+			  dataFld   	: "wideDimension2",		width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	field5 = {type      	: "select",				textHEB 	 : "גודל לרוחב size3",
+			  spanData  	: 1,					textENG      : "Width size #3",
+			  dataFld   	: "wideDimension3",		width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	field7 = {type      	: "select",				textHEB 	 : "גודל לרוחב size4",
+			  spanData  	: 1,					textENG      : "Width size #4",
+			  dataFld   	: "wideDimension4",		width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	field2 = {type      	: "select",				textHEB 	 : "גודל לגובה size1",
+			  spanData  	: 1,					textENG      : "Height size #1",
+			  dataFld   	: "longDimension1",		width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	field4 = {type      	: "select",				textHEB 	 : "גודל לגובה size2",
+			  spanData  	: 1,					textENG      : "Height size #2",
+			  dataFld   	: "longDimension2",		width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	field6 = {type      	: "select",				textHEB 	 : "גודל לגובה size3",
+			  spanData  	: 1,					textENG      : "Height size #3",
+			  dataFld   	: "longDimension3",		width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	field8 = {type      	: "select",				textHEB 	 : "גודל לגובה size4",
+			  spanData  	: 1,					textENG      : "Height size #4",
+			  dataFld   	: "longDimension4",		width     	 : fieldWidth,
+			  options		: globalDimensions}
+
+	field9 =  {type      	: "text",				textHEB 	 : "סוג תמונה 1",
+			   spanData  	: 1,					textENG      : "Picture type #1",
+			   dataFld   	: "picType1",			width     	 : fieldWidth,
+			   maxLength 	: 50}
+
+	field10=  {type      	: "text",				textHEB 	 : "סוג תמונה 2",
+			   spanData  	: 1,					textENG      : "Picture type #2",
+			   dataFld   	: "picType2",			width     	 : fieldWidth,
+			   maxLength 	: 50}
+
+	field11=  {type      	: "text",				textHEB 	 : "סוג תמונה 3",
+			   spanData  	: 1,					textENG      : "Picture type #3",
+			   dataFld   	: "picType3",			width     	 : fieldWidth,
+			   maxLength 	: 50}
+
+	field12 =  {type      	: "text",				textHEB 	 : "סוג תמונה 4",
+			   spanData  	: 1,					textENG      : "Picture type #4",
+			   dataFld   	: "picType4",			width     	 : fieldWidth,
+			   maxLength 	: 50}
+
+	fields.push (field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12); 
+	
+	pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId);
+
+	pageObj.showComponent (formId);
+
+	btn1	= {type			: "update",
+			   action		: "submitForm()"}
+
+	btn2 	= {type			: "lang",
+			   lang			: langArray,
+			   action		: "commonChangeFormLang(" + formId + ")"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+	pageObj.showComponent (formButtonsId);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm ()
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+
+	serverObj.sendRequest("shop.updateShopConfig", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		commonMsgBox ("info", "הנתונים נשמרו בהצלחה","Data was saved successfully");
+	}
+	return true;
+}
+
+//-->
+</script>
+
+</head>
+
+<body onload="onLoad()">
+</body>
+</html>

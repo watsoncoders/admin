@@ -1,0 +1,184 @@
+<html>
+<head>
+
+<meta http-equiv = "content-type" content="text/html;charset=utf-8">
+
+<script language="JavaScript" src="../../javascript2/dynamicPage.js"></script>
+
+<script language="JavaScript">
+
+var guiLang			= commonGetGlobalData ("guiLang");
+var pageObj			= new dynamicPageObj(guiLang);	
+var serverObj		= new serverInterfaceObj(guiLang);
+
+var pageTitleId			= -1;
+var formId				= -1;
+var formButtonsId		= -1;
+
+var formTableObj;
+var categoryId;
+var categoryItemsXml;
+
+/* ---------------------------------------------------------------------------------------- */
+/* onLoad																					*/
+/* ---------------------------------------------------------------------------------------- */
+function onLoad()
+{
+	formTableObj		= commonGetGlobalData ("formTableObj");
+	categoryId			= commonGetGlobalData ("categoryId");
+	categoryItemsXml	= commonGetGlobalData ("categoryItemsXml");
+
+	if (formTableObj == undefined) return;
+	
+	pageObj.setDebug      (true);
+	serverObj.setDebug    (true);
+	serverObj.setXmlDebug (false);
+
+	pageObj.initPage 	  ();
+
+	createPageTitle       ();		
+	openForm			  ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createPageTitle																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createPageTitle ()
+{
+	pageTitleId	 = pageObj.addPageSubTitle ("עדכון מיקום רכיב בקטגוריה",		"");
+
+	pageObj.showComponent (pageTitleId);
+}
+	
+
+/* ---------------------------------------------------------------------------------------- */
+/* openForm																					*/
+/* ---------------------------------------------------------------------------------------- */
+function openForm (type)
+{
+	createEditForm  	  ();
+
+	createEditFormButtons ();
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditForm																			*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditForm ()
+{
+	if (formId == -1)
+		formId   = pageObj.addForm ();
+	
+	pageObj.resetForm (formId);
+
+	// ------------------------------------------------------------------------------------ 
+
+	fieldsWidths = {HEB : new Array(80,200),
+					ENG : new Array(80,200)}
+
+	var fieldWidth   = 190;
+
+	// ------------------------------------------------------------------------------------ 
+
+	var frameId = pageObj.addFormFrame (formId, "נתוני רכיב", ""); 
+
+	fields = new Array();
+	
+	pageObj.setFormXml (formId, pageObj.getSelectedRowAsXml(formTableObj));
+
+	field1	= {type		: "span",					textHEB		 : "רכיב",
+			   spanData : 1,						textENG		 : "",
+			   dataFld	: "name",					width	 	 : fieldWidth}
+
+	removePos = pageObj.getSelectedValueOf (formTableObj, "pos")*1 + 1;
+
+	var posOptions = commonGetPosOptions (categoryItemsXml, removePos, "name");
+
+	field2	= {type		: "select",					textHEB		 : "מיקום",
+			   spanData : 1,						textENG		 : "",
+			   dataFld	: "pos",					width	 	 : fieldWidth,
+			   options	: posOptions.getOptions(),	mandatory	 : true}
+
+    fields.push (field1,field2);
+
+	hidden1	= {type		: "hidden",					dataFld		 : "id"}
+	hidden2	= {type		: "hidden",					dataFld		 : "itemType"}
+
+	fields.push (hidden1, hidden2);
+
+    pageObj.addFormFields (formId, frameId, fieldsWidths, fields);
+
+	// ------------------------------------------------------------------------------------ 
+
+	pageObj.generateForm  (formId, false);
+
+	pageObj.showComponent (formId);
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* createEditFormButtons																	*/
+/* ---------------------------------------------------------------------------------------- */
+function createEditFormButtons ()
+{
+	btn1	= {type			: "close",
+			   action		: "closeDialog()"}
+
+	btn2	= {type			: "update",
+			   action		: "submitForm()"}
+
+	btnsGroups = new Array ();
+
+	btnsGroups.push (new Array(btn1), new Array(btn2));
+
+	if (formButtonsId == -1)
+		formButtonsId = pageObj.addRowOfButtons 	 ();
+	pageObj.generateRowOfButtons (formButtonsId, btnsGroups, pageObj.getFormWidth(formId));
+
+	pageObj.showComponent (formButtonsId);
+
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* closeDialog																				*/
+/* ---------------------------------------------------------------------------------------- */
+function closeDialog ()
+{
+	parent.$("#itemOfCategory").dialog("close");
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* submitForm																				*/
+/* ---------------------------------------------------------------------------------------- */
+function submitForm ()
+{
+	if (!pageObj.validateForm(formId)) return false;
+	
+	serverObj.setXml (pageObj.getFormXml(formId));
+	serverObj.addTag ("categoryId", categoryId);
+
+	serverObj.sendRequest("categories." + "updateCategoryItem", undefined, "submitForm_continue");
+}
+
+function submitForm_continue (i)
+{
+	var responseXml = asyncResponseXml.getResponseXml (i);
+
+	if (responseXml != null)
+	{
+		parent.loadCategoryItems ();
+		closeDialog ();
+	}
+	return true;
+}
+
+//-->
+		
+</script>
+
+</head>
+
+<body onload="onLoad()" style="padding-right:20px;height:180px">
+</body>
+
+</html>
+
